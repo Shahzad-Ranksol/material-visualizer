@@ -1,0 +1,90 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Tenant {
+  id        String     @id @default(cuid())
+  name      String     @db.VarChar(191)
+  slug      String     @unique @db.VarChar(191)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  users          User[]
+  materials      Material[]
+  showcaseImages ShowcaseImage[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(191)
+  passwordHash String   @db.VarChar(191)
+  name         String?  @db.VarChar(191)
+  role         Role     @default(MEMBER)
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// tenantId null = shared/platform default catalog, visible to every tenant read-only
+model Material {
+  id                String   @id @default(cuid())
+  tenantId          String?
+  tenant            Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String   @db.VarChar(191)
+  category          String   @db.VarChar(64)
+  description       String   @db.Text
+  thumbnail         String   @db.VarChar(2048)
+  finishType        String   @db.VarChar(191)
+  colorTone         String   @db.VarChar(191)
+  renderOverlayTone String?  @db.VarChar(64)
+  tileScale         Float?
+  blendMode         String?  @db.VarChar(32)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([category])
+}
+
+model ShowcaseImage {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String    @db.VarChar(191)
+  imageUrl  String    @db.VarChar(2048)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  hotspots  Hotspot[]
+
+  @@index([tenantId])
+}
+
+// allowedCategories is comma-separated free text (e.g. "carpet,tile,wood"),
+// matching Material.category's existing free-text convention — no join table
+// needed for a per-hotspot set this small and never queried independently.
+model Hotspot {
+  id                String        @id @default(cuid())
+  showcaseImageId   String
+  showcaseImage     ShowcaseImage @relation(fields: [showcaseImageId], references: [id], onDelete: Cascade)
+  label             String        @db.VarChar(191)
+  xPct              Float
+  yPct              Float
+  allowedCategories String        @db.VarChar(255)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([showcaseImageId])
+}

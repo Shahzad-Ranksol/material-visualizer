@@ -1,0 +1,6 @@
+{
+  "name": "Material Visualizer",
+  "description": "An AI-powered interior design tool that allows users to upload a room image, detect items, and apply various materials and textures to selected elements using Gemini API for visual enhancements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
