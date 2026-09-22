@@ -4,6 +4,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { materialsRouter } from './routes/materials.routes.js';
 import { showcaseRouter } from './routes/showcase.routes.js';
 import { publicRouter } from './routes/public.routes.js';
+import { adminRouter } from './routes/admin.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 export const createApp = () => {
@@ -20,6 +21,7 @@ export const createApp = () => {
   app.use('/api/materials', materialsRouter);
   app.use('/api/showcase', showcaseRouter);
   app.use('/api/public', publicRouter);
+  app.use('/api/admin', adminRouter);
 
   app.use(errorHandler);
 

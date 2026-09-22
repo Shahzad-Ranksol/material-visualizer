@@ -33,6 +33,7 @@ import {
   NewHotspotInput,
   listShowcaseImages as apiListShowcaseImages,
   createShowcaseImage as apiCreateShowcaseImage,
+  updateShowcaseImage as apiUpdateShowcaseImage,
   deleteShowcaseImage as apiDeleteShowcaseImage,
   createHotspot as apiCreateHotspot,
   updateHotspot as apiUpdateHotspot,
@@ -104,6 +105,7 @@ const App: React.FC = () => {
   });
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [remoteMaterials, setRemoteMaterials] = useState<Material[] | null>(null);
   const [materialsError, setMaterialsError] = useState<string | null>(null);
   const [addMaterialLoading, setAddMaterialLoading] = useState<boolean>(false);
@@ -199,14 +201,15 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleRegister = useCallback(async (tenantName: string, email: string, password: string) => {
+  const handleRegister = useCallback(async (tenantName: string, email: string, password: string, materialCategory: string) => {
     setAuthLoading(true);
     setAuthError(null);
+    setAuthNotice(null);
     try {
-      const result = await apiRegister(tenantName, email, password);
-      setSession(result);
+      const result = await apiRegister(tenantName, email, password, materialCategory);
+      setAuthNotice(result.message);
     } catch (err) {
-      setAuthError(err instanceof ApiError ? err.message : 'Could not create your studio account.');
+      setAuthError(err instanceof ApiError ? err.message : 'Could not submit your studio application.');
     } finally {
       setAuthLoading(false);
     }
@@ -291,6 +294,20 @@ const App: React.FC = () => {
       setShowcaseImages((prev) => [created, ...(prev || [])]);
     } catch (err) {
       setAddImageError(err instanceof ApiError ? err.message : 'Could not add this image.');
+    } finally {
+      setAddImageLoading(false);
+    }
+  }, [session]);
+
+  const handleUpdateShowcaseImage = useCallback(async (imageId: string, input: NewShowcaseImageInput) => {
+    if (!session) return;
+    setAddImageLoading(true);
+    setAddImageError(null);
+    try {
+      const updated = await apiUpdateShowcaseImage(session.token, imageId, input);
+      setShowcaseImages((prev) => (prev ? prev.map((img) => (img.id === imageId ? updated : img)) : prev));
+    } catch (err) {
+      setAddImageError(err instanceof ApiError ? err.message : 'Could not save changes.');
     } finally {
       setAddImageLoading(false);
     }
@@ -700,9 +717,11 @@ const App: React.FC = () => {
               session={session}
               loading={authLoading}
               error={authError}
+              notice={authNotice}
               onLogin={handleLogin}
               onRegister={handleRegister}
               onLogout={handleLogout}
+              onDismissNotice={() => setAuthNotice(null)}
             />
 
             {session && (
@@ -743,7 +762,9 @@ const App: React.FC = () => {
                     Finishes Atelier
                   </h3>
                   <p className="text-[10px] text-slate-500">
-                    {session ? 'Your Catalog + Shared Defaults' : 'Architectural Textures & Swatches'}
+                    {session
+                      ? `Your ${session.tenant?.materialCategory ?? ''} Catalog + Shared Defaults`
+                      : 'Architectural Textures & Swatches'}
                   </p>
                 </div>
                 {selectedMaterial && (
@@ -764,11 +785,13 @@ const App: React.FC = () => {
                 currentTenantId={session?.user.tenantId ?? null}
                 onDeleteMaterial={session ? handleDeleteMaterial : undefined}
                 onEditMaterial={session ? setEditingMaterial : undefined}
+                lockedCategory={session?.tenant?.materialCategory ?? null}
               />
 
               {session && (
                 <div className="space-y-2">
                   <AddMaterialForm
+                    lockedCategory={session.tenant?.materialCategory ?? 'tile'}
                     loading={addMaterialLoading}
                     error={addMaterialError}
                     onSubmit={handleCreateMaterial}
@@ -843,6 +866,7 @@ const App: React.FC = () => {
         addImageLoading={addImageLoading}
         addImageError={addImageError}
         onAddImage={handleAddShowcaseImage}
+        onUpdateImage={handleUpdateShowcaseImage}
         onDeleteImage={handleDeleteShowcaseImage}
         hotspotLoading={hotspotLoading}
         hotspotError={hotspotError}

@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
 
-const findTenantBySlug = (slug: string) => prisma.tenant.findUnique({ where: { slug } });
+const findApprovedTenantBySlug = (slug: string) => prisma.tenant.findFirst({ where: { slug, status: 'APPROVED' } });
 
 export const getPublicTenant = async (req: Request, res: Response) => {
-  const tenant = await findTenantBySlug(req.params.slug);
+  const tenant = await findApprovedTenantBySlug(req.params.slug);
   if (!tenant) {
     res.status(404).json({ error: 'Storefront not found' });
     return;
@@ -13,7 +13,7 @@ export const getPublicTenant = async (req: Request, res: Response) => {
 };
 
 export const listPublicMaterials = async (req: Request, res: Response) => {
-  const tenant = await findTenantBySlug(req.params.slug);
+  const tenant = await findApprovedTenantBySlug(req.params.slug);
   if (!tenant) {
     res.status(404).json({ error: 'Storefront not found' });
     return;
@@ -28,7 +28,7 @@ export const listPublicMaterials = async (req: Request, res: Response) => {
 };
 
 export const listPublicShowcase = async (req: Request, res: Response) => {
-  const tenant = await findTenantBySlug(req.params.slug);
+  const tenant = await findApprovedTenantBySlug(req.params.slug);
   if (!tenant) {
     res.status(404).json({ error: 'Storefront not found' });
     return;

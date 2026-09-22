@@ -12,12 +12,20 @@ export interface AuthTenant {
   id: string;
   name: string;
   slug: string;
+  materialCategory: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface AuthSession {
   token: string;
   user: AuthUser;
   tenant?: AuthTenant;
+}
+
+export interface PendingRegistration {
+  status: 'PENDING';
+  message: string;
+  tenant: { id: string; name: string; slug: string; materialCategory: string; status: 'PENDING' };
 }
 
 export interface RemoteMaterial {
@@ -83,8 +91,16 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   return res.json();
 }
 
-export const register = (tenantName: string, email: string, password: string): Promise<AuthSession> =>
-  request('/api/auth/register', { method: 'POST', body: JSON.stringify({ tenantName, email, password }) });
+export const register = (
+  tenantName: string,
+  email: string,
+  password: string,
+  materialCategory: string
+): Promise<PendingRegistration> =>
+  request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ tenantName, email, password, materialCategory }),
+  });
 
 export const login = (email: string, password: string): Promise<AuthSession> =>
   request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
@@ -134,6 +150,12 @@ export const listShowcaseImages = (token: string): Promise<RemoteShowcaseImage[]
 export const createShowcaseImage = (token: string, data: NewShowcaseImageInput): Promise<RemoteShowcaseImage> =>
   request('/api/showcase/images', { method: 'POST', body: JSON.stringify(data) }, token);
 
+export const updateShowcaseImage = (
+  token: string,
+  id: string,
+  data: Partial<NewShowcaseImageInput>
+): Promise<RemoteShowcaseImage> => request(`/api/showcase/images/${id}`, { method: 'PUT', body: JSON.stringify(data) }, token);
+
 export const deleteShowcaseImage = (token: string, id: string): Promise<void> =>
   request(`/api/showcase/images/${id}`, { method: 'DELETE' }, token);
 
@@ -155,3 +177,33 @@ export const listPublicMaterials = (slug: string): Promise<RemoteMaterial[]> =>
 
 export const listPublicShowcase = (slug: string): Promise<RemoteShowcaseImage[]> =>
   request(`/api/public/tenants/${slug}/showcase`);
+
+// Platform admin domain — structurally separate session from AuthSession,
+// persisted under its own localStorage key so it never cross-contaminates
+// with a signed-in vendor session.
+export interface AdminSession {
+  token: string;
+  admin: { id: string; email: string; name: string | null };
+}
+
+export interface AdminTenant {
+  id: string;
+  name: string;
+  slug: string;
+  materialCategory: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+  ownerEmail: string | null;
+}
+
+export const adminLogin = (email: string, password: string): Promise<AdminSession> =>
+  request('/api/admin/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+
+export const listTenants = (token: string, status?: 'PENDING' | 'APPROVED' | 'REJECTED'): Promise<AdminTenant[]> =>
+  request(`/api/admin/tenants${status ? `?status=${status}` : ''}`, {}, token);
+
+export const approveTenant = (token: string, id: string): Promise<AdminTenant> =>
+  request(`/api/admin/tenants/${id}/approve`, { method: 'POST' }, token);
+
+export const rejectTenant = (token: string, id: string): Promise<AdminTenant> =>
+  request(`/api/admin/tenants/${id}/reject`, { method: 'POST' }, token);

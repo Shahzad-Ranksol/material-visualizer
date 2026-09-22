@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import {
   listShowcaseImages,
   createShowcaseImage,
+  updateShowcaseImage,
   deleteShowcaseImage,
   createHotspot,
   updateHotspot,
@@ -14,6 +15,7 @@ export const showcaseRouter = Router();
 showcaseRouter.use(requireAuth);
 showcaseRouter.get('/images', listShowcaseImages);
 showcaseRouter.post('/images', createShowcaseImage);
+showcaseRouter.put('/images/:id', updateShowcaseImage);
 showcaseRouter.delete('/images/:id', deleteShowcaseImage);
 showcaseRouter.post('/images/:imageId/hotspots', createHotspot);
 showcaseRouter.put('/hotspots/:id', updateHotspot);

@@ -1,10 +1,19 @@
 import jwt from 'jsonwebtoken';
 
-export interface JwtPayload {
+export interface TenantJwtPayload {
+  kind: 'tenant';
   userId: string;
   tenantId: string;
   role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  materialCategory: string;
 }
+
+export interface AdminJwtPayload {
+  kind: 'admin';
+  adminId: string;
+}
+
+export type JwtPayload = TenantJwtPayload | AdminJwtPayload;
 
 const getSecret = (): string => {
   const secret = process.env.JWT_SECRET;
@@ -21,3 +30,6 @@ export const signToken = (payload: JwtPayload): string => {
 export const verifyToken = (token: string): JwtPayload => {
   return jwt.verify(token, getSecret()) as JwtPayload;
 };
+
+export const isTenantPayload = (payload: JwtPayload): payload is TenantJwtPayload => payload.kind === 'tenant';
+export const isAdminPayload = (payload: JwtPayload): payload is AdminJwtPayload => payload.kind === 'admin';

@@ -2,34 +2,32 @@ import React, { useState } from 'react';
 import { Plus, X, Loader2, AlertCircle } from 'lucide-react';
 import { NewMaterialInput } from '../services/apiClient';
 
-const CATEGORY_OPTIONS = ['tile', 'sheet', 'carpet', 'wallpaper', 'paint', 'stone', 'wood', 'plaster', 'metal', 'fabric'];
-
 interface AddMaterialFormProps {
+  lockedCategory: string;
   loading: boolean;
   error: string | null;
   onSubmit: (input: NewMaterialInput) => Promise<boolean>;
 }
 
-const emptyForm: NewMaterialInput = {
-  name: '',
-  category: 'tile',
-  description: '',
-  thumbnail: '',
-  finishType: '',
-  colorTone: '',
-};
-
-export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ loading, error, onSubmit }) => {
+export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory, loading, error, onSubmit }) => {
   const [open, setOpen] = useState(false);
+  const emptyForm: NewMaterialInput = {
+    name: '',
+    category: lockedCategory,
+    description: '',
+    thumbnail: '',
+    finishType: '',
+    colorTone: '',
+  };
   const [form, setForm] = useState<NewMaterialInput>(emptyForm);
 
   const update = (field: keyof NewMaterialInput) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await onSubmit(form);
+    const success = await onSubmit({ ...form, category: lockedCategory });
     if (success) {
       setForm(emptyForm);
       setOpen(false);
@@ -67,17 +65,9 @@ export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ loading, error
         className="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
       />
 
-      <select
-        value={form.category}
-        onChange={update('category')}
-        className="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
-      >
-        {CATEGORY_OPTIONS.map((cat) => (
-          <option key={cat} value={cat}>
-            {cat}
-          </option>
-        ))}
-      </select>
+      <p className="text-[11px] text-slate-400">
+        Category: <span className="text-amber-300 font-medium">{lockedCategory}</span>
+      </p>
 
       <input
         type="url"

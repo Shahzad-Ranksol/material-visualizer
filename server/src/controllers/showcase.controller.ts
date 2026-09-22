@@ -59,6 +59,27 @@ const loadOwnedShowcaseImage = async (id: string, tenantId: string): Promise<Own
   return { image };
 };
 
+export const updateShowcaseImage = async (req: Request, res: Response) => {
+  const result = await loadOwnedShowcaseImage(req.params.id, req.user!.tenantId);
+  if ('error' in result) {
+    res.status(result.error).json({ error: result.error === 404 ? 'Not found' : 'Forbidden' });
+    return;
+  }
+
+  const parsed = imageSchema.partial().safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const updated = await prisma.showcaseImage.update({
+    where: { id: req.params.id },
+    data: parsed.data,
+    include: { hotspots: true },
+  });
+  res.json(serializeImage(updated));
+};
+
 export const deleteShowcaseImage = async (req: Request, res: Response) => {
   const result = await loadOwnedShowcaseImage(req.params.id, req.user!.tenantId);
   if ('error' in result) {

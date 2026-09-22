@@ -13,15 +13,37 @@ enum Role {
   MEMBER
 }
 
+enum TenantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Fully standalone from Tenant/User: a platform admin doesn't belong to any
+// tenant, and reusing User with a flag would collide with the existing
+// tenant-level Role.ADMIN value.
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(191)
+  passwordHash String   @db.VarChar(191)
+  name         String?  @db.VarChar(191)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 model Tenant {
-  id        String     @id @default(cuid())
-  name      String     @db.VarChar(191)
-  slug      String     @unique @db.VarChar(191)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id               String       @id @default(cuid())
+  name             String       @db.VarChar(191)
+  slug             String       @unique @db.VarChar(191)
+  materialCategory String       @db.VarChar(64)
+  status           TenantStatus @default(PENDING)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   users          User[]
   materials      Material[]
   showcaseImages ShowcaseImage[]
+
+  @@index([status])
 }
 
 model User {

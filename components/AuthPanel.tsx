@@ -1,35 +1,41 @@
 import React, { useState } from 'react';
 import { AuthSession } from '../services/apiClient';
-import { Building2, LogOut, Loader2, AlertCircle } from 'lucide-react';
+import { MATERIAL_CATEGORIES } from '../constants';
+import { Building2, LogOut, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface AuthPanelProps {
   session: AuthSession | null;
   loading: boolean;
   error: string | null;
+  notice: string | null;
   onLogin: (email: string, password: string) => void;
-  onRegister: (tenantName: string, email: string, password: string) => void;
+  onRegister: (tenantName: string, email: string, password: string, materialCategory: string) => void;
   onLogout: () => void;
+  onDismissNotice: () => void;
 }
 
 export const AuthPanel: React.FC<AuthPanelProps> = ({
   session,
   loading,
   error,
+  notice,
   onLogin,
   onRegister,
   onLogout,
+  onDismissNotice,
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [tenantName, setTenantName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [materialCategory, setMaterialCategory] = useState<string>(MATERIAL_CATEGORIES[0]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'login') {
       onLogin(email, password);
     } else {
-      onRegister(tenantName, email, password);
+      onRegister(tenantName, email, password, materialCategory);
     }
   };
 
@@ -54,6 +60,24 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
         >
           <LogOut className="w-3.5 h-3.5" />
           Sign Out
+        </button>
+      </section>
+    );
+  }
+
+  if (notice) {
+    return (
+      <section className="p-5 rounded-2xl bg-[#12141c] border border-white/[0.08] shadow-xl space-y-3">
+        <div className="flex items-start gap-2.5 text-emerald-300">
+          <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+          <p className="text-xs leading-relaxed">{notice}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismissNotice}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors"
+        >
+          Back to Sign In
         </button>
       </section>
     );
@@ -84,14 +108,30 @@ export const AuthPanel: React.FC<AuthPanelProps> = ({
 
       <form onSubmit={handleSubmit} className="space-y-2">
         {mode === 'register' && (
-          <input
-            type="text"
-            value={tenantName}
-            onChange={(e) => setTenantName(e.target.value)}
-            placeholder="Studio / company name"
-            required
-            className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
-          />
+          <>
+            <input
+              type="text"
+              value={tenantName}
+              onChange={(e) => setTenantName(e.target.value)}
+              placeholder="Studio / company name"
+              required
+              className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
+            />
+            <select
+              value={materialCategory}
+              onChange={(e) => setMaterialCategory(e.target.value)}
+              className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-400 transition-colors"
+            >
+              {MATERIAL_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-500 -mt-1">
+              Your studio's catalog will be scoped to this one material type.
+            </p>
+          </>
         )}
         <input
           type="email"

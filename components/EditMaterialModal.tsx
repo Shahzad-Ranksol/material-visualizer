@@ -3,8 +3,6 @@ import { X, Pencil, Loader2, AlertCircle } from 'lucide-react';
 import { Material } from '../types';
 import { NewMaterialInput } from '../services/apiClient';
 
-const CATEGORY_OPTIONS = ['tile', 'sheet', 'carpet', 'wallpaper', 'paint', 'stone', 'wood', 'plaster', 'metal', 'fabric'];
-
 interface EditMaterialModalProps {
   material: Material | null;
   loading: boolean;
@@ -40,7 +38,7 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
   if (!material || !form) return null;
 
   const update = (field: keyof NewMaterialInput) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => setForm((prev) => (prev ? { ...prev, [field]: e.target.value } : prev));
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,17 +73,9 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
             className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
 
-          <select
-            value={form.category}
-            onChange={update('category')}
-            className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-amber-400 transition-colors"
-          >
-            {CATEGORY_OPTIONS.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          <p className="text-[11px] text-slate-400">
+            Category: <span className="text-amber-300 font-medium">{form.category}</span>
+          </p>
 
           <input
             type="url"

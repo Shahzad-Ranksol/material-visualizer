@@ -1,9 +1,10 @@
-import type { JwtPayload } from '../lib/jwt.js';
+import type { TenantJwtPayload, AdminJwtPayload } from '../lib/jwt.js';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: TenantJwtPayload;
+      admin?: AdminJwtPayload;
     }
   }
 }

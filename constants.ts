@@ -1,5 +1,18 @@
 // constants.ts
-import { RoomType, Material, CuratedRoom } from './types';
+import { RoomType, Material, CuratedRoom, MaterialCategory } from './types';
+
+export const MATERIAL_CATEGORIES: Exclude<MaterialCategory, 'all'>[] = [
+  'tile',
+  'sheet',
+  'carpet',
+  'wallpaper',
+  'paint',
+  'stone',
+  'wood',
+  'plaster',
+  'metal',
+  'fabric',
+];
 
 export const ROOM_TYPES: RoomType[] = [
   'Living Room',

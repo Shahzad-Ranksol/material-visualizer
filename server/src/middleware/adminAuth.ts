@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
-import { verifyToken, isTenantPayload } from '../lib/jwt.js';
+import { verifyToken, isAdminPayload } from '../lib/jwt.js';
 
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdminAuth = (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -12,11 +12,11 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
   try {
     const payload = verifyToken(token);
-    if (!isTenantPayload(payload)) {
+    if (!isAdminPayload(payload)) {
       res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
-    req.user = payload;
+    req.admin = payload;
     next();
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });

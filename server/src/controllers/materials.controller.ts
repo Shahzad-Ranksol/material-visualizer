@@ -20,6 +20,7 @@ export const listMaterials = async (req: Request, res: Response) => {
     where: {
       AND: [
         { OR: [{ tenantId: req.user!.tenantId }, { tenantId: null }] },
+        { category: req.user!.materialCategory },
         category ? { category: String(category) } : {},
       ],
     },
@@ -32,6 +33,10 @@ export const createMaterial = async (req: Request, res: Response) => {
   const parsed = materialSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  if (parsed.data.category !== req.user!.materialCategory) {
+    res.status(400).json({ error: `Category must be '${req.user!.materialCategory}' for this tenant.` });
     return;
   }
   const material = await prisma.material.create({
@@ -65,6 +70,10 @@ export const updateMaterial = async (req: Request, res: Response) => {
   const parsed = materialSchema.partial().safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+  if (parsed.data.category && parsed.data.category !== req.user!.materialCategory) {
+    res.status(400).json({ error: `Category must be '${req.user!.materialCategory}' for this tenant.` });
     return;
   }
 

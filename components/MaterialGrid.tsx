@@ -9,6 +9,7 @@ interface MaterialGridProps {
   currentTenantId?: string | null;
   onDeleteMaterial?: (materialId: string) => void;
   onEditMaterial?: (material: Material) => void;
+  lockedCategory?: string | null;
 }
 
 export const MaterialGrid: React.FC<MaterialGridProps> = ({
@@ -18,6 +19,7 @@ export const MaterialGrid: React.FC<MaterialGridProps> = ({
   currentTenantId,
   onDeleteMaterial,
   onEditMaterial,
+  lockedCategory,
 }) => {
   const [activeCategory, setActiveCategory] = useState<MaterialCategory>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -38,7 +40,9 @@ export const MaterialGrid: React.FC<MaterialGridProps> = ({
 
   const filteredMaterials = useMemo(() => {
     return materials.filter((mat) => {
-      const matchesCategory = activeCategory === 'all' || mat.category === activeCategory;
+      const matchesCategory = lockedCategory
+        ? mat.category === lockedCategory
+        : activeCategory === 'all' || mat.category === activeCategory;
       const matchesSearch =
         searchQuery.trim() === '' ||
         mat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -46,28 +50,31 @@ export const MaterialGrid: React.FC<MaterialGridProps> = ({
         mat.finishType.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
-  }, [materials, activeCategory, searchQuery]);
+  }, [materials, activeCategory, searchQuery, lockedCategory]);
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* Category Filter Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            id={`filter-cat-${cat.id}`}
-            onClick={() => setActiveCategory(cat.id)}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
-              activeCategory === cat.id
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'bg-white/[0.03] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] border border-transparent'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
+      {/* Category Filter Pills — hidden when the tenant is locked to a single category,
+          since a lone un-deselectable pill would be pure clutter */}
+      {!lockedCategory && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              id={`filter-cat-${cat.id}`}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                activeCategory === cat.id
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'bg-white/[0.03] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] border border-transparent'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Search Input */}
       <div className="relative">

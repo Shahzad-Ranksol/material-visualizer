@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { X, MapPin, Trash2, Loader2, AlertCircle, Plus } from 'lucide-react';
+import { X, MapPin, Trash2, Loader2, AlertCircle, Plus, Pencil } from 'lucide-react';
 import { RemoteShowcaseImage, RemoteHotspot, NewShowcaseImageInput, NewHotspotInput } from '../services/apiClient';
 import { HotspotImage, HotspotViewModel } from './HotspotImage';
-
-const CATEGORY_OPTIONS = ['tile', 'sheet', 'carpet', 'wallpaper', 'paint', 'stone', 'wood', 'plaster', 'metal', 'fabric'];
+import { MATERIAL_CATEGORIES, CURATED_ROOMS } from '../constants';
 
 type PendingForm =
   | { mode: 'create'; xPct: number; yPct: number }
@@ -19,6 +18,7 @@ interface ShowcaseEditorModalProps {
   addImageLoading: boolean;
   addImageError: string | null;
   onAddImage: (input: NewShowcaseImageInput) => void;
+  onUpdateImage: (id: string, input: NewShowcaseImageInput) => void;
   onDeleteImage: (id: string) => void;
   hotspotLoading: boolean;
   hotspotError: string | null;
@@ -36,6 +36,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   addImageLoading,
   addImageError,
   onAddImage,
+  onUpdateImage,
   onDeleteImage,
   hotspotLoading,
   hotspotError,
@@ -46,6 +47,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [newImageName, setNewImageName] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [editingImageId, setEditingImageId] = useState<string | null>(null);
   const [pendingForm, setPendingForm] = useState<PendingForm>(null);
   const [formLabel, setFormLabel] = useState('');
   const [formCategories, setFormCategories] = useState<Set<string>>(new Set());
@@ -54,10 +56,27 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
 
   const selectedImage = images?.find((img) => img.id === selectedImageId) || null;
 
-  const handleAddImage = (e: React.FormEvent) => {
+  const startEditImage = (img: RemoteShowcaseImage) => {
+    setEditingImageId(img.id);
+    setNewImageName(img.name);
+    setNewImageUrl(img.imageUrl);
+  };
+
+  const cancelEditImage = () => {
+    setEditingImageId(null);
+    setNewImageName('');
+    setNewImageUrl('');
+  };
+
+  const handleSubmitImageForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newImageName.trim() || !newImageUrl.trim()) return;
-    onAddImage({ name: newImageName.trim(), imageUrl: newImageUrl.trim() });
+    if (editingImageId) {
+      onUpdateImage(editingImageId, { name: newImageName.trim(), imageUrl: newImageUrl.trim() });
+    } else {
+      onAddImage({ name: newImageName.trim(), imageUrl: newImageUrl.trim() });
+    }
+    setEditingImageId(null);
     setNewImageName('');
     setNewImageUrl('');
   };
@@ -160,18 +179,33 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                     <p className="text-xs font-medium text-slate-200 truncate">{img.name}</p>
                     <p className="text-[10px] text-slate-500">{img.hotspots.length} hotspot{img.hotspots.length === 1 ? '' : 's'}</p>
                   </div>
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    title="Delete image"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (selectedImageId === img.id) setSelectedImageId(null);
-                      onDeleteImage(img.id);
-                    }}
-                    className="w-6 h-6 rounded-full bg-black/40 hover:bg-rose-500/80 flex items-center justify-center text-slate-400 hover:text-white transition-colors shrink-0"
-                  >
-                    <Trash2 className="w-3 h-3" />
+                  <span className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      title="Edit image"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditImage(img);
+                      }}
+                      className="w-6 h-6 rounded-full bg-black/40 hover:bg-amber-500/80 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-colors"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      title="Delete image"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectedImageId === img.id) setSelectedImageId(null);
+                        if (editingImageId === img.id) cancelEditImage();
+                        onDeleteImage(img.id);
+                      }}
+                      className="w-6 h-6 rounded-full bg-black/40 hover:bg-rose-500/80 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </span>
                   </span>
                 </button>
               ))}
@@ -180,7 +214,36 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
               )}
             </div>
 
-            <form onSubmit={handleAddImage} className="p-3 rounded-xl bg-[#0d0e14] border border-white/[0.08] space-y-2">
+            <div className="space-y-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Or pick a template room</span>
+              <div className="grid grid-cols-3 gap-2">
+                {CURATED_ROOMS.map((room) => (
+                  <button
+                    key={room.id}
+                    type="button"
+                    onClick={() => onAddImage({ name: room.title, imageUrl: room.fullImage })}
+                    disabled={addImageLoading}
+                    title={`Add "${room.title}"`}
+                    className="group relative rounded-lg overflow-hidden border border-white/[0.08] hover:border-amber-400/60 aspect-square disabled:opacity-50 transition-colors"
+                  >
+                    <img src={room.thumbnail} alt={room.title} className="w-full h-full object-cover" />
+                    <span className="absolute inset-x-0 bottom-0 bg-black/70 text-[9px] text-slate-200 px-1 py-0.5 truncate">
+                      {room.title}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form
+              onSubmit={handleSubmitImageForm}
+              className={`p-3 rounded-xl bg-[#0d0e14] border space-y-2 ${
+                editingImageId ? 'border-amber-500/30' : 'border-white/[0.08]'
+              }`}
+            >
+              {editingImageId && (
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">Editing Image</span>
+              )}
               <input
                 type="text"
                 value={newImageName}
@@ -201,15 +264,26 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                   <span>{addImageError}</span>
                 </div>
               )}
-              <button
-                type="submit"
-                disabled={addImageLoading}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold disabled:opacity-60 transition-colors"
-              >
-                {addImageLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <Plus className="w-3.5 h-3.5" />
-                Add Image
-              </button>
+              <div className="flex items-center gap-2">
+                {editingImageId && (
+                  <button
+                    type="button"
+                    onClick={cancelEditImage}
+                    className="flex-1 px-3 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={addImageLoading}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-semibold disabled:opacity-60 transition-colors"
+                >
+                  {addImageLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {!editingImageId && <Plus className="w-3.5 h-3.5" />}
+                  {editingImageId ? 'Save Changes' : 'Add Image'}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -268,7 +342,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                       Include a word like floor, wall, island, cabinet, table, or desk so the render targets the right area.
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {CATEGORY_OPTIONS.map((cat) => (
+                      {MATERIAL_CATEGORIES.map((cat) => (
                         <button
                           key={cat}
                           type="button"
