@@ -12,12 +12,14 @@ import {
   bbox,
   boundaryEdgeAgreement,
   connectedComponents,
+  connectedTo,
   dilate,
   erode,
   floodRegion,
   guidedFilter,
   interiorPoints,
   iou,
+  largeComponents,
   refineBandByColor,
   growAcrossContinuousColour,
   removeSkirting,
@@ -44,6 +46,11 @@ const STRUCTURAL_CORE_PX = 6;
 const MATTING_BAND_FRACTION = 0.025;
 // Must exceed the band, so every band pixel sees reference colours from the surface interior
 const MATTING_WINDOW_FRACTION = 0.035;
+// SAM pieces at least this share of the photo are the surface's body; smaller ones are specks
+// (often inside same-coloured objects, like a picture's white mat) that must not seed growth
+const MIN_BODY_FRACTION = 0.0005;
+// A band connection narrower than about twice this (fraction of long side) is a bridge, not wall
+const BRIDGE_FRACTION = 0.002;
 // Surfaces smaller than this (% of the photo) aren't proposed automatically
 const MIN_PROPOSAL_AREA_PCT = 2;
 // Edge refinement (guided filter) settings
@@ -298,7 +305,16 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   // Object outlines in the class map spill onto the wall, and those wall-coloured references
   // stop the band from reclaiming it (white blobs beside mirrors and windows). Real wall joins
   // the surface with no visible edge, so grow into it across continuous colour.
-  surface = growAcrossContinuousColour(surface, room.image.data, room.image.channels, w, h, Math.round(long * MATTING_BAND_FRACTION), (i) => !excluded(i));
+  // Only the body may reclaim and grow: SAM's large pieces and the band pixels joined to them.
+  // SAM leaves specks inside same-coloured objects, and the band reclaims more beyond their
+  // frame lines; grown from, each would flood a picture's white mat. SAM's own specks stay put.
+  // Connectivity is judged a few pixels in, so a thin bridge across a frame line doesn't count.
+  const bridgePx = Math.max(1, Math.round(long * BRIDGE_FRACTION));
+  const bodyCore = connectedTo(erode(surface, w, h, bridgePx), largeComponents(samMask, w, h, Math.round(w * h * MIN_BODY_FRACTION)), w, h);
+  const reach = dilate(bodyCore, w, h, bridgePx);
+  const body = Uint8Array.from(surface, (v, i) => (v && reach[i] ? 1 : 0));
+  surface = growAcrossContinuousColour(body, room.image.data, room.image.channels, w, h, Math.round(long * MATTING_BAND_FRACTION), (i) => !excluded(i));
+  for (let i = 0; i < surface.length; i++) if (samMask[i]) surface[i] = 1;
   for (let i = 0; i < occluder.length; i++) if (surface[i]) occluder[i] = 0;
   if (label === 'wall') removeSkirting(surface, gray, w, h);
 

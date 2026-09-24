@@ -107,6 +107,33 @@ export const connectedComponents = (mask: Uint8Array, w: number, h: number): num
   return comps.sort((a, b) => b.length - a.length);
 };
 
+/** The mask pixels reachable from `seeds` through the mask (4-connected); seeds outside the mask are ignored. */
+export const connectedTo = (mask: Uint8Array, seeds: Uint8Array, w: number, h: number): Uint8Array => {
+  const n = w * h;
+  const out = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let tail = 0;
+  for (let i = 0; i < n; i++) if (mask[i] && seeds[i]) (out[i] = 1), (queue[tail++] = i);
+  for (let head = 0; head < tail; head++) {
+    const i = queue[head];
+    const x = i % w;
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i >= w ? i - w : -1, i < n - w ? i + w : -1]) {
+      if (j >= 0 && mask[j] && !out[j]) (out[j] = 1), (queue[tail++] = j);
+    }
+  }
+  return out;
+};
+
+/** The mask's connected components (4-connected) of at least `minPx` pixels. */
+export const largeComponents = (mask: Uint8Array, w: number, h: number, minPx: number): Uint8Array => {
+  const out = new Uint8Array(w * h);
+  for (const comp of connectedComponents(mask, w, h)) {
+    if (comp.length < minPx) break; // sorted largest first
+    for (const i of comp) out[i] = 1;
+  }
+  return out;
+};
+
 export const bbox = (mask: Uint8Array, w: number) => {
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let i = 0; i < mask.length; i++) {
@@ -411,7 +438,9 @@ export const refineBandByColor = (
       Math.hypot(...[0, 1, 2].map((c) => feat[c][i] - m.sums[c][i] / m.cnt[i]));
     const dFg = dist(fg);
     const isSurface = bg.cnt[i] > 0 ? dFg < dist(bg) * 0.9 : dFg < LONE_MATCH;
-    if (isSurface && reclaimable(i)) out[i] = 1;
+    // Adding also needs the surface's own colour, not just nearer it than the references: with
+    // only foliage near, a dark picture-frame line is "closer to the wall" than to green
+    if (isSurface && dFg < LONE_MATCH && reclaimable(i)) out[i] = 1;
     else if (!isSurface && surface[i] && bg.cnt[i] > 0) out[i] = 0;
   }
   return out;

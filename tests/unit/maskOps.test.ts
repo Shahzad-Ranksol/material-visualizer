@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectedComponents, guidedFilter, iou, refineBandByColor, removeSkirting, upscaleMaskLogits } from '../../services/analysis/maskOps';
+import { connectedComponents, connectedTo, guidedFilter, iou, largeComponents, refineBandByColor, removeSkirting, upscaleMaskLogits } from '../../services/analysis/maskOps';
 
 const W = 60;
 const H = 40;
@@ -46,6 +46,23 @@ describe('mask operations', () => {
     expect(locked[20 * W + 37]).toBe(0); // not reclaimable -> untouched
   });
 
+  it("doesn't reclaim a dark frame line just because it's nearer the wall than the foliage", () => {
+    const rgb = new Uint8Array(W * H * 3);
+    for (let i = 0; i < W * H; i++) {
+      const x = i % W;
+      // wall | dark picture-frame line (x 35-37) | plant
+      rgb.set(x >= 40 && x < 50 ? [30, 120, 40] : x >= 35 && x < 38 ? [40, 38, 36] : [220, 210, 190], i * 3);
+    }
+    const sam = rect(0, 0, 33, H);
+    const refined = refineBandByColor(sam, rect(40, 0, 50, H), rgb, 3, W, H, 10, 12, (i) => i % W < 55);
+    expect(refined[20 * W + 34]).toBe(1); // wall before the frame: reclaimed
+    expect(refined[20 * W + 36]).toBe(0); // the frame line: never
+    // Wall in shade (half as bright) still matches
+    for (let i = 0; i < W * H; i++) if (i % W >= 35 && i % W < 38) rgb.set([110, 105, 95], i * 3);
+    const shaded = refineBandByColor(sam, rect(40, 0, 50, H), rgb, 3, W, H, 10, 12, (i) => i % W < 55);
+    expect(shaded[20 * W + 36]).toBe(1);
+  });
+
   it('removes a skirting band below its top edge', () => {
     const w = 200;
     const h = 200;
@@ -86,5 +103,28 @@ describe('upscaleMaskLogits', () => {
     expect(Array.from(upscaleMaskLogits(logits, [1, 2], [1, 4], [1, 4])[0])).toEqual([1, 1, 0, 0]);
     // Treating the whole grid as the image would squash it: only the first pixel stays on
     expect(Array.from(upscaleMaskLogits(logits, [1, 4], [1, 4], [1, 4])[0])).toEqual([1, 0, 0, 0]);
+  });
+});
+
+describe('connectedTo', () => {
+  it('keeps the mask pixels reachable from the seeds and drops islands', () => {
+    // 6x1: [1 1 0 1 1 0], seed at 0 -> only the first run survives
+    const mask = Uint8Array.from([1, 1, 0, 1, 1, 0]);
+    const seeds = Uint8Array.from([1, 0, 0, 0, 0, 0]);
+    expect(Array.from(connectedTo(mask, seeds, 6, 1))).toEqual([1, 1, 0, 0, 0, 0]);
+  });
+
+  it('connects through 4-neighbours only, not diagonals', () => {
+    // 2x2 diagonal: seed top-left, other pixel bottom-right
+    const mask = Uint8Array.from([1, 0, 0, 1]);
+    expect(Array.from(connectedTo(mask, Uint8Array.from([1, 0, 0, 0]), 2, 2))).toEqual([1, 0, 0, 0]);
+  });
+});
+
+describe('largeComponents', () => {
+  it('keeps only components of at least minPx pixels', () => {
+    // 5x2: a 4-px block on the left, a lone pixel on the right
+    const mask = Uint8Array.from([1, 1, 0, 0, 1, 1, 1, 0, 0, 0]);
+    expect(Array.from(largeComponents(mask, 5, 2, 3))).toEqual([1, 1, 0, 0, 0, 1, 1, 0, 0, 0]);
   });
 });
