@@ -71,12 +71,23 @@ const dilateDisc = (mask: AlphaMask, r: number): AlphaMask => {
   return out;
 };
 
-/** Adds or subtracts another mask (subtract first widens it by `dilatePx`). Returns a new mask. */
+/**
+ * Adds or subtracts another mask. Returns a new mask. Subtract first widens `other` by
+ * `dilatePx` (binary), then removes fully wherever the subtracted mask is at least half on
+ * (alpha >= 128) and scales the area down by its soft alpha below that — so a soft-edged object
+ * is removed the same way with or without dilation (a dilated mask is 0/255, where both rules
+ * agree).
+ */
 export const combine = (mask: AlphaMask, other: AlphaMask, mode: 'add' | 'subtract', dilatePx: number): AlphaMask => {
-  const o = mode === 'subtract' ? dilateDisc(other, dilatePx) : other;
   const out = cloneMask(mask);
+  if (mode === 'add') {
+    for (let i = 0; i < out.alpha.length; i++) out.alpha[i] = Math.max(mask.alpha[i], other.alpha[i]);
+    return out;
+  }
+  const o = dilateDisc(other, dilatePx);
   for (let i = 0; i < out.alpha.length; i++) {
-    out.alpha[i] = mode === 'add' ? Math.max(mask.alpha[i], o.alpha[i]) : Math.min(mask.alpha[i], 255 - o.alpha[i]);
+    const s = o.alpha[i];
+    out.alpha[i] = s >= 128 ? 0 : Math.round((mask.alpha[i] * (255 - s)) / 255);
   }
   return out;
 };
@@ -155,11 +166,51 @@ export const isUsableObjectMask = (mask: AlphaMask): boolean => {
 };
 
 /**
+ * For every pixel, the index of the nearest source part (4-connected multi-source BFS, one
+ * O(w*h) pass). A part's own pixels (alpha > 0) are its sources; where parts overlap, the one
+ * with the higher alpha (then the lower index) owns the pixel. -1 where no source is reachable.
+ */
+const nearestPartLabels = (parts: AlphaMask[], sources: number[], w: number, h: number): Int32Array => {
+  const n = w * h;
+  const label = new Int32Array(n).fill(-1);
+  const queue = new Int32Array(n);
+  let tail = 0;
+  for (let i = 0; i < n; i++) {
+    let best = -1;
+    let bestAlpha = 0;
+    for (const k of sources) {
+      const a = parts[k].alpha[i];
+      if (a > bestAlpha) {
+        bestAlpha = a;
+        best = k;
+      }
+    }
+    if (best >= 0) {
+      label[i] = best;
+      queue[tail++] = i;
+    }
+  }
+  for (let head = 0; head < tail; head++) {
+    const i = queue[head];
+    const x = i % w;
+    const k = label[i];
+    if (x > 0 && label[i - 1] < 0) (label[i - 1] = k), (queue[tail++] = i - 1);
+    if (x < w - 1 && label[i + 1] < 0) (label[i + 1] = k), (queue[tail++] = i + 1);
+    if (i >= w && label[i - w] < 0) (label[i - w] = k), (queue[tail++] = i - w);
+    if (i < n - w && label[i + w] < 0) (label[i + w] = k), (queue[tail++] = i + w);
+  }
+  return label;
+};
+
+/**
  * Re-derives each part after the combined area was edited: a part keeps only what is still in
- * the edited area, and pixels in no part (newly added) go to the first part they can keep alive.
- * Parts left with fewer than `minPixels` covered pixels are dropped (the renderer would refuse
- * them, failing the whole room), so the first surviving part becomes the new part 0. Returns
- * the surviving parts' original indices with their new masks, in order. All masks share a size.
+ * the edited area, and pixels in no part (newly added) go to the part whose original mask is
+ * nearest (with one part, straight to it). Parts left with fewer than `minPixels` covered pixels
+ * are dropped (the renderer would refuse them, failing the whole room), so the first surviving
+ * part becomes the new part 0; added pixels nearest a dropped part go to the nearest surviving
+ * one. If the nearest split keeps no part alive, all added pixels go to the first part they can
+ * keep alive. Returns the surviving parts' original indices with their new masks, in order. All
+ * masks share a size.
  */
 export const splitEditsIntoParts = (
   parts: AlphaMask[],
@@ -193,16 +244,40 @@ export const splitEditsIntoParts = (
   };
   const counts = retained.map(covered);
   const added = covered(unclaimed);
-  const owner = added ? counts.findIndex((c) => c + added >= minPixels) : -1;
-  const kept: Array<{ index: number; mask: AlphaMask }> = [];
-  parts.forEach((_, k) => {
-    if (k === owner) {
-      const a = retained[k];
-      for (let i = 0; i < n; i++) if (unclaimed[i] > a[i]) a[i] = unclaimed[i];
-    } else if (counts[k] < minPixels) return;
-    kept.push({ index: k, mask: { width: edited.width, height: edited.height, alpha: retained[k] } });
-  });
-  return kept;
+  const mergeInto = (k: number, pick: (i: number) => boolean) => {
+    const a = retained[k];
+    for (let i = 0; i < n; i++) if (unclaimed[i] > a[i] && pick(i)) a[i] = unclaimed[i];
+  };
+
+  // Which parts survive, with the added pixels merged into them
+  let survivors: number[];
+  if (!added) {
+    survivors = parts.map((_, k) => k).filter((k) => counts[k] >= minPixels);
+  } else if (parts.length === 1) {
+    // Fast path: one part takes everything (or is dropped)
+    survivors = counts[0] + added >= minPixels ? [0] : [];
+    if (survivors.length) mergeInto(0, () => true);
+  } else {
+    const { width: w, height: h } = edited;
+    const all = parts.map((_, k) => k);
+    let label = nearestPartLabels(parts, all, w, h);
+    const addedTo = new Array<number>(parts.length).fill(0);
+    for (let i = 0; i < n; i++) if (unclaimed[i] > 127 && label[i] >= 0) addedTo[label[i]]++;
+    // Decided once from the first-pass shares: with 3+ parts, a part that would only survive on a
+    // dropped neighbour's share is still dropped (rare, and it never loses pixels the user kept)
+    survivors = all.filter((k) => counts[k] + addedTo[k] >= minPixels);
+    if (!survivors.length) {
+      // No part lives on its nearest share: the first one all the added pixels keep alive takes them
+      const owner = counts.findIndex((c) => c + added >= minPixels);
+      survivors = owner >= 0 ? [owner] : [];
+      if (owner >= 0) mergeInto(owner, () => true);
+    } else {
+      // Pixels nearest a dropped part go to the nearest surviving one (a second O(w*h) pass)
+      if (survivors.length < parts.length) label = nearestPartLabels(parts, survivors, w, h);
+      for (const k of survivors) mergeInto(k, (i) => label[i] === k);
+    }
+  }
+  return survivors.map((k) => ({ index: k, mask: { width: edited.width, height: edited.height, alpha: retained[k] } }));
 };
 
 /** The occluder with the area removed (anything in the area is surface): min(o, 255 − a). Same size. */
@@ -277,7 +352,8 @@ const writeRect = (m: AlphaMask, r: Rect, bytes: Uint8ClampedArray) => {
 };
 
 export interface History<T> {
-  push(state: T): void;
+  /** `rect`, when given, is `diffRect(current(), state)` already computed by the caller. */
+  push(state: T, rect?: Rect | null): void;
   undo(): T | null;
   redo(): T | null;
   canUndo(): boolean;
@@ -311,11 +387,11 @@ export const createMaskHistory = (initial: AlphaMask, limit: number): MaskHistor
     return next;
   };
   return {
-    push(state) {
+    push(state, precomputed) {
       let delta: Delta;
       if (state.width !== present.width || state.height !== present.height) delta = { whole: true, before: present, after: state };
       else {
-        const rect = diffRect(present, state);
+        const rect = precomputed !== undefined ? precomputed : diffRect(present, state);
         const none = new Uint8ClampedArray(0);
         delta = rect ? { rect, before: readRect(present, rect), after: readRect(state, rect) } : { rect: null, before: none, after: none };
       }

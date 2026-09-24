@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Scissors, CirclePlus, Pentagon, Hexagon, Brush, Eraser, Undo2, Redo2, ZoomIn, ZoomOut, Maximize, Loader2, Eye } from 'lucide-react';
 import {
   AlphaMask,
@@ -17,6 +17,19 @@ import {
 } from '../services/areaMaskOps';
 import { alphaMaskToCanvas, canvasToAlphaMask, scaleMaskCanvas } from '../services/maskCanvas';
 import { cutObject } from '../services/roomAnalysis';
+import { putAlphaRect, segmentRect } from './areaEditor/maskRects';
+import { useEditorKeys } from './areaEditor/useEditorKeys';
+import {
+  MIN_ZOOM,
+  PanBounds,
+  PinchState,
+  ViewTransform,
+  clampPan,
+  outlineWidthFor,
+  pinchStateOf,
+  pinchTransform,
+  zoomAround,
+} from './areaEditor/viewTransform';
 
 export interface AreaEditorProps {
   imageUrl: string;
@@ -27,6 +40,9 @@ export interface AreaEditorProps {
   onChange: (mask: HTMLCanvasElement) => void;
   // Renders the material on the current area; resolves to an image URL
   onPreview?: (mask: HTMLCanvasElement) => Promise<string>;
+  // True while a Cut/Add request or a brush/eraser stroke is in progress (an accept button
+  // should wait: the edit isn't committed yet)
+  onBusyChange?: (busy: boolean) => void;
 }
 
 // Lives with the mask ops so services (areaPreview) can use it without importing a component
@@ -36,11 +52,11 @@ type Tool = 'cut' | 'add' | 'polyAdd' | 'polyRemove' | 'brush' | 'erase';
 type View = 'fill' | 'outline' | 'original';
 
 const HISTORY_LIMIT = 30;
-const MIN_ZOOM = 1;
-const MAX_ZOOM = 8;
 const FLASH_MS = 400;
 const CUT_DILATE_PX = 2;
 const CLOSE_RADIUS_SCREEN_PX = 10;
+// A one-finger touch that moves further than this from where it went down is a drag, not a tap
+const TAP_SLOP_SCREEN_PX = 10;
 const NO_OBJECT_MESSAGE = "Couldn't find a distinct object there — try the polygon tool";
 const FILL_RGB = [251, 191, 36];
 const OUTLINE_RGB = [34, 211, 238];
@@ -65,8 +81,6 @@ const HINTS: Record<Tool, string> = {
   erase: 'Paint to remove from the area.',
 };
 
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
 const newCanvas = (w: number, h: number) => {
   const c = document.createElement('canvas');
   c.width = w;
@@ -78,37 +92,11 @@ const revokeIfBlob = (url: string | null) => {
   if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
 };
 
-/** Writes one rectangle of an alpha mask into its mirror canvas (white, alpha = coverage). */
-const putAlphaRect = (canvas: HTMLCanvasElement, mask: AlphaMask, r: Rect) => {
-  const img = new ImageData(r.width, r.height);
-  const d = img.data;
-  for (let y = 0; y < r.height; y++) {
-    const row = (r.y + y) * mask.width + r.x;
-    for (let x = 0; x < r.width; x++) {
-      const j = (y * r.width + x) * 4;
-      d[j] = 255;
-      d[j + 1] = 255;
-      d[j + 2] = 255;
-      d[j + 3] = mask.alpha[row + x];
-    }
-  }
-  canvas.getContext('2d')!.putImageData(img, r.x, r.y);
-};
-
-/** The image-space rectangle a brush segment can touch (matches paintStroke's disc stamps). */
-const segmentRect = (mask: AlphaMask, from: Pt, to: Pt, radius: number): Rect | null => {
-  const x0 = Math.max(0, Math.floor(Math.min(from.x, to.x) - radius));
-  const y0 = Math.max(0, Math.floor(Math.min(from.y, to.y) - radius));
-  const x1 = Math.min(mask.width - 1, Math.ceil(Math.max(from.x, to.x) + radius));
-  const y1 = Math.min(mask.height - 1, Math.ceil(Math.max(from.y, to.y) + radius));
-  return x1 < x0 || y1 < y0 ? null : { x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 };
-};
-
 /**
  * The one place a surface's area is adjusted (hotspot editor and studio area check). Every tool
  * edits the mask directly, so each correction does exactly what it shows, and can be undone.
  */
-export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, label, onChange, onPreview }) => {
+export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, label, onChange, onPreview, onBusyChange }) => {
   const [mask, setMask] = useState<AlphaMask>(() => canvasToAlphaMask(initialMask));
   const history = useRef<History<AlphaMask> | null>(null);
   if (!history.current) history.current = createMaskHistory(mask, HISTORY_LIMIT);
@@ -119,9 +107,11 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   const [view, setView] = useState<View>('fill');
   const [opacity, setOpacity] = useState(0.45);
   const [brushPct, setBrushPct] = useState(2);
-  const [transform, setTransform] = useState({ zoom: 1, x: 0, y: 0 });
-  const [stage, setStage] = useState({ left: 0, top: 0, width: 0 });
+  const [transform, setTransform] = useState<ViewTransform>({ zoom: MIN_ZOOM, x: 0, y: 0 });
+  const [stage, setStage] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const [polygon, setPolygon] = useState<Pt[]>([]);
+  const onPolygonBackspace = useCallback(() => setPolygon((prev) => prev.slice(0, -1)), []);
+  const onPolygonCancel = useCallback(() => setPolygon([]), []);
   const [flash, setFlash] = useState<{ mask: AlphaMask; mode: 'add' | 'subtract' } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -136,7 +126,6 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const stroke = useRef<{ working: AlphaMask; last: Pt } | null>(null);
   const panDrag = useRef<{ startX: number; startY: number; x: number; y: number } | null>(null);
-  const spaceHeld = useRef(false);
   const mountedRef = useRef(true);
   // Bumped on every committed edit; an in-flight preview whose id has fallen behind is discarded
   const previewRequestRef = useRef(0);
@@ -145,8 +134,26 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   // The displayed mask as a canvas (white, alpha = coverage), updated only where it changed.
   // The Fill view composites it; committed edits are handed out as copies of it.
   const mirrorRef = useRef<{ canvas: HTMLCanvasElement; of: AlphaMask } | null>(null);
-  // Reused per-draw buffers for the Outline view
-  const outlineBufRef = useRef<{ image: ImageData; edge: Uint8Array } | null>(null);
+  // Reused buffers for the Outline view, and which (mask, width) the image currently holds —
+  // pan/zoom within one width bucket reuses it instead of recomputing the outline
+  const outlineBufRef = useRef<{ image: ImageData; edge: Uint8Array; of: AlphaMask | null; width: number } | null>(null);
+  // The fitted stage, readable from state updaters and native listeners (set only by fitStage)
+  const stageRef = useRef(stage);
+  // Active touch pointers (client px). Two of them make a pinch/pan gesture, which lasts until
+  // every finger has lifted; a one-finger tap acts on release so a second finger can cancel it.
+  const touchesRef = useRef(new Map<number, { x: number; y: number }>());
+  // `latest` is the last transform the pinch set (state may not have re-rendered yet)
+  const pinchRef = useRef<{ from: PinchState; start: ViewTransform; latest: ViewTransform } | null>(null);
+  const touchGestureRef = useRef(false);
+  // `p` in image px (what the tap acts on), `clientX`/`clientY` where the finger went down
+  const pendingTapRef = useRef<{ pointerId: number; p: Pt; clientX: number; clientY: number } | null>(null);
+  // Which props the current state was built from, and the last canvas handed to onChange (a
+  // caller that feeds it back as `initialMask` isn't asking for a reset)
+  const sourceRef = useRef({ initialMask, imageUrl });
+  const lastEmittedRef = useRef<HTMLCanvasElement | null>(null);
+  // Bumped when the props reset the editor; an in-flight Cut/Add from before is discarded
+  const sessionRef = useRef(0);
+  const onBusyChangeRef = useRef(onBusyChange);
   // The preview URL on screen, so it can be revoked when replaced, cleared or unmounted
   const previewUrlRef = useRef<string | null>(null);
 
@@ -168,8 +175,8 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
 
   /** A fresh canvas holding `next` (a GPU copy of the mirror, not a per-pixel rebuild). */
   const maskCanvasOf = useCallback(
-    (next: AlphaMask) => {
-      syncMirror(next);
+    (next: AlphaMask, changed?: { base: AlphaMask; rect: Rect | null }) => {
+      syncMirror(next, changed);
       const src = mirrorRef.current!.canvas;
       const out = newCanvas(src.width, src.height);
       out.getContext('2d')!.drawImage(src, 0, 0);
@@ -202,20 +209,31 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   }, []);
 
   const emit = useCallback(
-    (next: AlphaMask) => {
+    (next: AlphaMask, changed?: { base: AlphaMask; rect: Rect | null }) => {
       setMask(next);
       setHistoryVersion((v) => v + 1);
       showPreview(null);
       previewRequestRef.current++; // invalidate any preview request in flight against the old mask
-      onChange(maskCanvasOf(next));
+      const out = maskCanvasOf(next, changed);
+      lastEmittedRef.current = out;
+      onChange(out);
     },
     [onChange, showPreview, maskCanvasOf]
   );
 
+  // The changed rectangle is found once and shared by the history step and the mirror update
+  // (a brush commit's mirror already shows `next`, so syncMirror doesn't use it there)
   const commit = useCallback(
     (next: AlphaMask) => {
-      history.current!.push(next);
-      emit(next);
+      const base = history.current!.current();
+      if (base.width !== next.width || base.height !== next.height) {
+        history.current!.push(next);
+        emit(next);
+        return;
+      }
+      const rect = diffRect(base, next);
+      history.current!.push(next, rect);
+      emit(next, { base, rect });
     },
     [emit]
   );
@@ -234,6 +252,56 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     if (state) emit(state);
   }, [emit, busy, strokeActive]);
 
+  // Re-sync with the props: a new `initialMask` (other than the canvas we just emitted) or a new
+  // photo starts over — history, mask, preview and in-flight work — as if remounted with a key.
+  // A layout effect so the stale mask is never painted. StrictMode's extra setup run on mount
+  // is a no-op: `sourceRef` already matches the props it was created from.
+  useLayoutEffect(() => {
+    const source = sourceRef.current;
+    if (source.initialMask === initialMask && source.imageUrl === imageUrl) return;
+    sourceRef.current = { initialMask, imageUrl };
+    const imageChanged = source.imageUrl !== imageUrl;
+    if (!imageChanged && initialMask === lastEmittedRef.current) return;
+    const next = canvasToAlphaMask(initialMask);
+    sessionRef.current++;
+    history.current = createMaskHistory(next, HISTORY_LIMIT);
+    stroke.current = null;
+    pendingTapRef.current = null;
+    setStrokeActive(false);
+    setMask(next);
+    setHistoryVersion((v) => v + 1);
+    setPolygon([]);
+    setFlash(null);
+    setMessage(null);
+    previewRequestRef.current++;
+    showPreview(null);
+    if (imageChanged) {
+      panDrag.current = null;
+      pinchRef.current = null;
+      setTransform({ zoom: MIN_ZOOM, x: 0, y: 0 });
+    }
+  }, [initialMask, imageUrl, showPreview]);
+
+  // Report busy (Cut/Add in flight or a stroke live) to the caller. The cleanup reports the end,
+  // including on unmount mid-cut, so a caller never stays stuck on busy. Under StrictMode's
+  // mount/unmount/mount the editor starts idle, so nothing is reported.
+  useLayoutEffect(() => {
+    onBusyChangeRef.current = onBusyChange;
+  }, [onBusyChange]);
+  const editorBusy = busy || strokeActive;
+  useEffect(() => {
+    if (!editorBusy) return;
+    onBusyChangeRef.current?.(true);
+    return () => onBusyChangeRef.current?.(false);
+  }, [editorBusy]);
+
+  const panBounds = useCallback((): PanBounds | null => {
+    const vp = viewportRef.current;
+    const s = stageRef.current;
+    if (!vp || !s.width) return null;
+    return { viewW: vp.clientWidth, viewH: vp.clientHeight, stageLeft: s.left, stageTop: s.top, stageW: s.width, stageH: s.height };
+  }, []);
+
   // Fit the photo inside the viewport (the image keeps w-full h-auto inside the stage)
   const fitStage = useCallback(() => {
     const vp = viewportRef.current;
@@ -243,8 +311,12 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const vh = vp.clientHeight;
     const width = Math.min(vw, vh * (img.naturalWidth / img.naturalHeight));
     const height = width * (img.naturalHeight / img.naturalWidth);
-    setStage({ left: (vw - width) / 2, top: (vh - height) / 2, width });
-  }, []);
+    const next = { left: (vw - width) / 2, top: (vh - height) / 2, width, height };
+    stageRef.current = next;
+    setStage(next);
+    // A resize can leave the old pan out of bounds
+    setTransform((t) => clampPan(t, panBounds()));
+  }, [panBounds]);
 
   useEffect(() => {
     const vp = viewportRef.current;
@@ -274,10 +346,15 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     return c;
   }, [flash]);
 
+  // Outline thickness in mask px for ~2 screen px (the photo is shown at stage width x zoom),
+  // bucketed so smooth zoom only occasionally changes it
+  const outlineWidth = outlineWidthFor(mask.width, stage.width * transform.zoom);
+
   // The actual canvas paint. `strokePreview` swaps the (expensive, zoom-dependent) outline
-  // recompute for the cheap fill-style pass — used while a brush stroke is live in Outline view,
-  // see the call sites below. Fill and flash are GPU compositing of prebuilt canvases; only the
-  // Outline view touches pixels in JavaScript, into a reused buffer.
+  // recompute for the cheap fill-style pass — used while a brush stroke is live in Outline or
+  // Original view (Original shows the overlay only during a stroke), see the call sites below.
+  // Fill and flash are GPU compositing of prebuilt canvases; only the Outline view touches
+  // pixels in JavaScript, into a reused buffer.
   const drawOverlayNow = useCallback(
     (current: AlphaMask, strokePreview: boolean) => {
       const canvas = overlayRef.current;
@@ -288,7 +365,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (view === 'fill' || (view === 'outline' && strokePreview)) {
+      if (view === 'fill' || strokePreview) {
         // Amber at `opacity` x coverage: the mask, then colour kept only where it is
         syncMirror(current);
         ctx.drawImage(mirrorRef.current!.canvas, 0, 0);
@@ -302,21 +379,24 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         const n = current.width * current.height;
         let buf = outlineBufRef.current;
         if (!buf || buf.image.width !== current.width || buf.image.height !== current.height) {
-          buf = { image: new ImageData(current.width, current.height), edge: new Uint8Array(n) };
+          buf = { image: new ImageData(current.width, current.height), edge: new Uint8Array(n), of: null, width: 0 };
           outlineBufRef.current = buf;
         }
-        // About 2 screen pixels at any zoom
-        const shown = imgRef.current?.getBoundingClientRect().width || current.width;
-        const edge = maskOutline(current, Math.max(1, Math.round((2 * current.width) / shown)), buf.edge);
-        const d = buf.image.data;
-        d.fill(0);
-        for (let i = 0; i < n; i++) {
-          if (!edge[i]) continue;
-          const j = i * 4;
-          d[j] = OUTLINE_RGB[0];
-          d[j + 1] = OUTLINE_RGB[1];
-          d[j + 2] = OUTLINE_RGB[2];
-          d[j + 3] = 255;
+        // Masks are immutable once committed, so (mask, width) identifies the outline
+        if (buf.of !== current || buf.width !== outlineWidth) {
+          const edge = maskOutline(current, outlineWidth, buf.edge);
+          const d = buf.image.data;
+          d.fill(0);
+          for (let i = 0; i < n; i++) {
+            if (!edge[i]) continue;
+            const j = i * 4;
+            d[j] = OUTLINE_RGB[0];
+            d[j + 1] = OUTLINE_RGB[1];
+            d[j + 2] = OUTLINE_RGB[2];
+            d[j + 3] = 255;
+          }
+          buf.of = current;
+          buf.width = outlineWidth;
         }
         ctx.putImageData(buf.image, 0, 0);
       }
@@ -330,14 +410,17 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         ctx.globalAlpha = 1;
       }
     },
-    [view, opacity, flashCanvas, syncMirror]
+    [view, opacity, flashCanvas, syncMirror, outlineWidth]
   );
 
-  // Kept in sync every render (not just when the memoized function identity changes) so a frame
-  // already scheduled below always paints with the latest view/opacity/flash, never a closure
-  // captured back when that frame was requested.
+  // Updated on every commit (a layout effect, so before any frame scheduled below can fire, and
+  // never from a render React may discard) so a pending frame always paints with the latest
+  // view/opacity/flash, never a closure captured back when that frame was requested. Idempotent,
+  // so StrictMode's double-invoke is harmless.
   const drawOverlayNowRef = useRef(drawOverlayNow);
-  drawOverlayNowRef.current = drawOverlayNow;
+  useLayoutEffect(() => {
+    drawOverlayNowRef.current = drawOverlayNow;
+  }, [drawOverlayNow]);
 
   // Coalesces redraw requests (brush pointermove fires far faster than the screen refreshes) to
   // at most one paint per animation frame; the pending frame is cancelled on unmount above. Stable
@@ -357,23 +440,21 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
 
   // `drawOverlay` itself never changes identity now, so this effect must list everything that
   // should trigger a repaint explicitly. Outline thickness is defined in screen px, so only it
-  // needs to react to zoom/resize; Fill's opacity wash is defined in mask space and doesn't.
+  // reacts to zoom/resize — and only when its width bucket changes; Fill's opacity wash is
+  // defined in mask space and doesn't.
   // `previewUrl`/`view` are included so the overlay canvas (unmounted while a preview is showing,
   // see the JSX below) is redrawn as soon as it remounts, instead of staying blank until some
   // other dep happens to change.
   const zoomRelevant = view === 'outline';
   useEffect(() => {
     drawOverlay(mask);
-  }, [mask, drawOverlay, view, opacity, flash, previewUrl, zoomRelevant ? transform.zoom : 0, zoomRelevant ? stage.width : 0]);
+  }, [mask, drawOverlay, view, opacity, flash, previewUrl, zoomRelevant ? outlineWidth : 0]);
 
-  const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
-    setTransform((t) => {
-      const zoom = clamp(t.zoom * factor, MIN_ZOOM, MAX_ZOOM);
-      if (zoom === MIN_ZOOM) return { zoom, x: 0, y: 0 };
-      const k = zoom / t.zoom;
-      return { zoom, x: cx - (cx - t.x) * k, y: cy - (cy - t.y) * k };
-    });
-  }, []);
+  // (cx, cy) is stage-local; the pan is clamped so the photo can't be lost off screen
+  const zoomAt = useCallback(
+    (cx: number, cy: number, factor: number) => setTransform((t) => zoomAround(t, cx, cy, factor, panBounds())),
+    [panBounds]
+  );
 
   // Wheel / trackpad pinch zoom around the cursor (non-passive so the page doesn't scroll)
   useEffect(() => {
@@ -392,6 +473,12 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const vp = viewportRef.current;
     if (!vp) return;
     zoomAt(vp.clientWidth / 2 - stage.left, vp.clientHeight / 2 - stage.top, factor);
+  };
+
+  // Client px to stage-local px (the frame zoomAt/pinch work in)
+  const toStagePoint = (clientX: number, clientY: number) => {
+    const rect = viewportRef.current!.getBoundingClientRect();
+    return { x: clientX - rect.left - stageRef.current.left, y: clientY - rect.top - stageRef.current.top };
   };
 
   const toImagePoint = (clientX: number, clientY: number): Pt | null => {
@@ -424,9 +511,12 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   const runObjectTool = async (p: Pt) => {
     setBusy(true);
     setMessage(null);
+    // A props reset (new photo or mask) while this is in flight makes its result meaningless
+    const session = sessionRef.current;
+    const current = () => mountedRef.current && sessionRef.current === session;
     try {
       const canvas = await cutObject(imageUrl, { xPct: (p.x / mask.width) * 100, yPct: (p.y / mask.height) * 100 });
-      if (!mountedRef.current) return;
+      if (!current()) return;
       const object = canvas ? canvasToAlphaMask(scaleMaskCanvas(canvas, mask.width, mask.height)) : null;
       if (!object || !isUsableObjectMask(object)) {
         setMessage(NO_OBJECT_MESSAGE);
@@ -435,14 +525,14 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       const mode = tool === 'cut' ? 'subtract' : 'add';
       setFlash({ mask: object, mode });
       await new Promise((resolve) => setTimeout(resolve, FLASH_MS));
-      if (!mountedRef.current) return;
+      if (!current()) return; // (a reset already cleared the flash)
       setFlash(null);
       // Base the combine on the history's current state, not the `mask` closed over at click
       // time — Undo/Redo are disabled while busy (see `undo`/`redo` above), but this keeps the
       // result correct even if that guard is ever loosened.
       commit(combine(history.current!.current(), object, mode, mode === 'subtract' ? CUT_DILATE_PX : 0));
     } catch (err) {
-      if (!mountedRef.current) return;
+      if (!current()) return;
       setMessage(err instanceof Error ? err.message : 'Could not outline that object.');
     } finally {
       if (mountedRef.current) setBusy(false);
@@ -451,7 +541,41 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
 
   const brushRadius = () => ((brushPct / 100) * mask.width) / 2;
 
+  // Pinch/pan from the first two active touches, relative to the transform right now
+  const startPinch = () => {
+    const [a, b] = [...touchesRef.current.values()];
+    const start = pinchRef.current?.latest ?? transform;
+    pinchRef.current = { from: pinchStateOf(toStagePoint(a.x, a.y), toStagePoint(b.x, b.y)), start, latest: start };
+  };
+
+  /** Touch bookkeeping; true when the event belongs to a two-finger gesture and is handled. */
+  const touchDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.isPrimary) {
+      // The first finger of a new touch: anything still tracked is left over from a gesture
+      // whose pointerup never arrived, and would otherwise wedge touch input
+      touchesRef.current.clear();
+      touchGestureRef.current = false;
+      pinchRef.current = null;
+    }
+    touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touchesRef.current.size < 2) return touchGestureRef.current;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    // A second finger turns this into a pinch: drop the first finger's stroke or pending tap
+    // uncommitted, and put the overlay back to the committed mask
+    pendingTapRef.current = null;
+    panDrag.current = null;
+    if (stroke.current) {
+      stroke.current = null;
+      setStrokeActive(false);
+      drawOverlay(mask);
+    }
+    touchGestureRef.current = true;
+    startPinch();
+    return true;
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch' && touchDown(e)) return;
     if (e.button === 1 || (e.button === 0 && spaceHeld.current)) {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -471,6 +595,9 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       stroke.current = { working, last: p };
       setStrokeActive(true);
       drawOverlay(working, true);
+    } else if (e.pointerType === 'touch') {
+      // Acts on release, unless a pinch starts or the finger drags away
+      pendingTapRef.current = { pointerId: e.pointerId, p, clientX: e.clientX, clientY: e.clientY };
     } else if (tool === 'cut' || tool === 'add') {
       runObjectTool(p);
     } else {
@@ -479,9 +606,28 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const tap = pendingTapRef.current;
+    if (tap && tap.pointerId === e.pointerId && Math.hypot(e.clientX - tap.clientX, e.clientY - tap.clientY) > TAP_SLOP_SCREEN_PX) {
+      pendingTapRef.current = null; // a drag, not a tap
+    }
+    if (e.pointerType === 'touch' && touchesRef.current.has(e.pointerId)) {
+      touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touchGestureRef.current) {
+        const pinch = pinchRef.current;
+        if (pinch && touchesRef.current.size >= 2) {
+          const [a, b] = [...touchesRef.current.values()];
+          const to = pinchStateOf(toStagePoint(a.x, a.y), toStagePoint(b.x, b.y));
+          pinch.latest = pinchTransform(pinch.start, pinch.from, to, panBounds());
+          setTransform(pinch.latest);
+        }
+        return;
+      }
+    }
     if (panDrag.current) {
       const d = panDrag.current;
-      setTransform((t) => (t.zoom === MIN_ZOOM ? t : { ...t, x: d.x + e.clientX - d.startX, y: d.y + e.clientY - d.startY }));
+      setTransform((t) =>
+        t.zoom === MIN_ZOOM ? t : clampPan({ ...t, x: d.x + e.clientX - d.startX, y: d.y + e.clientY - d.startY }, panBounds())
+      );
       return;
     }
     if (!stroke.current) return;
@@ -496,8 +642,30 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     drawOverlay(stroke.current.working, true);
   };
 
-  const handlePointerUp = () => {
+  /** Forgets a touch; true when it was part of a two-finger gesture (nothing to commit). */
+  const releaseTouch = (pointerId: number) => {
+    if (!touchesRef.current.delete(pointerId) || !touchGestureRef.current) return false;
+    // The pinch ends once every finger is up; with two or more still down (or when a finger
+    // comes back), carry on from where the transform is now
+    if (touchesRef.current.size >= 2) startPinch();
+    else if (touchesRef.current.size === 0) {
+      touchGestureRef.current = false;
+      pinchRef.current = null;
+    }
+    return true;
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch' && releaseTouch(e.pointerId)) return;
     panDrag.current = null;
+    const tap = pendingTapRef.current;
+    if (tap && tap.pointerId === e.pointerId) {
+      pendingTapRef.current = null;
+      if (e.type === 'pointerup' && !busy && !previewUrl) {
+        if (tool === 'cut' || tool === 'add') runObjectTool(tap.p);
+        else if (tool === 'polyAdd' || tool === 'polyRemove') handlePolygonClick(tap.p);
+      }
+    }
     if (!stroke.current) return;
     const { working } = stroke.current;
     stroke.current = null;
@@ -506,69 +674,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   };
 
   // Keyboard: undo/redo, polygon corners, Space to pan
-  useEffect(() => {
-    // Text entry only — a focused range/checkbox/radio/button input shouldn't swallow Ctrl/Cmd+Z
-    const typing = (t: EventTarget | null) => {
-      if (!(t instanceof HTMLElement)) return false;
-      if (t.tagName === 'TEXTAREA' || t.isContentEditable) return true;
-      if (t.tagName === 'INPUT') {
-        const type = (t as HTMLInputElement).type;
-        return type !== 'range' && type !== 'checkbox' && type !== 'radio' && type !== 'button';
-      }
-      return false;
-    };
-    // Outside the editor, a focused button/select/input/textarea/contentEditable should still
-    // receive Space (e.g. to activate a focused button elsewhere on the page).
-    const interactive = (t: EventTarget | null) =>
-      t instanceof HTMLElement &&
-      (t.tagName === 'BUTTON' || t.tagName === 'SELECT' || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (typing(e.target)) return;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if (e.key === ' ') {
-        spaceHeld.current = true;
-        // Inside the editor, Space is always the pan shortcut — even over a focused toolbar
-        // button (which keeps focus after being clicked), so releasing it doesn't re-click that
-        // button or discard an in-progress polygon. Outside the editor, don't steal Space from
-        // whatever else on the page has focus.
-        const insideEditor = rootRef.current && e.target instanceof Node && rootRef.current.contains(e.target);
-        if (insideEditor || !interactive(e.target)) e.preventDefault();
-        return;
-      }
-      if (polygon.length && e.key === 'Backspace') {
-        e.preventDefault();
-        setPolygon((prev) => prev.slice(0, -1));
-      }
-      if (polygon.length && e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        setPolygon([]);
-      }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key !== ' ') return;
-      spaceHeld.current = false;
-      // Same rule as keydown: releasing Space over a focused toolbar button mustn't click it
-      const insideEditor = rootRef.current && e.target instanceof Node && rootRef.current.contains(e.target);
-      if (insideEditor) e.preventDefault();
-    };
-    const onBlur = () => {
-      spaceHeld.current = false;
-    };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onBlur);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onBlur);
-    };
-  }, [undo, redo, polygon.length]);
+  const spaceHeld = useEditorKeys({ rootRef, undo, redo, hasPolygon: polygon.length > 0, onPolygonBackspace, onPolygonCancel });
 
   const selectTool = (next: Tool) => {
     setTool(next);
@@ -647,7 +753,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         <button type="button" aria-label="Zoom in" title="Zoom in" onClick={() => zoomButton(1.5)} className={button(false)}>
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
-        <button type="button" aria-label="Fit" title="Fit" onClick={() => setTransform({ zoom: 1, x: 0, y: 0 })} className={button(false)}>
+        <button type="button" aria-label="Fit" title="Fit" onClick={() => setTransform({ zoom: MIN_ZOOM, x: 0, y: 0 })} className={button(false)}>
           <Maximize className="w-3.5 h-3.5" />
         </button>
         <span className="w-px h-5 bg-white/10 mx-1" />
@@ -679,6 +785,9 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        // After a normal pointerup this is a no-op (the touch is already forgotten); a capture
+        // lost without one must not leave a phantom finger behind
+        onLostPointerCapture={(e) => e.pointerType === 'touch' && releaseTouch(e.pointerId)}
         onDoubleClick={() => (tool === 'polyAdd' || tool === 'polyRemove') && closePolygon(polygon)}
         onAuxClick={(e) => e.preventDefault()}
       >
@@ -701,7 +810,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
             onLoad={fitStage}
             className="block w-full h-auto"
           />
-          {view !== 'original' && !previewUrl && <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" />}
+          {(view !== 'original' || strokeActive) && !previewUrl && <canvas ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" />}
           {polygon.length > 0 && !previewUrl && (
             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${mask.width} ${mask.height}`} preserveAspectRatio="none">
               <polygon

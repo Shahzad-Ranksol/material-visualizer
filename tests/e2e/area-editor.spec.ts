@@ -54,6 +54,10 @@ test('area editor: polygon add, undo/redo, object cut-out', async ({ page }) => 
   };
   const start = await coverage(page);
 
+  // The click points below are fractions of the displayed photo, picked by eye for ROOM_URL
+  // (https://images.unsplash.com/photo-1600210492486-724fe5c67fb0): the polygon block over the
+  // sofa at the right of the frame, and the click on the sofa inside it. They mean nothing for
+  // another photo — if ROOM_URL (or the cached tests/e2e/.cache/room.jpg) changes, re-pick them.
   // Polygon: add a block over the sofa (not part of the wall)
   await page.getByRole('button', { name: 'Polygon: add' }).click();
   const corners = [await at(0.68, 0.52), await at(0.95, 0.52), await at(0.95, 0.78), await at(0.68, 0.78)];

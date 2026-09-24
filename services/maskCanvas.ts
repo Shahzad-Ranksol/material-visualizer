@@ -57,9 +57,10 @@ export const unionMasks = (masks: HTMLCanvasElement[]): HTMLCanvasElement => {
 
 /**
  * Re-derives each part after the combined area was edited (see `splitEditsIntoParts`): a part
- * keeps only what is still in the edited area, newly added pixels go to the first part, and a
- * part the edit emptied (below `MIN_PART_PIXELS`) is dropped along with its plane — so the first
- * surviving part becomes part 0. Returns the surviving parts, in order, with new mask canvases.
+ * keeps only what is still in the edited area, newly added pixels go to the part whose original
+ * mask is nearest (so an addition on the far side of a corner joins that plane), and a part the
+ * edit emptied (below `MIN_PART_PIXELS`) is dropped along with its plane — so the first surviving
+ * part becomes part 0. Returns the surviving parts, in order, with new mask canvases.
  */
 export const applyEditsToParts = <P extends { mask: HTMLCanvasElement }>(parts: P[], edited: HTMLCanvasElement): P[] => {
   const e = canvasToAlphaMask(edited);

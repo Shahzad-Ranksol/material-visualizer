@@ -416,3 +416,48 @@ export const refineBandByColor = (
   }
   return out;
 };
+
+/**
+ * SAM's low-res mask logits ([1, 1, count, mh, mw], over the padded input) -> binary masks at the
+ * photo's size: the logit at each photo pixel's position (bilinear, half-pixel centres), > 0.
+ * Does what `post_process_masks` does (upscale to the padded size, crop to the resized image,
+ * downscale to the photo) in one sampling pass. That call runs its resizes through a lazily
+ * built ONNX Runtime session whose first run can take tens of seconds, or never finish.
+ */
+export const upscaleMaskLogits = (
+  logits: { dims: readonly number[]; data: ArrayLike<number> },
+  [rh, rw]: [number, number],
+  [padH, padW]: [number, number],
+  [height, width]: [number, number]
+): Uint8Array[] => {
+  const dims = logits.dims;
+  const [mh, mw] = dims.slice(-2);
+  const count = dims[dims.length - 3];
+  const data = logits.data;
+  // Photo pixel -> resized-image pixel -> mask cell, both with half-pixel centres
+  const axis = (n: number, resized: number, padded: number, cells: number) =>
+    Array.from({ length: n }, (_, i) => {
+      const r = (i + 0.5) * (resized / n) - 0.5;
+      const g = Math.min(cells - 1, Math.max(0, (r + 0.5) * (cells / padded) - 0.5));
+      const g0 = Math.floor(g);
+      return { g0, g1: Math.min(cells - 1, g0 + 1), t: g - g0 };
+    });
+  const ys = axis(height, rh, padH, mh);
+  const xs = axis(width, rw, padW, mw);
+  return Array.from({ length: count }, (_, k) => {
+    const base = k * mh * mw;
+    const out = new Uint8Array(width * height);
+    for (let y = 0; y < height; y++) {
+      const { g0: y0, g1: y1, t: ty } = ys[y];
+      const r0 = base + y0 * mw;
+      const r1 = base + y1 * mw;
+      for (let x = 0; x < width; x++) {
+        const { g0: x0, g1: x1, t: tx } = xs[x];
+        const top = data[r0 + x0] + (data[r0 + x1] - data[r0 + x0]) * tx;
+        const bottom = data[r1 + x0] + (data[r1 + x1] - data[r1 + x0]) * tx;
+        if (top + (bottom - top) * ty > 0) out[y * width + x] = 1;
+      }
+    }
+    return out;
+  });
+};

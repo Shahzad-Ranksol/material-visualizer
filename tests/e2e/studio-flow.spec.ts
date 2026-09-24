@@ -55,6 +55,7 @@ test('upload, check the surface, render, compare and download', async ({ page })
     await expect(title).toBeVisible();
     const viewport = page.getByTestId('area-editor-viewport');
     await expect(viewport).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('surface-review-confidence')).toHaveText(/^Confidence \d{1,3}%$/);
     await page.getByRole('button', { name: 'Cut out object' }).click();
     const box = (await viewport.locator('img').boundingBox())!;
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.9);

@@ -162,6 +162,9 @@ const orientationFor = (label: string): PlaneOrientation =>
 // Largest share of the photo one object click may return; more means SAM grabbed the room
 const MAX_OBJECT_FRACTION = 0.6;
 
+// Guided-filter window for edge refinement, scaled to the photo (shared by cut and cutObject)
+const guideRadiusFor = (w: number, h: number) => Math.max(2, Math.round(Math.max(w, h) * GUIDE_RADIUS_FRACTION));
+
 /**
  * The single object at a point (a lamp, a headboard…) for the Area Editor's cut-out/add tools:
  * one positive point, no box, so SAM's candidates are object-sized. Picks the best-scoring
@@ -175,21 +178,26 @@ const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>) => 
   reportStage('refining');
   room.prompts ??= encodeForPrompts(room.image);
   const sam = await segmentWithPrompts(await room.prompts, [{ x: px, y: py, positive: true }], null, w, h);
-  let best = -1;
-  let bestScore = -Infinity;
-  sam.masks.forEach((m, k) => {
-    if (!m[py * w + px]) return;
-    let covered = 0;
-    for (let i = 0; i < m.length; i++) if (m[i]) covered++;
-    if (covered === 0 || covered > w * h * MAX_OBJECT_FRACTION) return;
-    if (sam.scores[k] > bestScore) {
-      bestScore = sam.scores[k];
-      best = k;
-    }
-  });
+  // Candidates best score first (ties keep SAM's order): the first that contains the click and
+  // isn't room-sized wins, so coverage is only counted until then, and each count stops as soon
+  // as it passes the limit (a room-sized candidate isn't scanned to the end)
+  const limit = w * h * MAX_OBJECT_FRACTION;
+  // (a non-finite score is never picked, as with the old strict `>` scan)
+  const order = sam.masks
+    .map((_, k) => k)
+    .filter((k) => Number.isFinite(sam.scores[k]))
+    .sort((a, b) => sam.scores[b] - sam.scores[a] || a - b);
+  const best =
+    order.find((k) => {
+      const m = sam.masks[k];
+      if (!m[py * w + px]) return false; // (so it covers at least the click)
+      let covered = 0;
+      for (let i = 0; i < m.length; i++) if (m[i] && ++covered > limit) return false;
+      return true;
+    }) ?? -1;
   if (best < 0) return { width: w, height: h, mask: null };
   const binary = Uint8Array.from(sam.masks[best], (v) => (v ? 1 : 0));
-  const radius = Math.max(2, Math.round(Math.max(w, h) * GUIDE_RADIUS_FRACTION));
+  const radius = guideRadiusFor(w, h);
   return { width: w, height: h, mask: guidedFilter(gray, binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS) };
 };
 
@@ -328,7 +336,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>) => {
   if (!parts.length) parts.push({ binary: surface, plane: null });
 
   // 5. Edge refinement at full resolution
-  const radius = Math.max(2, Math.round(Math.max(w, h) * GUIDE_RADIUS_FRACTION));
+  const radius = guideRadiusFor(w, h);
   const refined = parts.map((p) => ({ mask: guidedFilter(gray, p.binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS), plane: p.plane }));
   const occluderSoft = guidedFilter(gray, occluder, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS);
 

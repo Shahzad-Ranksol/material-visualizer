@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectedComponents, guidedFilter, iou, refineBandByColor, removeSkirting } from '../../services/analysis/maskOps';
+import { connectedComponents, guidedFilter, iou, refineBandByColor, removeSkirting, upscaleMaskLogits } from '../../services/analysis/maskOps';
 
 const W = 60;
 const H = 40;
@@ -60,5 +60,31 @@ describe('mask operations', () => {
 
   it('computes IoU', () => {
     expect(iou(rect(0, 0, 10, 10), rect(5, 0, 15, 10))).toBeCloseTo(50 / 150, 9);
+  });
+});
+
+describe('upscaleMaskLogits', () => {
+  it('samples each cell exactly when every size matches', () => {
+    const logits = { dims: [1, 1, 1, 2, 2], data: [1, -1, -1, 1] };
+    expect(Array.from(upscaleMaskLogits(logits, [2, 2], [2, 2], [2, 2])[0])).toEqual([1, 0, 0, 1]);
+  });
+
+  it('upscales each candidate to the photo size, splitting at the zero crossing', () => {
+    // Two candidates over a 2x2 grid: left column on / right column on
+    const logits = { dims: [1, 1, 2, 2, 2], data: [1, -1, 1, -1, -1, 1, -1, 1] };
+    const [left, right] = upscaleMaskLogits(logits, [4, 8], [4, 8], [4, 8]);
+    const row = (m: Uint8Array, y: number) => Array.from(m.slice(y * 8, y * 8 + 8));
+    for (let y = 0; y < 4; y++) {
+      expect(row(left, y)).toEqual([1, 1, 1, 1, 0, 0, 0, 0]);
+      expect(row(right, y)).toEqual([0, 0, 0, 0, 1, 1, 1, 1]);
+    }
+  });
+
+  it('maps the photo onto the resized part of a padded input, not the whole grid', () => {
+    // 4 cells, the image filled only the left 2 (the rest is padding)
+    const logits = { dims: [1, 1, 1, 1, 4], data: [1, -1, -1, -1] };
+    expect(Array.from(upscaleMaskLogits(logits, [1, 2], [1, 4], [1, 4])[0])).toEqual([1, 1, 0, 0]);
+    // Treating the whole grid as the image would squash it: only the first pixel stays on
+    expect(Array.from(upscaleMaskLogits(logits, [1, 4], [1, 4], [1, 4])[0])).toEqual([1, 0, 0, 0]);
   });
 });

@@ -1,5 +1,6 @@
 import { AutoProcessor, RawImage, Sam2Model, Tensor } from '@huggingface/transformers';
 import { configureLocalModels } from './modelEnv';
+import { upscaleMaskLogits } from './maskOps';
 
 // Promptable, edge-accurate masks: SAM 2.1 Hiera Tiny (Apache-2.0)
 export { PROMPT_MODEL } from './protocol';
@@ -57,11 +58,10 @@ export const segmentWithPrompts = async (
   };
   if (box) inputs.input_boxes = new Tensor('float32', [box.x0 * sx, box.y0 * sy, box.x1 * sx, box.y1 * sy], [1, 1, 4]);
   const outputs = await model({ ...enc.embeddings, ...inputs });
-  const [masks] = await processor.post_process_masks(outputs.pred_masks, enc.imageInputs.original_sizes, enc.imageInputs.reshaped_input_sizes);
-  const [, count, h, w] = masks.dims as number[];
-  const data = masks.data as Uint8Array;
+  const pad = processor.image_processor.pad_size ?? processor.image_processor.size;
+  const masks = upscaleMaskLogits(outputs.pred_masks, enc.imageInputs.reshaped_input_sizes[0], [pad.height, pad.width], [height, width]);
   return {
-    masks: Array.from({ length: count }, (_, k) => data.slice(k * w * h, (k + 1) * w * h)),
+    masks,
     scores: Array.from(outputs.iou_scores.data as Float32Array),
   };
 };

@@ -126,6 +126,8 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   const [areaDirty, setAreaDirty] = useState(false);
   const [clickTool, setClickTool] = useState<ClickTool>('move');
   const [areaEditorOpen, setAreaEditorOpen] = useState(false);
+  // A Cut/Add or stroke still in progress in the Area Editor: closing now would drop it
+  const [areaEditorBusy, setAreaEditorBusy] = useState(false);
   const [calibration, setCalibration] = useState<SurfaceCalibration | null>(null);
   const [rulerPoints, setRulerPoints] = useState<PlanePoint[]>([]);
   const [rulerMetres, setRulerMetres] = useState('');
@@ -468,7 +470,8 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
           <button
             type="button"
             onClick={() => setAreaEditorOpen(false)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 text-xs font-semibold"
+            disabled={areaEditorBusy}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 text-xs font-semibold disabled:opacity-60"
           >
             <Check className="w-3.5 h-3.5" /> Done
           </button>
@@ -477,6 +480,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
           imageUrl={selectedImage.imageUrl}
           initialMask={areaMask}
           label={formLabel || titleCase(area.label)}
+          onBusyChange={setAreaEditorBusy}
           onChange={(mask) => {
             setAreaMask(mask);
             setMaskDirty(true);
@@ -489,7 +493,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
 
   return (
     <>
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div data-testid="showcase-editor" className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
       <div className="relative w-full max-w-5xl bg-[#14161f] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#171a24]">
           <div className="flex items-center gap-2.5">

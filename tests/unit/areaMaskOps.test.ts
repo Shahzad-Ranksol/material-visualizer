@@ -58,6 +58,27 @@ describe('combine', () => {
     expect(at(out, 3, 3)).toBe(255); // diagonal corner is outside a radius-2 disc
   });
 
+  it('subtracts a soft mask without dilation: fully at >= 50%, scaled by its alpha below', () => {
+    const area = emptyMask(5, 1);
+    area.alpha.set([255, 255, 255, 200, 255]);
+    const object = emptyMask(5, 1);
+    object.alpha.set([255, 128, 127, 51, 0]);
+    const out = combine(area, object, 'subtract', 0);
+    // 128 removes fully (the old min(a, 255 - o) left 127); below that the area is scaled down
+    expect(Array.from(out.alpha)).toEqual([0, 0, Math.round((255 * 128) / 255), Math.round((200 * 204) / 255), 255]);
+    expect(Array.from(area.alpha)).toEqual([255, 255, 255, 200, 255]); // input untouched
+  });
+
+  it('removes a soft-edged object the same way with or without dilation, inside the object', () => {
+    const full = square(20, 20, 0, 0, 20, 20);
+    const object = square(20, 20, 5, 5, 10, 10);
+    for (let i = 0; i < object.alpha.length; i++) if (object.alpha[i]) object.alpha[i] = 180; // soft but >= 50%
+    const plain = combine(full, object, 'subtract', 0);
+    const dilated = combine(full, object, 'subtract', 2);
+    for (let y = 5; y < 10; y++) for (let x = 5; x < 10; x++) expect([at(plain, x, y), at(dilated, x, y)]).toEqual([0, 0]);
+    expect(at(plain, 3, 7)).toBe(255); // no dilation: nothing outside the object is touched
+  });
+
   it('adds without dilation', () => {
     const a = square(20, 20, 0, 0, 5, 5);
     const b = square(20, 20, 10, 10, 15, 15);
@@ -194,6 +215,22 @@ describe('createMaskHistory', () => {
     expect(h.undo()).not.toBe(s1); // a fresh mask
   });
 
+  it('uses a precomputed changed rectangle when given one, instead of diffing again', () => {
+    const s0 = square(50, 40, 0, 0, 50, 20);
+    const s1 = fillPolygon(s0, [{ x: 10, y: 25 }, { x: 20, y: 25 }, { x: 20, y: 35 }, { x: 10, y: 35 }], 'add');
+    const rect = diffRect(s0, s1);
+    expect(rect).toEqual({ x: 10, y: 25, width: 10, height: 10 });
+    const h = createMaskHistory(s0, 30);
+    h.push(s1, rect);
+    expect(h.retainedBytes()).toBe(2 * 10 * 10); // exactly the rectangle it was handed
+    expect(h.undo()!.alpha).toEqual(s0.alpha);
+    expect(h.redo()!.alpha).toEqual(s1.alpha);
+    // A null rect means "nothing changed": still a step, restoring the same state
+    h.push(s1, null);
+    expect(h.canUndo()).toBe(true);
+    expect(h.undo()!.alpha).toEqual(s1.alpha);
+  });
+
   it('stores only the changed rectangle, so memory scales with the edit, not the photo', () => {
     const w = 1000;
     const hgt = 800;
@@ -228,14 +265,59 @@ describe('splitEditsIntoParts', () => {
     expect(at(out[1].mask, 17, 5)).toBe(0);
   });
 
-  it('gives newly added pixels (in no part) to the first part', () => {
+  it('gives an addition next to part 1 to part 1 (the far side of the corner)', () => {
     const l = square(W, H, 0, 0, 10, H);
     const r = square(W, H, 30, 0, W, H);
-    const edited = combine(combine(l, r, 'add', 0), square(W, H, 15, 0, 25, H), 'add', 0);
+    const edited = combine(combine(l, r, 'add', 0), square(W, H, 25, 0, 30, H), 'add', 0); // touches part 1
     const out = splitEditsIntoParts([l, r], edited);
-    expect(count(out[0].mask)).toBe(20 * H);
-    expect(at(out[0].mask, 20, 5)).toBe(255);
-    expect(count(out[1].mask)).toBe(10 * H);
+    expect(out.map((p) => p.index)).toEqual([0, 1]);
+    expect(count(out[0].mask)).toBe(10 * H); // part 0 unchanged
+    expect(count(out[1].mask)).toBe(15 * H);
+    expect(at(out[1].mask, 26, 5)).toBe(255);
+    expect(at(out[0].mask, 26, 5)).toBe(0);
+  });
+
+  it('keeps an addition next to part 0 in part 0', () => {
+    const l = square(W, H, 0, 0, 10, H);
+    const r = square(W, H, 30, 0, W, H);
+    const edited = combine(combine(l, r, 'add', 0), square(W, H, 10, 0, 15, H), 'add', 0); // touches part 0
+    const out = splitEditsIntoParts([l, r], edited);
+    expect(out.map((p) => p.index)).toEqual([0, 1]);
+    expect(count(out[0].mask)).toBe(15 * H);
+    expect(at(out[0].mask, 12, 5)).toBe(255);
+    expect(count(out[1].mask)).toBe(10 * H); // part 1 unchanged
+  });
+
+  it('splits an addition across the gap between two parts by distance', () => {
+    const l = square(W, H, 0, 0, 10, H);
+    const r = square(W, H, 30, 0, W, H);
+    const edited = combine(combine(l, r, 'add', 0), square(W, H, 12, 0, 28, H), 'add', 0); // 12..27
+    const out = splitEditsIntoParts([l, r], edited);
+    // Columns 12..19 are nearer part 0 (last column 9), 20..27 nearer part 1 (first column 30)
+    expect(at(out[0].mask, 19, 5)).toBe(255);
+    expect(at(out[1].mask, 20, 5)).toBe(255);
+    expect(count(out[0].mask)).toBe(18 * H);
+    expect(count(out[1].mask)).toBe(18 * H);
+  });
+
+  it('with no part alive on its nearest share, gives every added pixel to the first part it keeps alive', () => {
+    const l = square(W, H, 0, 0, 10, H);
+    const r = square(W, H, 30, 0, W, H);
+    // Both parts erased; 3 + 3 columns added, each side below the minimum on its own
+    const add = combine(square(W, H, 10, 0, 13, H), square(W, H, 27, 0, 30, H), 'add', 0);
+    expect(3 * H).toBeLessThan(MIN_PART_PIXELS);
+    expect(6 * H).toBeGreaterThanOrEqual(MIN_PART_PIXELS);
+    const out = splitEditsIntoParts([l, r], add);
+    expect(out.map((p) => p.index)).toEqual([0]);
+    expect(count(out[0].mask)).toBe(6 * H);
+  });
+
+  it('keeps the single-part fast path: everything added goes to the one part', () => {
+    const p = square(W, H, 0, 0, 10, H);
+    const edited = combine(p, square(W, H, 30, 0, 35, H), 'add', 0);
+    const out = splitEditsIntoParts([p], edited);
+    expect(out.map((q) => q.index)).toEqual([0]);
+    expect(count(out[0].mask)).toBe(15 * H);
   });
 
   it('drops a part the edit emptied, so the renderer never gets an empty layer', () => {
