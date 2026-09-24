@@ -67,8 +67,9 @@ interface RoomState {
 
 const rooms = new Map<string, Promise<RoomState>>();
 
-// Progress for the request currently being served (one at a time per worker)
-let reportStage: (stage: AnalysisStage) => void = () => {};
+// Progress for one request. Requests can overlap (they're async), so each carries its own;
+// a photo load shared by several requests reports to the one that started it.
+type ReportStage = (stage: AnalysisStage) => void;
 
 const toGray = (image: RawImage) => {
   const gray = new Float32Array(image.width * image.height);
@@ -80,7 +81,7 @@ const toGray = (image: RawImage) => {
   return gray;
 };
 
-const loadRoom = (imageUrl: string): Promise<RoomState> => {
+const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState> => {
   let entry = rooms.get(imageUrl);
   if (!entry) {
     entry = (async () => {
@@ -133,8 +134,8 @@ const loadRoom = (imageUrl: string): Promise<RoomState> => {
   return entry;
 };
 
-const analyze = async (imageUrl: string) => {
-  const room = await loadRoom(imageUrl);
+const analyze = async (imageUrl: string, reportStage: ReportStage) => {
+  const room = await loadRoom(imageUrl, reportStage);
   const { width: w, height: h, semantic } = room;
   const proposals: SurfaceProposal[] = [];
   for (const label of SURFACE_LABELS) {
@@ -170,8 +171,8 @@ const guideRadiusFor = (w: number, h: number) => Math.max(2, Math.round(Math.max
  * one positive point, no box, so SAM's candidates are object-sized. Picks the best-scoring
  * candidate that contains the click and isn't room-sized; null when there is none.
  */
-const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>) => {
-  const room = await loadRoom(req.imageUrl);
+const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>, reportStage: ReportStage) => {
+  const room = await loadRoom(req.imageUrl, reportStage);
   const { width: w, height: h, gray } = room;
   const px = Math.min(w - 1, Math.max(0, Math.round((req.point.xPct / 100) * w)));
   const py = Math.min(h - 1, Math.max(0, Math.round((req.point.yPct / 100) * h)));
@@ -201,8 +202,8 @@ const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>) => 
   return { width: w, height: h, mask: guidedFilter(gray, binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS) };
 };
 
-const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>) => {
-  const room = await loadRoom(req.imageUrl);
+const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: ReportStage) => {
+  const room = await loadRoom(req.imageUrl, reportStage);
   const { width: w, height: h, semantic, gray } = room;
   const px = Math.min(w - 1, Math.max(0, Math.round((req.point.xPct / 100) * w)));
   const py = Math.min(h - 1, Math.max(0, Math.round((req.point.yPct / 100) * h)));
@@ -366,15 +367,15 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>) => {
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   const req = e.data;
   const post = (response: WorkerResponse, transfer: Transferable[] = []) => (self as unknown as Worker).postMessage(response, transfer);
-  reportStage = (stage) => post({ id: req.id, type: 'progress', stage });
+  const reportStage: ReportStage = (stage) => post({ id: req.id, type: 'progress', stage });
   try {
     if (req.type === 'analyze') {
-      post({ id: req.id, type: 'analyze', ...(await analyze(req.imageUrl)) });
+      post({ id: req.id, type: 'analyze', ...(await analyze(req.imageUrl, reportStage)) });
     } else if (req.type === 'cutObject') {
-      const result = await cutObject(req);
+      const result = await cutObject(req, reportStage);
       post({ id: req.id, type: 'cutObject', ...result }, result.mask ? [result.mask.buffer] : []);
     } else {
-      const result = await cut(req);
+      const result = await cut(req, reportStage);
       post({ id: req.id, type: 'cut', ...result }, [...result.parts.map((p) => p.mask.buffer), result.occluder.buffer]);
     }
   } catch (err) {

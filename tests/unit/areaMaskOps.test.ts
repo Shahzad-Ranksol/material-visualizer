@@ -288,6 +288,28 @@ describe('splitEditsIntoParts', () => {
     expect(count(out[1].mask)).toBe(10 * H); // part 1 unchanged
   });
 
+  it("measures from a part's visible edge, not its faint soft tail", () => {
+    const l = square(W, H, 0, 0, 10, H);
+    for (let y = 0; y < H; y++) for (let x = 10; x < 24; x++) l.alpha[y * W + x] = 40; // soft tail
+    const r = square(W, H, 30, 0, W, H);
+    // Added at x 25-27: 1-3 px past part 0's tail, but 16+ px from its visible edge and 3-5 from part 1's
+    const edited = combine(combine(l, r, 'add', 0), square(W, H, 25, 0, 28, H), 'add', 0);
+    const out = splitEditsIntoParts([l, r], edited);
+    expect(at(out[1].mask, 25, 5)).toBe(255);
+    expect(at(out[0].mask, 25, 5)).toBe(0);
+  });
+
+  it('measures diagonals like straight steps (8-connected), so a diagonal addition goes to the nearer part', () => {
+    // Part 0 is a block top-left; part 1 a column to the right. The added pixel is 4 diagonal
+    // steps from part 0's corner (8 in 4-connected steps) and 7 straight steps from part 1.
+    const l = square(W, H, 0, 0, 10, 10);
+    const r = square(W, H, 20, 0, W, H);
+    const edited = combine(combine(l, r, 'add', 0), square(W, H, 13, 13, 14, 14), 'add', 0);
+    const out = splitEditsIntoParts([l, r], edited, 1);
+    expect(at(out[0].mask, 13, 13)).toBe(255);
+    expect(at(out[1].mask, 13, 13)).toBe(0);
+  });
+
   it('splits an addition across the gap between two parts by distance', () => {
     const l = square(W, H, 0, 0, 10, H);
     const r = square(W, H, 30, 0, W, H);

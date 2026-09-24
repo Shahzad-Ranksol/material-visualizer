@@ -166,9 +166,11 @@ export const isUsableObjectMask = (mask: AlphaMask): boolean => {
 };
 
 /**
- * For every pixel, the index of the nearest source part (4-connected multi-source BFS, one
- * O(w*h) pass). A part's own pixels (alpha > 0) are its sources; where parts overlap, the one
- * with the higher alpha (then the lower index) owns the pixel. -1 where no source is reachable.
+ * For every pixel, the index of the nearest source part (8-connected multi-source BFS, so a
+ * diagonal step costs the same as a straight one; one O(w*h) pass). A part's visible pixels
+ * (alpha > 127) are its sources, so distances run from the edge the user sees, not a faint
+ * soft tail; where parts overlap, the one with the higher alpha (then the lower index) owns the
+ * pixel. -1 where no source is reachable (no source part has a visible pixel).
  */
 const nearestPartLabels = (parts: AlphaMask[], sources: number[], w: number, h: number): Int32Array => {
   const n = w * h;
@@ -177,7 +179,7 @@ const nearestPartLabels = (parts: AlphaMask[], sources: number[], w: number, h: 
   let tail = 0;
   for (let i = 0; i < n; i++) {
     let best = -1;
-    let bestAlpha = 0;
+    let bestAlpha = 127;
     for (const k of sources) {
       const a = parts[k].alpha[i];
       if (a > bestAlpha) {
@@ -193,11 +195,21 @@ const nearestPartLabels = (parts: AlphaMask[], sources: number[], w: number, h: 
   for (let head = 0; head < tail; head++) {
     const i = queue[head];
     const x = i % w;
+    const y = (i - x) / w;
     const k = label[i];
-    if (x > 0 && label[i - 1] < 0) (label[i - 1] = k), (queue[tail++] = i - 1);
-    if (x < w - 1 && label[i + 1] < 0) (label[i + 1] = k), (queue[tail++] = i + 1);
-    if (i >= w && label[i - w] < 0) (label[i - w] = k), (queue[tail++] = i - w);
-    if (i < n - w && label[i + w] < 0) (label[i + w] = k), (queue[tail++] = i + w);
+    for (let dy = -1; dy <= 1; dy++) {
+      const ny = y + dy;
+      if (ny < 0 || ny >= h) continue;
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        if (nx < 0 || nx >= w) continue;
+        const j = ny * w + nx;
+        if (label[j] < 0) {
+          label[j] = k;
+          queue[tail++] = j;
+        }
+      }
+    }
   }
   return label;
 };
