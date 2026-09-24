@@ -18,9 +18,16 @@ const EXAMPLE = `[
     "description": "Waterproof roll flooring in a cool slate grey.",
     "thumbnail": "https://images.example.com/slate-grey.jpg",
     "finishType": "Matte Sheet",
-    "colorTone": "Slate Grey"
+    "colorTone": "Slate Grey",
+    "realWidthMm": 1220,
+    "realHeightMm": 2440,
+    "repeatMode": "sheet",
+    "jointWidthMm": 3
   }
 ]`;
+// Optional physical fields (defaults come from the category when omitted): realWidthMm,
+// realHeightMm, repeatMode (seamless|sheet|tile|plank|bookmatch|none), orientationDeg,
+// jointWidthMm, jointColor, roughness, metallic, normalStrength
 
 export interface BulkImportResultItem {
   name: string;

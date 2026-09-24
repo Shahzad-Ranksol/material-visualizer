@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { Plus, X, Loader2, AlertCircle } from 'lucide-react';
 import { NewMaterialInput } from '../services/apiClient';
+import { MaterialImageInput } from './MaterialImageInput';
+
+import { MaterialScaleEditor } from './MaterialScaleEditor';
 
 interface AddMaterialFormProps {
   lockedCategory: string;
   loading: boolean;
   error: string | null;
   onSubmit: (input: NewMaterialInput) => Promise<boolean>;
+  onUploadImage: (file: Blob) => Promise<string>;
 }
 
-export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory, loading, error, onSubmit }) => {
+export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory, loading, error, onSubmit, onUploadImage }) => {
   const [open, setOpen] = useState(false);
   const emptyForm: NewMaterialInput = {
     name: '',
@@ -20,6 +24,7 @@ export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory
     colorTone: '',
   };
   const [form, setForm] = useState<NewMaterialInput>(emptyForm);
+  const [imageMissing, setImageMissing] = useState(false);
 
   const update = (field: keyof NewMaterialInput) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -27,6 +32,10 @@ export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.thumbnail) {
+      setImageMissing(true);
+      return;
+    }
     const success = await onSubmit({ ...form, category: lockedCategory });
     if (success) {
       setForm(emptyForm);
@@ -69,21 +78,23 @@ export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory
         Category: <span className="text-amber-300 font-medium">{lockedCategory}</span>
       </p>
 
-      <input
-        type="url"
+      <MaterialImageInput
+        onUpload={onUploadImage}
         value={form.thumbnail}
-        onChange={update('thumbnail')}
-        placeholder="Thumbnail image URL"
-        required
-        className="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+        onChange={(thumbnail) => {
+          setImageMissing(false);
+          setForm((prev) => ({ ...prev, thumbnail }));
+        }}
+        inputClassName="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
       />
+      {imageMissing && <p className="text-[11px] text-rose-300">Please upload an image or paste an image URL.</p>}
 
       <div className="grid grid-cols-2 gap-2">
         <input
           type="text"
           value={form.finishType}
           onChange={update('finishType')}
-          placeholder="Finish type"
+          placeholder="Finish (matte, satin, gloss…)"
           required
           className="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
         />
@@ -96,6 +107,13 @@ export const AddMaterialForm: React.FC<AddMaterialFormProps> = ({ lockedCategory
           className="w-full bg-[#12141a] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
         />
       </div>
+
+      <MaterialScaleEditor
+        category={lockedCategory}
+        value={form}
+        onChange={(profile) => setForm((prev) => ({ ...prev, ...profile }))}
+        inputClassName="bg-[#12141a] border border-white/[0.08] rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+      />
 
       <textarea
         value={form.description}

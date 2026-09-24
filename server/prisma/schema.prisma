@@ -71,9 +71,24 @@ model Material {
   thumbnail         String   @db.VarChar(2048)
   finishType        String   @db.VarChar(191)
   colorTone         String   @db.VarChar(191)
-  renderOverlayTone String?  @db.VarChar(64)
-  tileScale         Float?
-  blendMode         String?  @db.VarChar(32)
+  // Physical profile: the real size the photo (albedo) represents and how it repeats.
+  // realHeightMm null = keep the photo's aspect ratio.
+  realWidthMm       Float    @default(600)
+  realHeightMm      Float?
+  // seamless | sheet | tile | plank | bookmatch | none
+  repeatMode        String   @default("seamless") @db.VarChar(16)
+  orientationDeg    Int      @default(0)
+  jointWidthMm      Float?
+  jointColor        String?  @db.VarChar(16)
+  roughness         Float    @default(0.5)
+  metallic          Float    @default(0)
+  normalStrength    Float    @default(0.3)
+  // Full-resolution colour map used for rendering (the thumbnail stays small for the catalogue);
+  // null = render from the thumbnail
+  albedoUrl         String?  @db.VarChar(2048)
+  normalUrl         String?  @db.VarChar(2048)
+  roughnessUrl      String?  @db.VarChar(2048)
+  heightUrl         String?  @db.VarChar(2048)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -90,8 +105,42 @@ model ShowcaseImage {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   hotspots  Hotspot[]
+  surfaces  Surface[]
 
   @@index([tenantId])
+}
+
+// One analysed, re-surfaceable area of a showcase photo (the SurfaceAnalysis contract).
+// Masks live in object storage; geometry is compact JSON. Ownership is transitive via the
+// parent ShowcaseImage, like Hotspot.
+model Surface {
+  id              String        @id @default(cuid())
+  showcaseImageId String
+  showcaseImage   ShowcaseImage @relation(fields: [showcaseImageId], references: [id], onDelete: Cascade)
+  // wall | floor | ceiling | cabinet | countertop | door | furniture | custom
+  kind            String        @db.VarChar(32)
+  label           String        @db.VarChar(191)
+  maskUrl         String        @db.VarChar(2048)
+  occluderMaskUrl String?       @db.VarChar(2048)
+  analysisVersion String        @db.VarChar(64)
+  modelVersions   Json?
+  confidence      Float         @default(0)
+  needsReview     Boolean       @default(true)
+  // { normal, origin, axisU, axisV, residual, intrinsics?, homographyFallback? }
+  plane           Json?
+  // { p1: [x,y], p2: [x,y], distanceMm } — image points as fractions of width/height
+  calibration     Json?
+  lightingMapUrl  String?       @db.VarChar(2048)
+  // Extra planes of one user-level surface (a wall across a corner) point at the main one;
+  // deleting the main surface removes its parts
+  parentSurfaceId String?
+  parentSurface   Surface?      @relation("SurfaceParts", fields: [parentSurfaceId], references: [id], onDelete: Cascade)
+  parts           Surface[]     @relation("SurfaceParts")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  hotspots        Hotspot[]
+
+  @@index([showcaseImageId])
 }
 
 // allowedCategories is comma-separated free text (e.g. "carpet,tile,wood"),
@@ -105,8 +154,13 @@ model Hotspot {
   xPct              Float
   yPct              Float
   allowedCategories String        @db.VarChar(255)
+  // The analysed surface this hotspot re-surfaces. Without one the hotspot can't render
+  // until the vendor reviews it — there is no label-based fallback.
+  surfaceId         String?
+  surface           Surface?      @relation(fields: [surfaceId], references: [id], onDelete: SetNull)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   @@index([showcaseImageId])
+  @@index([surfaceId])
 }

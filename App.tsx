@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { StudioHeader } from './components/StudioHeader';
 import { CuratedRoomsGallery } from './components/CuratedRoomsGallery';
 import { FileUpload } from './components/FileUpload';
@@ -9,14 +9,16 @@ import { AddMaterialForm } from './components/AddMaterialForm';
 import { EditMaterialModal } from './components/EditMaterialModal';
 import { BulkImportModal, BulkImportResultItem } from './components/BulkImportModal';
 import { ShowcaseEditorModal } from './components/ShowcaseEditorModal';
+import { SurfaceReviewModal } from './components/SurfaceReviewModal';
 import { ResultDisplay } from './components/ResultDisplay';
 import { SpecSheetModal } from './components/SpecSheetModal';
 import { CURATED_ROOMS, MATERIALS, ROOM_TYPES } from './constants';
-import {
-  detectObjectsInImage,
-  applyTextureToObjects,
-  checkGeminiApiKey
-} from './services/geminiService';
+import { renderMaterial, RenderLayerInput, NeedsSurfaceReviewError } from './services/renderer/materialRenderer';
+import { WebGLUnavailableError } from './services/renderer/webglContext';
+import { setStudioLightingProvider } from './services/renderer/studioLighting';
+import { createStudioLightingProvider } from './services/renderer/studioLightingProvider';
+import { analyzeRoom, onAnalysisProgress, resolveSurface, savedSurfaceToItem, savedSurfaceToRenderable } from './services/roomAnalysis';
+import { compareWithGemini, isGeminiCompareAvailable } from './services/geminiCompare';
 import {
   AuthSession,
   NewMaterialInput,
@@ -28,7 +30,9 @@ import {
   createMaterial as apiCreateMaterial,
   updateMaterial as apiUpdateMaterial,
   deleteMaterial as apiDeleteMaterial,
+  uploadImage as apiUploadImage,
   RemoteShowcaseImage,
+  RemoteHotspot,
   NewShowcaseImageInput,
   NewHotspotInput,
   listShowcaseImages as apiListShowcaseImages,
@@ -38,8 +42,13 @@ import {
   createHotspot as apiCreateHotspot,
   updateHotspot as apiUpdateHotspot,
   deleteHotspot as apiDeleteHotspot,
+  getRenderCapabilities,
+  createSurface as apiCreateSurface,
+  updateSurface as apiUpdateSurface,
+  deleteSurface as apiDeleteSurface,
+  NewSurfaceInput,
 } from './services/apiClient';
-import { RoomType, Material, MaterialCategory, DetectedItem, CuratedRoom } from './types';
+import { RoomType, Material, MaterialCategory, DetectedItem, CuratedRoom, RenderMode, RenderDebugView, RepeatMode } from './types';
 import { Sparkles, SlidersHorizontal, Wand2, Info, Check, MapPin } from 'lucide-react';
 
 const SESSION_STORAGE_KEY = 'mv_session';
@@ -53,10 +62,38 @@ export const toMaterial = (m: RemoteMaterial): Material => ({
   thumbnail: m.thumbnail,
   finishType: m.finishType,
   colorTone: m.colorTone,
-  renderOverlayTone: m.renderOverlayTone ?? undefined,
-  tileScale: m.tileScale ?? undefined,
-  blendMode: (m.blendMode as Material['blendMode']) ?? undefined,
+  realWidthMm: m.realWidthMm,
+  realHeightMm: m.realHeightMm,
+  repeatMode: m.repeatMode as RepeatMode,
+  orientationDeg: m.orientationDeg as Material['orientationDeg'],
+  jointWidthMm: m.jointWidthMm,
+  jointColor: m.jointColor,
+  roughness: m.roughness,
+  metallic: m.metallic,
+  normalStrength: m.normalStrength,
+  albedoUrl: m.albedoUrl,
+  normalUrl: m.normalUrl,
+  roughnessUrl: m.roughnessUrl,
+  heightUrl: m.heightUrl,
 });
+
+// A vendor's showcase image as a studio preset. Its targets come from its saved surfaces
+// (see activeShowcaseImage below), never from hotspot labels.
+const toCuratedRoom = (img: RemoteShowcaseImage): CuratedRoom => {
+  const template = CURATED_ROOMS.find((r) => r.fullImage === img.imageUrl);
+  return {
+    id: `showcase-${img.id}`,
+    title: img.name,
+    roomType: template?.roomType ?? 'Living Room',
+    style: template?.style ?? 'Vendor Showcase',
+    thumbnail: img.imageUrl,
+    fullImage: img.imageUrl,
+    detectedDefaults: [],
+  };
+};
+
+const errorText = (err: unknown, fallback: string) =>
+  err instanceof NeedsSurfaceReviewError || err instanceof WebGLUnavailableError || err instanceof Error ? err.message : fallback;
 
 const App: React.FC = () => {
   // Room & Image State
@@ -65,21 +102,21 @@ const App: React.FC = () => {
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(CURATED_ROOMS[0].fullImage);
 
-  // Architectural Elements State
-  const [detectedItems, setDetectedItems] = useState<DetectedItem[]>(() => {
-    return CURATED_ROOMS[0].detectedDefaults.map((d, index) => ({
-      id: `item-init-${index}`,
-      name: d.name,
-      category: d.category,
-      description: d.description,
-      confidence: 96,
-    }));
-  });
-
-  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => {
-    // Pre-select first two architectural elements for instant visual readiness
-    return new Set(['item-init-0', 'item-init-3']);
-  });
+  // Surfaces of the current photo (from room analysis, or a vendor room's saved surfaces)
+  const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [analyzing, setAnalyzing] = useState<boolean>(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([]);
+  const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
+  // Surface whose area the user is checking (low analysis confidence)
+  const [reviewingItem, setReviewingItem] = useState<DetectedItem | null>(null);
+  useEffect(() => {
+    const off = onAnalysisProgress(setAnalysisProgress);
+    return () => {
+      off();
+    };
+  }, []);
 
   // Materials & Rendering State
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(MATERIALS[0]);
@@ -87,12 +124,17 @@ const App: React.FC = () => {
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
 
   // Status & Feedback
-  const [detectionLoading, setDetectionLoading] = useState<boolean>(false);
   const [applicationLoading, setApplicationLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [specSheetOpen, setSpecSheetOpen] = useState<boolean>(false);
-  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
-  const [useAI, setUseAI] = useState<boolean>(false);
+  // Exact Preview (deterministic) or Studio Lighting (optional self-hosted worker)
+  const [renderMode, setRenderMode] = useState<RenderMode>('exact');
+  const [studioLightingAvailable, setStudioLightingAvailable] = useState<boolean>(false);
+  // Staff diagnostics: what the last render showed (mask / layout grid / recovered lighting)
+  const [debugView, setDebugView] = useState<RenderDebugView>('none');
+  const [renderNotice, setRenderNotice] = useState<string | null>(null);
+  const lastRender = useRef<{ imageUrl: string; layers: RenderLayerInput[] } | null>(null);
+  const renderRequest = useRef(0);
 
   // Tenant Auth & Remote Catalog State
   const [session, setSession] = useState<AuthSession | null>(() => {
@@ -125,11 +167,17 @@ const App: React.FC = () => {
   const [hotspotLoading, setHotspotLoading] = useState<boolean>(false);
   const [hotspotError, setHotspotError] = useState<string | null>(null);
 
-  // Check API key availability in environment (non-blocking)
+  // Studio Lighting is offered only when the server reports a self-hosted worker
   useEffect(() => {
-    const keyPresent = checkGeminiApiKey();
-    setHasApiKey(keyPresent);
+    getRenderCapabilities()
+      .then((caps) => setStudioLightingAvailable(caps.studioLighting))
+      .catch(() => setStudioLightingAvailable(false));
   }, []);
+  // The worker is reached through the authenticated API, so it needs a signed-in session
+  useEffect(() => {
+    setStudioLightingProvider(studioLightingAvailable && session ? createStudioLightingProvider(session.token) : null);
+    if (!(studioLightingAvailable && session)) setRenderMode('exact');
+  }, [studioLightingAvailable, session]);
 
   // Persist auth session across reloads
   useEffect(() => {
@@ -144,10 +192,11 @@ const App: React.FC = () => {
     }
   }, [session]);
 
-  // Load the tenant's catalog (shared defaults + their own materials) once signed in
+  // Load the tenant's own catalog once signed in (empty for a brand-new vendor)
   useEffect(() => {
     if (!session) {
       setRemoteMaterials(null);
+      setSelectedMaterial(MATERIALS[0]);
       return;
     }
     let cancelled = false;
@@ -155,7 +204,9 @@ const App: React.FC = () => {
     apiListMaterials(session.token)
       .then((remote) => {
         if (cancelled) return;
-        setRemoteMaterials(remote.map(toMaterial));
+        const mapped = remote.map(toMaterial);
+        setRemoteMaterials(mapped);
+        setSelectedMaterial(mapped[0] ?? null);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -236,12 +287,57 @@ const App: React.FC = () => {
     }
   }, [session]);
 
+  const handleUploadMaterialImage = useCallback(async (file: Blob) => {
+    if (!session) throw new Error('Sign in to upload images.');
+    const { url } = await apiUploadImage(session.token, file, 'materials');
+    return url;
+  }, [session]);
+
+  const handleUploadShowcaseMask = useCallback(async (mask: Blob) => {
+    if (!session) throw new Error('Sign in to save hotspot areas.');
+    const { url } = await apiUploadImage(session.token, mask, 'showcase');
+    return url;
+  }, [session]);
+
+  // Saves a showcase surface (mask + geometry) and keeps the local showroom state in step
+  const handleSaveSurface = useCallback(async (imageId: string, surfaceId: string | null, input: Partial<NewSurfaceInput>) => {
+    if (!session) throw new Error('Sign in to save surfaces.');
+    const saved = surfaceId
+      ? await apiUpdateSurface(session.token, surfaceId, input)
+      : await apiCreateSurface(session.token, imageId, input as NewSurfaceInput);
+    setShowcaseImages((prev) =>
+      prev
+        ? prev.map((img) =>
+            img.id === imageId
+              ? { ...img, surfaces: [...img.surfaces.filter((sf) => sf.id !== saved.id), { ...saved, imageId }] }
+              : img
+          )
+        : prev
+    );
+    return saved;
+  }, [session]);
+
+  const handleDeleteSurface = useCallback(async (imageId: string, surfaceId: string) => {
+    if (!session) throw new Error('Sign in to edit surfaces.');
+    await apiDeleteSurface(session.token, surfaceId);
+    // Removing a surface also removes its extra planes (server cascade)
+    setShowcaseImages((prev) =>
+      prev
+        ? prev.map((img) =>
+            img.id === imageId
+              ? { ...img, surfaces: img.surfaces.filter((sf) => sf.id !== surfaceId && sf.parentSurfaceId !== surfaceId) }
+              : img
+          )
+        : prev
+    );
+  }, [session]);
+
   const handleDeleteMaterial = useCallback(async (materialId: string) => {
     if (!session) return;
     try {
       await apiDeleteMaterial(session.token, materialId);
       setRemoteMaterials((prev) => (prev ? prev.filter((m) => m.id !== materialId) : prev));
-      setSelectedMaterial((prev) => (prev?.id === materialId ? MATERIALS[0] : prev));
+      setSelectedMaterial((prev) => (prev?.id === materialId ? null : prev));
     } catch (err) {
       setMaterialsError(err instanceof ApiError ? err.message : 'Could not remove this material.');
     }
@@ -372,90 +468,158 @@ const App: React.FC = () => {
     }
   }, [session]);
 
-  // Pre-generate initial concept render for the default room so split slider is ready instantly
-  useEffect(() => {
-    if (!processedImageUrl && uploadedImageUrl && selectedMaterial) {
-      applyTextureToObjects(
-        uploadedImageUrl,
-        'image/jpeg',
-        ['Feature Accent Wall', 'Sculptural Coffee Table'],
-        selectedMaterial,
-        useAI
-      ).then((res) => {
-        setProcessedImageUrl(res);
-      }).catch(() => {});
-    }
-  }, []);
 
-  // Select a Curated Room preset
+  // The one way anything gets rendered: exact renderer over accepted surfaces, never a guess
+  const runRender = useCallback(async (imageUrl: string, layers: RenderLayerInput[], debug: RenderDebugView = debugView) => {
+    const request = ++renderRequest.current;
+    setApplicationLoading(true);
+    setErrorMessage(null);
+    setRenderNotice(null);
+    try {
+      const url = await renderMaterial(imageUrl, layers, { mode: renderMode, debug });
+      if (request !== renderRequest.current) return;
+      lastRender.current = { imageUrl, layers };
+      setProcessedImageUrl(url);
+    } catch (err) {
+      if (request !== renderRequest.current) return;
+      console.error(err);
+      setErrorMessage(errorText(err, 'Rendering failed. Please try another finish.'));
+    } finally {
+      if (request === renderRequest.current) setApplicationLoading(false);
+    }
+  }, [renderMode, debugView]);
+
+  // Re-show the last render with a different diagnostic overlay (staff)
+  const handleDebugViewChange = useCallback((view: RenderDebugView) => {
+    setDebugView(view);
+    if (lastRender.current) runRender(lastRender.current.imageUrl, lastRender.current.layers, view);
+  }, [runRender]);
+
+  // Signed-in vendors only see their own showcase rooms as presets
+  const galleryRooms = useMemo(
+    () => (session ? (showcaseImages ?? []).map(toCuratedRoom) : CURATED_ROOMS),
+    [session, showcaseImages]
+  );
+
+  // The vendor showcase room currently on the canvas (its hotspots become clickable pins)
+  const activeShowcaseImage = useMemo(
+    () => (session ? showcaseImages?.find((img) => `showcase-${img.id}` === selectedCuratedRoomId) ?? null : null),
+    [session, showcaseImages, selectedCuratedRoomId]
+  );
+  // Finish chosen per hotspot on the active room, by hotspot id
+  const [hotspotSelections, setHotspotSelections] = useState<Record<string, Material>>({});
+  const hotspotRenderRequest = useRef(0);
+  useEffect(() => {
+    setHotspotSelections({});
+  }, [selectedCuratedRoomId]);
+
+  // Picking a finish on a hotspot pin re-renders every hotspot that has one — each with its own
+  // material, exact area and perspective — so e.g. the wall and floor can differ
+  const handleHotspotMaterialSelect = useCallback(async (hotspot: RemoteHotspot, material: Material) => {
+    if (!activeShowcaseImage) return;
+    const selections = { ...hotspotSelections, [hotspot.id]: material };
+    setHotspotSelections(selections);
+    setSelectedMaterial(material);
+    const layers: RenderLayerInput[] = [];
+    for (const h of activeShowcaseImage.hotspots) {
+      if (!selections[h.id]) continue;
+      const surface = activeShowcaseImage.surfaces.find((s) => s.id === h.surfaceId);
+      if (!surface) {
+        setErrorMessage(`"${h.label}" has no reviewed surface yet — open Manage Showcase & Hotspots and detect its area.`);
+        return;
+      }
+      for (const part of [surface, ...activeShowcaseImage.surfaces.filter((p) => p.parentSurfaceId === surface.id)]) {
+        layers.push({ surface: savedSurfaceToRenderable(part), material: selections[h.id] });
+      }
+    }
+    await runRender(activeShowcaseImage.imageUrl, layers);
+  }, [activeShowcaseImage, hotspotSelections, runRender]);
+
+  // Select a Curated Room preset — its surfaces come from analysis (or saved vendor surfaces)
   const handleSelectCuratedRoom = useCallback((room: CuratedRoom) => {
     setSelectedCuratedRoomId(room.id);
     setSelectedRoomType(room.roomType);
     setUploadedImageFile(null);
     setUploadedImageUrl(room.fullImage);
+    setProcessedImageUrl(null);
     setErrorMessage(null);
+  }, []);
 
-    const newItems: DetectedItem[] = room.detectedDefaults.map((d, index) => ({
-      id: `item-${room.id}-${index}`,
-      name: d.name,
-      category: d.category,
-      description: d.description,
-      confidence: 95 + (index % 4),
-    }));
-
-    setDetectedItems(newItems);
-    // Preselect primary focal surface
-    setSelectedItemIds(new Set([newItems[0].id]));
-
-    // Generate fresh concept render for this room
-    if (selectedMaterial) {
-      applyTextureToObjects(
-        room.fullImage,
-        'image/jpeg',
-        [newItems[0].name],
-        selectedMaterial,
-        useAI
-      ).then((res) => {
-        setProcessedImageUrl(res);
-      }).catch(() => {});
+  // Put the vendor's first showcase room on the canvas after sign-in, and the demo room back after sign-out
+  const vendorRoomShown = useRef(false);
+  useEffect(() => {
+    if (!session) {
+      if (vendorRoomShown.current) {
+        vendorRoomShown.current = false;
+        handleSelectCuratedRoom(CURATED_ROOMS[0]);
+      }
+      return;
     }
-  }, [selectedMaterial, useAI]);
+    if (vendorRoomShown.current || galleryRooms.length === 0) return;
+    vendorRoomShown.current = true;
+    handleSelectCuratedRoom(galleryRooms[0]);
+  }, [session, galleryRooms, handleSelectCuratedRoom]);
 
-  // Handle custom room photo upload
+  // Analyze each new photo once; a vendor's showcase room uses its saved surfaces instead
+  const showcaseSurfaceKey = activeShowcaseImage ? `${activeShowcaseImage.id}:${activeShowcaseImage.surfaces.map((s) => s.id).join(',')}` : '';
+  useEffect(() => {
+    if (!uploadedImageUrl) return;
+    let cancelled = false;
+    setAnalysisError(null);
+    setAnalysisWarnings([]);
+    setSelectedItemIds(new Set());
+    if (activeShowcaseImage) {
+      const items = activeShowcaseImage.surfaces
+        .filter((s) => !s.parentSurfaceId)
+        .map((s) => {
+          const pin = activeShowcaseImage.hotspots.find((h) => h.surfaceId === s.id);
+          const parts = activeShowcaseImage.surfaces.filter((p) => p.parentSurfaceId === s.id);
+          return savedSurfaceToItem(s, parts, pin ? { xPct: pin.xPct, yPct: pin.yPct } : undefined);
+        });
+      setDetectedItems(items);
+      setAnalyzing(false);
+      if (items[0]) setSelectedItemIds(new Set([items[0].id]));
+      if (items.length === 0) setAnalysisError('This showroom photo has no saved surfaces yet — add them in Manage Showcase & Hotspots.');
+      return;
+    }
+    setDetectedItems([]);
+    setAnalyzing(true);
+    analyzeRoom(uploadedImageUrl)
+      .then(({ items, warnings }) => {
+        if (cancelled) return;
+        setDetectedItems(items);
+        setAnalysisWarnings(warnings);
+        const first = items.find((i) => i.surfaceKind === 'wall') ?? items[0];
+        if (first) setSelectedItemIds(new Set([first.id]));
+        if (items.length === 0) setAnalysisError('No re-surfaceable walls, floors or ceilings were found in this photo.');
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setAnalysisError(errorText(err, 'Could not analyze this photo.'));
+      })
+      .finally(() => {
+        if (!cancelled) setAnalyzing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // showcaseSurfaceKey stands in for activeShowcaseImage's surfaces
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadedImageUrl, showcaseSurfaceKey]);
+
+  // Handle custom room photo upload — analysis runs from the effect above
   const handleFileUpload = useCallback(async (file: File | null) => {
     if (!file) {
       setUploadedImageFile(null);
       return;
     }
-
     setUploadedImageFile(file);
     setSelectedCuratedRoomId(null);
     setProcessedImageUrl(null);
     setErrorMessage(null);
-    setDetectionLoading(true);
-
     const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result as string;
-      setUploadedImageUrl(base64Data);
-
-      try {
-        const items = await detectObjectsInImage(base64Data, file.type, selectedRoomType, useAI);
-        setDetectedItems(items);
-        if (items.length > 0) {
-          // Pre-select first item
-          setSelectedItemIds(new Set([items[0].id]));
-        } else {
-          setErrorMessage('No specific objects isolated. You can still add custom surfaces or re-texture the space.');
-        }
-      } catch (err: any) {
-        setErrorMessage(err.message || 'Vision scan encountered an issue. Standard surfaces available.');
-      } finally {
-        setDetectionLoading(false);
-      }
-    };
+    reader.onload = () => setUploadedImageUrl(reader.result as string);
     reader.readAsDataURL(file);
-  }, [selectedRoomType, useAI]);
+  }, []);
 
   // Target element selection handlers
   const handleItemSelect = (itemId: string) => {
@@ -478,43 +642,48 @@ const App: React.FC = () => {
     setSelectedItemIds(new Set());
   };
 
-  const handleAddCustomItem = (name: string, category: DetectedItem['category']) => {
-    const newItem: DetectedItem = {
-      id: `custom-${Date.now()}`,
-      name,
-      category,
-      description: `Bespoke architectural ${name} defined by designer.`,
-      confidence: 100,
-    };
-    setDetectedItems((prev) => [newItem, ...prev]);
-    setSelectedItemIds((prev) => new Set([...prev, newItem.id]));
+
+  // Materialize: cut/resolve each selected surface (once), then render them all
+  const applyMaterial = async (material: Material | null = selectedMaterial) => {
+    if (!uploadedImageUrl || selectedItemIds.size === 0 || !material) return;
+    const selectedMaterial = material;
+    const imageUrl = uploadedImageUrl;
+    const selected = detectedItems.filter((item) => selectedItemIds.has(item.id));
+    setApplicationLoading(true);
+    try {
+      const resolved = await Promise.all(selected.map((item) => resolveSurface(imageUrl, item)));
+      // Keep the cut masks (and their confidence) so switching materials never re-runs a model
+      setDetectedItems((prev) => prev.map((item) => resolved.find((r) => r.item.id === item.id)?.item ?? item));
+      const needsCorrection = resolved.find((r) => r.item.reviewDecision === 'correct');
+      if (needsCorrection) {
+        // Below the review threshold: show the area for correction straight away
+        setReviewingItem(needsCorrection.item);
+        setRenderNotice('One surface was uncertain — check its area before relying on this render.');
+      }
+      await runRender(imageUrl, resolved.flatMap((r) => r.surfaces.map((surface) => ({ surface, material: selectedMaterial }))));
+    } catch (err) {
+      setErrorMessage(errorText(err, 'Could not prepare these surfaces.'));
+      setApplicationLoading(false);
+    }
+  };
+  const handleApplyTexture = () => applyMaterial();
+
+  // Choosing a material renders it straight away on the selected surfaces
+  const handleSelectMaterial = (material: Material) => {
+    setSelectedMaterial(material);
+    if (!analyzing && selectedItemIds.size > 0) applyMaterial(material);
   };
 
-  // Materialize / Render Concept
-  const handleApplyTexture = async () => {
-    if (!uploadedImageUrl || selectedItemIds.size === 0 || !selectedMaterial) return;
-
+  // Staff-only benchmark against Gemini (temporary; never part of the product render path)
+  const handleCompareWithGemini = async () => {
+    if (!uploadedImageUrl || !selectedMaterial) return;
     setApplicationLoading(true);
-    setErrorMessage(null);
-
-    const itemsToModify = Array.from(selectedItemIds)
-      .map((id) => detectedItems.find((item) => item.id === id)?.name)
-      .filter((name): name is string => Boolean(name));
-
     try {
-      const mimeType = uploadedImageFile ? uploadedImageFile.type : 'image/jpeg';
-      const renderedUrl = await applyTextureToObjects(
-        uploadedImageUrl,
-        mimeType,
-        itemsToModify,
-        selectedMaterial,
-        useAI,
-        customDirective
-      );
-      setProcessedImageUrl(renderedUrl);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.message || 'Rendering synthesis failed. Please try with another finish.');
+      const names = detectedItems.filter((i) => selectedItemIds.has(i.id)).map((i) => i.name);
+      setProcessedImageUrl(await compareWithGemini(uploadedImageUrl, selectedMaterial, names));
+      setRenderNotice('Showing a Gemini comparison — not product-exact and not what customers see.');
+    } catch (err) {
+      setErrorMessage(errorText(err, 'Gemini comparison failed.'));
     } finally {
       setApplicationLoading(false);
     }
@@ -522,23 +691,25 @@ const App: React.FC = () => {
 
   // Reset workspace
   const handleResetWorkspace = () => {
-    handleSelectCuratedRoom(CURATED_ROOMS[0]);
-    setSelectedMaterial(MATERIALS[0]);
+    if (galleryRooms[0]) handleSelectCuratedRoom(galleryRooms[0]);
+    setSelectedMaterial(materialsList[0] ?? null);
     setCustomDirective('');
     setErrorMessage(null);
   };
 
   // Directive suggestion pills
+  // Installation-note suggestions (spec sheet only — they don't change the render)
   const directiveSuggestions = [
-    'Subtle satin finish & soft daylight',
-    'Warm golden hour side illumination',
-    'Continuous seamless slab joinery',
-    'Artisanal matte texture with low glare',
+    'Book-match panels across the feature wall',
+    'Align vertical joints with door and window edges',
+    'Continuous grain direction on all panels',
+    'Leave 3mm expansion gap at skirting and ceiling',
   ];
 
   const selectedItemsList = detectedItems.filter((i) => selectedItemIds.has(i.id));
+  const isStaff = session?.user.role === 'OWNER' || session?.user.role === 'ADMIN';
   const isApplyDisabled = applicationLoading || selectedItemIds.size === 0 || !selectedMaterial || !uploadedImageUrl;
-  const materialsList = remoteMaterials ?? MATERIALS;
+  const materialsList = session ? remoteMaterials ?? [] : MATERIALS;
 
   return (
     <div className="min-h-screen bg-[#0b0c10] text-slate-100 flex flex-col font-sans">
@@ -548,16 +719,16 @@ const App: React.FC = () => {
         onSelectRoomType={(newType) => {
           setSelectedRoomType(newType);
           // If a curated room matches this type, auto-select it
-          const matchingCurated = CURATED_ROOMS.find((r) => r.roomType === newType);
+          const matchingCurated = galleryRooms.find((r) => r.roomType === newType);
           if (matchingCurated) {
             handleSelectCuratedRoom(matchingCurated);
           }
         }}
         onOpenSpecSheet={() => setSpecSheetOpen(true)}
         onReset={handleResetWorkspace}
-        hasApiKey={hasApiKey}
-        useAI={useAI}
-        onToggleAI={() => setUseAI((prev) => !prev)}
+        renderMode={renderMode}
+        onRenderModeChange={setRenderMode}
+        studioLightingAvailable={studioLightingAvailable && Boolean(session)}
       />
 
       {/* Main Studio Workspace */}
@@ -589,6 +760,8 @@ const App: React.FC = () => {
             {/* Curated Rooms Gallery */}
             <section className="p-5 rounded-2xl bg-[#12141c] border border-white/[0.08] shadow-xl space-y-4">
               <CuratedRoomsGallery
+                rooms={galleryRooms}
+                isVendor={!!session}
                 selectedRoomId={selectedCuratedRoomId}
                 onSelectRoom={handleSelectCuratedRoom}
               />
@@ -616,7 +789,11 @@ const App: React.FC = () => {
                 onItemSelect={handleItemSelect}
                 onSelectAll={handleSelectAll}
                 onClearAll={handleClearAll}
-                onAddCustomItem={handleAddCustomItem}
+                analyzing={analyzing}
+                progressLabel={analysisProgress}
+                onReviewItem={setReviewingItem}
+                analysisError={analysisError}
+                warnings={analysisWarnings}
               />
             </section>
           </aside>
@@ -630,9 +807,18 @@ const App: React.FC = () => {
               uploadedImageUrl={uploadedImageUrl}
               processedImageUrl={processedImageUrl}
               isLoading={applicationLoading}
-              isDetectionLoading={detectionLoading}
+              isDetectionLoading={analyzing}
               selectedMaterial={selectedMaterial}
               selectedItemsCount={selectedItemIds.size}
+              hotspots={activeShowcaseImage?.hotspots}
+              hotspotMaterials={materialsList}
+              hotspotSelections={hotspotSelections}
+              onHotspotMaterialSelect={handleHotspotMaterialSelect}
+              showDebugTools={isStaff}
+              debugView={debugView}
+              onDebugViewChange={handleDebugViewChange}
+              notice={renderNotice}
+              onCompareWithGemini={isStaff && isGeminiCompareAvailable() ? handleCompareWithGemini : undefined}
             />
 
             {/* Materialization CTA & Directive Refinement */}
@@ -679,16 +865,16 @@ const App: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
                     <Info className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Architectural Lighting & Sheen Directive</span>
+                    <span>Installation Note</span>
                   </label>
-                  <span className="text-[10px] text-slate-500">Optional refinement</span>
+                  <span className="text-[10px] text-slate-500">Printed on the spec sheet</span>
                 </div>
 
                 <input
                   type="text"
                   value={customDirective}
                   onChange={(e) => setCustomDirective(e.target.value)}
-                  placeholder="e.g. Afternoon window light, honed silk reflection, seamless bookmatched joints..."
+                  placeholder="e.g. Book-match panels on the feature wall, align joints with the doorway…"
                   className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
                 />
 
@@ -763,7 +949,7 @@ const App: React.FC = () => {
                   </h3>
                   <p className="text-[10px] text-slate-500">
                     {session
-                      ? `Your ${session.tenant?.materialCategory ?? ''} Catalog + Shared Defaults`
+                      ? `Your ${session.tenant?.materialCategory ?? ''} Catalog`
                       : 'Architectural Textures & Swatches'}
                   </p>
                 </div>
@@ -781,7 +967,7 @@ const App: React.FC = () => {
               <MaterialGrid
                 materials={materialsList}
                 selectedMaterial={selectedMaterial}
-                onSelectMaterial={setSelectedMaterial}
+                onSelectMaterial={handleSelectMaterial}
                 currentTenantId={session?.user.tenantId ?? null}
                 onDeleteMaterial={session ? handleDeleteMaterial : undefined}
                 onEditMaterial={session ? setEditingMaterial : undefined}
@@ -795,6 +981,7 @@ const App: React.FC = () => {
                     loading={addMaterialLoading}
                     error={addMaterialError}
                     onSubmit={handleCreateMaterial}
+                    onUploadImage={handleUploadMaterialImage}
                   />
                   <button
                     type="button"
@@ -826,12 +1013,33 @@ const App: React.FC = () => {
         </div>
       </footer>
 
+      {reviewingItem && uploadedImageUrl && (
+        <SurfaceReviewModal
+          key={reviewingItem.id}
+          imageUrl={uploadedImageUrl}
+          item={reviewingItem}
+          previewMaterial={selectedMaterial}
+          onClose={() => setReviewingItem(null)}
+          onAccept={(fixed) => {
+            setReviewingItem(null);
+            const items = detectedItems.map((i) => (i.id === fixed.id ? fixed : i));
+            setDetectedItems(items);
+            setRenderNotice(null);
+            // Re-render the selected surfaces with the corrected area
+            const layers = items
+              .filter((i) => selectedItemIds.has(i.id) && i.surfaces?.length)
+              .flatMap((i) => i.surfaces!.map((surface) => ({ surface, material: selectedMaterial! })));
+            if (selectedMaterial && layers.length) runRender(uploadedImageUrl, layers);
+          }}
+        />
+      )}
+
       {/* Material Specification Modal */}
       <SpecSheetModal
         isOpen={specSheetOpen}
         onClose={() => setSpecSheetOpen(false)}
         roomType={selectedRoomType}
-        roomTitle={selectedCuratedRoomId ? CURATED_ROOMS.find((r) => r.id === selectedCuratedRoomId)?.title : undefined}
+        roomTitle={selectedCuratedRoomId ? galleryRooms.find((r) => r.id === selectedCuratedRoomId)?.title : undefined}
         selectedItems={selectedItemsList}
         selectedMaterial={selectedMaterial}
         previewImageUrl={processedImageUrl || uploadedImageUrl}
@@ -848,6 +1056,7 @@ const App: React.FC = () => {
           setEditMaterialError(null);
         }}
         onSave={handleUpdateMaterial}
+        onUploadImage={handleUploadMaterialImage}
       />
 
       <BulkImportModal
@@ -873,6 +1082,11 @@ const App: React.FC = () => {
         onCreateHotspot={handleCreateHotspot}
         onUpdateHotspot={handleUpdateHotspot}
         onDeleteHotspot={handleDeleteHotspot}
+        onUploadMask={handleUploadShowcaseMask}
+        onSaveSurface={handleSaveSurface}
+        onDeleteSurface={handleDeleteSurface}
+        previewMaterial={selectedMaterial}
+        defaultCategory={session?.tenant?.materialCategory}
       />
     </div>
   );

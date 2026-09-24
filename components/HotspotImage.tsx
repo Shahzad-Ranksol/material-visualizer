@@ -13,6 +13,8 @@ interface HotspotImageProps {
   onImageClick?: (xPct: number, yPct: number) => void;
   onHotspotDragEnd?: (hotspotId: string, xPct: number, yPct: number) => void;
   renderPin: (hotspot: HotspotViewModel) => React.ReactNode;
+  // Drawn over the photo, under the pins (e.g. a surface-mask preview)
+  overlay?: React.ReactNode;
 }
 
 const DRAG_THRESHOLD_PX = 6;
@@ -26,6 +28,7 @@ export const HotspotImage: React.FC<HotspotImageProps> = ({
   onImageClick,
   onHotspotDragEnd,
   renderPin,
+  overlay,
 }) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const dragRef = useRef<{ hotspotId: string; startX: number; startY: number; xPct: number; yPct: number; moved: boolean } | null>(null);
@@ -105,6 +108,7 @@ export const HotspotImage: React.FC<HotspotImageProps> = ({
         className={`w-full h-auto block select-none ${onImageClick ? 'cursor-crosshair' : ''}`}
         onClick={handleClick}
       />
+      {overlay}
       {hotspots.map((hotspot) => {
         const pos = dragPositions[hotspot.id] || hotspot;
         return (

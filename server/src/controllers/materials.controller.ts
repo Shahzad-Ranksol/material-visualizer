@@ -1,25 +1,28 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { deleteTenantImage } from '../lib/storage.js';
+import { defaultProfileFor, materialProfileSchema } from '../lib/materialProfile.js';
+
+// A pasted http(s) link, or the object-storage URL returned by POST /api/uploads/image
+const thumbnailSchema = z.string().url().max(2048).regex(/^https?:\/\//i, 'Must be an http(s) URL');
 
 const materialSchema = z.object({
   name: z.string().min(1),
   category: z.string().min(1),
   description: z.string().min(1),
-  thumbnail: z.string().url(),
+  thumbnail: thumbnailSchema,
   finishType: z.string().min(1),
   colorTone: z.string().min(1),
-  renderOverlayTone: z.string().optional(),
-  tileScale: z.number().optional(),
-  blendMode: z.enum(['soft-light', 'color', 'overlay']).optional(),
-});
+}).merge(materialProfileSchema.partial());
 
 export const listMaterials = async (req: Request, res: Response) => {
   const { category } = req.query;
   const materials = await prisma.material.findMany({
     where: {
       AND: [
-        { OR: [{ tenantId: req.user!.tenantId }, { tenantId: null }] },
+        // Vendors see only their own catalog — a new tenant starts empty
+        { tenantId: req.user!.tenantId },
         { category: req.user!.materialCategory },
         category ? { category: String(category) } : {},
       ],
@@ -39,8 +42,10 @@ export const createMaterial = async (req: Request, res: Response) => {
     res.status(400).json({ error: `Category must be '${req.user!.materialCategory}' for this tenant.` });
     return;
   }
+  // Profile fields the vendor didn't send start from the category's defaults
+  const defaults = defaultProfileFor(parsed.data.category, `${parsed.data.finishType} ${parsed.data.description}`);
   const material = await prisma.material.create({
-    data: { ...parsed.data, tenantId: req.user!.tenantId },
+    data: { ...defaults, ...parsed.data, tenantId: req.user!.tenantId },
   });
   res.status(201).json(material);
 };
@@ -81,6 +86,9 @@ export const updateMaterial = async (req: Request, res: Response) => {
     where: { id: req.params.id },
     data: parsed.data,
   });
+  if (parsed.data.thumbnail && parsed.data.thumbnail !== result.material.thumbnail) {
+    await deleteTenantImage(req.user!.tenantId, result.material.thumbnail);
+  }
   res.json(updated);
 };
 
@@ -92,5 +100,6 @@ export const deleteMaterial = async (req: Request, res: Response) => {
   }
 
   await prisma.material.delete({ where: { id: req.params.id } });
+  await deleteTenantImage(req.user!.tenantId, result.material.thumbnail);
   res.status(204).send();
 };

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { serializeImage, showcaseInclude } from './showcase.controller.js';
 
 const findApprovedTenantBySlug = (slug: string) => prisma.tenant.findFirst({ where: { slug, status: 'APPROVED' } });
 
@@ -35,16 +36,9 @@ export const listPublicShowcase = async (req: Request, res: Response) => {
   }
   const images = await prisma.showcaseImage.findMany({
     where: { tenantId: tenant.id },
-    include: { hotspots: true },
+    include: showcaseInclude,
     orderBy: { createdAt: 'desc' },
   });
-  res.json(
-    images.map((img) => ({
-      ...img,
-      hotspots: img.hotspots.map((h) => ({
-        ...h,
-        allowedCategories: h.allowedCategories.split(',').filter(Boolean),
-      })),
-    }))
-  );
+  // Surfaces ship with the showroom so customers render from saved analysis — no models run for them
+  res.json(images.map(serializeImage));
 };

@@ -10,7 +10,8 @@ import {
   listPublicMaterials,
   listPublicShowcase,
 } from '../services/apiClient';
-import { applyTextureToObjects } from '../services/geminiService';
+import { renderMaterial, RenderLayerInput } from '../services/renderer/materialRenderer';
+import { savedSurfaceToRenderable } from '../services/roomAnalysis';
 import { Material } from '../types';
 import { toMaterial } from '../App';
 import { HotspotImage, HotspotViewModel } from './HotspotImage';
@@ -29,6 +30,8 @@ export const StorefrontPage: React.FC = () => {
 
   const [activeHotspot, setActiveHotspot] = useState<RemoteHotspot | null>(null);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  // Finish chosen per hotspot — all of them render together (e.g. wall + floor)
+  const [selections, setSelections] = useState<Record<string, Material>>({});
   const [renderedUrl, setRenderedUrl] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export const StorefrontPage: React.FC = () => {
   const resetSelection = () => {
     setActiveHotspot(null);
     setSelectedMaterial(null);
+    setSelections({});
     setRenderedUrl(null);
     setApplyError(null);
   };
@@ -86,14 +90,25 @@ export const StorefrontPage: React.FC = () => {
     setApplyError(null);
   };
 
+  // Renders from the vendor's saved surfaces only — customers never run a model
   const handleSelectMaterial = async (material: Material) => {
     if (!activeImage || !activeHotspot) return;
+    const next = { ...selections, [activeHotspot.id]: material };
+    setSelections(next);
     setSelectedMaterial(material);
     setApplying(true);
     setApplyError(null);
     try {
-      const result = await applyTextureToObjects(activeImage.imageUrl, 'image/jpeg', [activeHotspot.label], material, false);
-      setRenderedUrl(result);
+      const layers: RenderLayerInput[] = [];
+      for (const h of activeImage.hotspots) {
+        if (!next[h.id]) continue;
+        const surface = activeImage.surfaces.find((sf) => sf.id === h.surfaceId);
+        if (!surface) throw new Error(`"${h.label}" isn't ready for previews yet.`);
+        for (const part of [surface, ...activeImage.surfaces.filter((p) => p.parentSurfaceId === surface.id)]) {
+          layers.push({ surface: savedSurfaceToRenderable(part), material: next[h.id] });
+        }
+      }
+      setRenderedUrl(await renderMaterial(activeImage.imageUrl, layers));
     } catch (err: any) {
       setApplyError(err?.message || 'Could not render this material — try another finish.');
     } finally {

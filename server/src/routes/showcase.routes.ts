@@ -8,6 +8,9 @@ import {
   createHotspot,
   updateHotspot,
   deleteHotspot,
+  createSurface,
+  updateSurface,
+  deleteSurface,
 } from '../controllers/showcase.controller.js';
 
 export const showcaseRouter = Router();
@@ -17,6 +20,9 @@ showcaseRouter.get('/images', listShowcaseImages);
 showcaseRouter.post('/images', createShowcaseImage);
 showcaseRouter.put('/images/:id', updateShowcaseImage);
 showcaseRouter.delete('/images/:id', deleteShowcaseImage);
+showcaseRouter.post('/images/:imageId/surfaces', createSurface);
+showcaseRouter.put('/surfaces/:id', updateSurface);
+showcaseRouter.delete('/surfaces/:id', deleteSurface);
 showcaseRouter.post('/images/:imageId/hotspots', createHotspot);
 showcaseRouter.put('/hotspots/:id', updateHotspot);
 showcaseRouter.delete('/hotspots/:id', deleteHotspot);

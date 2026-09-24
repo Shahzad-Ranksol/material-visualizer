@@ -1,7 +1,6 @@
 import React from 'react';
-import { RoomType } from '../types';
+import { RoomType, RenderMode } from '../types';
 import { ROOM_TYPES } from '../constants';
-import { ToggleSwitch } from './ToggleSwitch';
 import { Compass, FileText, RotateCcw, ChevronDown } from 'lucide-react';
 
 interface StudioHeaderProps {
@@ -9,9 +8,10 @@ interface StudioHeaderProps {
   onSelectRoomType: (roomType: RoomType) => void;
   onOpenSpecSheet: () => void;
   onReset: () => void;
-  hasApiKey: boolean;
-  useAI: boolean;
-  onToggleAI: () => void;
+  renderMode: RenderMode;
+  onRenderModeChange: (mode: RenderMode) => void;
+  // Studio Lighting needs the optional self-hosted worker; without it only Exact Preview exists
+  studioLightingAvailable: boolean;
 }
 
 export const StudioHeader: React.FC<StudioHeaderProps> = ({
@@ -19,9 +19,9 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
   onSelectRoomType,
   onOpenSpecSheet,
   onReset,
-  hasApiKey,
-  useAI,
-  onToggleAI,
+  renderMode,
+  onRenderModeChange,
+  studioLightingAvailable,
 }) => {
   return (
     <header className="border-b border-white/[0.08] bg-[#0f1117]/95 backdrop-blur-md sticky top-0 z-40">
@@ -66,22 +66,37 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({
             <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Engine Status */}
-          <div
-            title={useAI && hasApiKey ? 'Connected to Gemini API' : 'Studio Engine Active — zero-cost canvas rendering, no external API calls'}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] text-slate-300"
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${useAI && hasApiKey ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-amber-400'}`}></span>
-            <span>{useAI && hasApiKey ? 'Gemini 3.8 AI Vision' : 'Studio Engine Ready'}</span>
-          </div>
-
-          {/* AI Enhancement Toggle (opt-in; Studio Engine canvas render is the default, zero-cost path) */}
-          <div
-            title={hasApiKey ? 'Use Gemini for detection & rendering instead of the built-in studio engine' : 'Set GEMINI_API_KEY to enable this'}
-            className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.06] ${hasApiKey ? '' : 'opacity-50'}`}
-          >
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider">AI Enhance</span>
-            <ToggleSwitch isOn={useAI} onToggle={onToggleAI} />
+          {/* Render mode: Exact Preview is deterministic and product-faithful; Studio Lighting is an
+              optional visual approximation from a self-hosted worker — no external API either way */}
+          <div className="hidden md:flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            {(
+              [
+                { mode: 'exact', label: 'Exact Preview', title: 'Product-faithful render: true scale, perspective and colour — runs in your browser' },
+                {
+                  mode: 'studio',
+                  label: 'Studio Lighting',
+                  title: studioLightingAvailable
+                    ? 'Adds soft lighting harmonisation from the private render worker (visual approximation)'
+                    : 'Not enabled on this server — requires the optional self-hosted render worker',
+                },
+              ] as const
+            ).map(({ mode, label, title }) => {
+              const disabled = mode === 'studio' && !studioLightingAvailable;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  title={title}
+                  disabled={disabled}
+                  onClick={() => onRenderModeChange(mode)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                    renderMode === mode ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'
+                  } disabled:opacity-40 disabled:hover:text-slate-400`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

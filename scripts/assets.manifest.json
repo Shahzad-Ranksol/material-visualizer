@@ -1,0 +1,48 @@
+{
+  "_comment": "Local assets for the no-API renderer. Downloaded once by `npm run assets:fetch` into public/ (git-ignored) and served from the app's own origin. Textures: Poly Haven, CC0. Models: Hugging Face (SegFormer-B2 ADE20K, SAM 2.1 Hiera Tiny, MoGe-2 ViT-S Normal).",
+  "textures": {
+    "marble_01": {},
+    "terrazzo_tiles": {},
+    "large_sandstone_blocks_01": {},
+    "granite_tile_03": {},
+    "white_oak_veneer": {},
+    "herringbone_parquet": {},
+    "black_oak_veneer": {},
+    "white_plaster_02": {},
+    "smooth_concrete_floor": {},
+    "metal_plate_02": {},
+    "green_metal_rust": {},
+    "curly_teddy_natural": {},
+    "rough_linen": {},
+    "brown_leather": {},
+    "long_white_tiles": {},
+    "terracotta_floor_tiles": {},
+    "marble_mosaic_tiles": {},
+    "linoleum_brown": {},
+    "poly_wool_herringbone": {},
+    "caban": {},
+    "fabric_pattern_05": {
+      "colorKey": "col_01"
+    },
+    "painted_plaster_wall": {}
+  },
+  "models": {
+    "Xenova/segformer-b2-finetuned-ade-512-512": [
+      "config.json",
+      "preprocessor_config.json",
+      "onnx/model_quantized.onnx"
+    ],
+    "onnx-community/sam2.1-hiera-tiny-ONNX": [
+      "config.json",
+      "preprocessor_config.json",
+      "processor_config.json",
+      "onnx/vision_encoder_quantized.onnx",
+      "onnx/vision_encoder_quantized.onnx_data",
+      "onnx/prompt_encoder_mask_decoder_quantized.onnx",
+      "onnx/prompt_encoder_mask_decoder_quantized.onnx_data"
+    ],
+    "Ruicheng/moge-2-vits-normal-onnx": [
+      "model.onnx"
+    ]
+  }
+}

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Pencil, Loader2, AlertCircle } from 'lucide-react';
 import { Material } from '../types';
 import { NewMaterialInput } from '../services/apiClient';
+import { MaterialImageInput } from './MaterialImageInput';
+
+import { MaterialScaleEditor } from './MaterialScaleEditor';
 
 interface EditMaterialModalProps {
   material: Material | null;
@@ -9,6 +12,7 @@ interface EditMaterialModalProps {
   error: string | null;
   onClose: () => void;
   onSave: (id: string, input: NewMaterialInput) => void;
+  onUploadImage: (file: Blob) => Promise<string>;
 }
 
 export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
@@ -17,8 +21,10 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
   error,
   onClose,
   onSave,
+  onUploadImage,
 }) => {
   const [form, setForm] = useState<NewMaterialInput | null>(null);
+  const [imageMissing, setImageMissing] = useState(false);
 
   useEffect(() => {
     if (material) {
@@ -29,6 +35,15 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
         thumbnail: material.thumbnail,
         finishType: material.finishType,
         colorTone: material.colorTone,
+        realWidthMm: material.realWidthMm,
+        realHeightMm: material.realHeightMm,
+        repeatMode: material.repeatMode,
+        orientationDeg: material.orientationDeg,
+        jointWidthMm: material.jointWidthMm,
+        jointColor: material.jointColor,
+        roughness: material.roughness,
+        metallic: material.metallic,
+        normalStrength: material.normalStrength,
       });
     } else {
       setForm(null);
@@ -43,7 +58,12 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form) onSave(material.id, form);
+    if (!form) return;
+    if (!form.thumbnail) {
+      setImageMissing(true);
+      return;
+    }
+    onSave(material.id, form);
   };
 
   return (
@@ -77,21 +97,23 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
             Category: <span className="text-amber-300 font-medium">{form.category}</span>
           </p>
 
-          <input
-            type="url"
+          <MaterialImageInput
+            onUpload={onUploadImage}
             value={form.thumbnail}
-            onChange={update('thumbnail')}
-            placeholder="Thumbnail image URL"
-            required
-            className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
+            onChange={(thumbnail) => {
+              setImageMissing(false);
+              setForm((prev) => (prev ? { ...prev, thumbnail } : prev));
+            }}
+            inputClassName="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
           />
+          {imageMissing && <p className="text-[11px] text-rose-300">Please upload an image or paste an image URL.</p>}
 
           <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
               value={form.finishType}
               onChange={update('finishType')}
-              placeholder="Finish type"
+              placeholder="Finish (matte, satin, gloss…)"
               required
               className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
             />
@@ -104,6 +126,13 @@ export const EditMaterialModal: React.FC<EditMaterialModalProps> = ({
               className="w-full bg-[#0d0e14] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 transition-colors"
             />
           </div>
+
+          <MaterialScaleEditor
+            category={form.category}
+            value={form}
+            onChange={(profile) => setForm((prev) => (prev ? { ...prev, ...profile } : prev))}
+            inputClassName="bg-[#0d0e14] border border-white/[0.08] rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-400"
+          />
 
           <textarea
             value={form.description}

@@ -194,7 +194,11 @@ export const MaterialGrid: React.FC<MaterialGridProps> = ({
         })}
       </div>
 
-      {filteredMaterials.length === 0 && (
+      {materials.length === 0 ? (
+        <div className="py-8 text-center text-slate-500 text-xs">
+          Your catalog is empty. Add a material or bulk import to get started.
+        </div>
+      ) : filteredMaterials.length === 0 && (
         <div className="py-8 text-center text-slate-500 text-xs">
           No materials match &ldquo;{searchQuery}&rdquo;. Try another search term.
         </div>

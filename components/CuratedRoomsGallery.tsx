@@ -1,14 +1,17 @@
 import React from 'react';
 import { CuratedRoom } from '../types';
-import { CURATED_ROOMS } from '../constants';
 import { Sparkles } from 'lucide-react';
 
 interface CuratedRoomsGalleryProps {
+  rooms: CuratedRoom[];
+  isVendor?: boolean;
   selectedRoomId: string | null;
   onSelectRoom: (room: CuratedRoom) => void;
 }
 
 export const CuratedRoomsGallery: React.FC<CuratedRoomsGalleryProps> = ({
+  rooms,
+  isVendor,
   selectedRoomId,
   onSelectRoom,
 }) => {
@@ -17,13 +20,19 @@ export const CuratedRoomsGallery: React.FC<CuratedRoomsGalleryProps> = ({
       <div className="flex items-center justify-between">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>Curated Studio Presets</span>
+          <span>{isVendor ? 'Your Showcase Rooms' : 'Curated Studio Presets'}</span>
         </label>
         <span className="text-[10px] text-slate-500">1-Click Test</span>
       </div>
 
+      {rooms.length === 0 && (
+        <p className="py-4 text-center text-[11px] text-slate-500">
+          No showcase rooms yet. Add one via &ldquo;Manage Showcase &amp; Hotspots&rdquo;.
+        </p>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {CURATED_ROOMS.map((room) => {
+        {rooms.map((room) => {
           const isSelected = selectedRoomId === room.id;
           return (
             <button
