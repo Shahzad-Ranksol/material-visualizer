@@ -24,7 +24,7 @@ import {
   growAcrossContinuousColour,
   removeSkirting,
 } from '../services/analysis/maskOps';
-import { fitSurfacePlanes, PlaneOrientation } from '../services/surfacePlaneFit';
+import { fitSurfacePlanes, offPlaneCells, PlaneOrientation } from '../services/surfacePlaneFit';
 import { compositeConfidence, ConfidenceInputs } from '../services/qualityGate';
 
 // ADE20K classes a vendor/customer might re-surface, in suggestion order
@@ -51,6 +51,11 @@ const MATTING_WINDOW_FRACTION = 0.035;
 const MIN_BODY_FRACTION = 0.0005;
 // A band connection narrower than about twice this (fraction of long side) is a bridge, not wall
 const BRIDGE_FRACTION = 0.002;
+// Depth-relative distance off every fitted plane beyond which a pixel isn't this surface (an
+// object in front, or a mirror's reflection behind); 2.5x the plane fit's inlier threshold
+const OFF_PLANE_TOLERANCE = 0.03;
+// If more of the surface than this is off-plane, trust the mask over the geometry
+const MAX_OFF_PLANE_SHARE = 0.25;
 // Surfaces smaller than this (% of the photo) aren't proposed automatically
 const MIN_PROPOSAL_AREA_PCT = 2;
 // Edge refinement (guided filter) settings
@@ -335,15 +340,29 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     if (planes.length) {
       planeInlierRatio = planes.reduce((s, p) => s + p.inlierRatio, 0);
       normalConsistency = planes.reduce((s, p) => s + p.normalConsistency * p.inlierRatio, 0) / Math.max(planeInlierRatio, 1e-6);
+      // Pixels whose 3D point is clearly off every plane aren't this surface: a cushion in front
+      // that shares the wall's colour in shade, or the wall reflected in a mirror
+      const off = offPlaneCells(pm, planes, OFF_PLANE_TOLERANCE);
+      const cellOf = (i: number) => {
+        const x = i % w;
+        const y = (i - x) / w;
+        return Math.min(pm.height - 1, Math.floor((y * pm.height) / h)) * pm.width + Math.min(pm.width - 1, Math.floor((x * pm.width) / w));
+      };
+      let total = 0;
+      let offCount = 0;
+      for (let i = 0; i < surface.length; i++) {
+        if (!surface[i]) continue;
+        total++;
+        if (off[cellOf(i)]) offCount++;
+      }
+      if (offCount <= total * MAX_OFF_PLANE_SHARE) for (let i = 0; i < surface.length; i++) if (surface[i] && off[cellOf(i)]) surface[i] = 0;
       // Each geometry cell votes for its plane; image pixels follow their cell
       const owner = new Int8Array(pm.width * pm.height).fill(-1);
       planes.forEach((p, k) => p.pixels.forEach((i) => (owner[i] = k)));
       const binaries = planes.map(() => new Uint8Array(w * h));
       for (let i = 0; i < surface.length; i++) {
         if (!surface[i]) continue;
-        const x = i % w;
-        const y = (i - x) / w;
-        const cell = Math.min(pm.height - 1, Math.floor((y * pm.height) / h)) * pm.width + Math.min(pm.width - 1, Math.floor((x * pm.width) / w));
+        const cell = cellOf(i);
         const k = owner[cell] >= 0 ? owner[cell] : 0; // unexplained pixels join the main plane
         binaries[k][i] = 1;
       }

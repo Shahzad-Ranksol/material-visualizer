@@ -191,3 +191,22 @@ export const fitSurfacePlanes = (m: PointMap, regionPixels: number[], opts: Plan
   }
   return planes;
 };
+
+/**
+ * Point-map cells that lie off every plane by more than `tolerance` × their depth, in front
+ * (an object) or behind (a mirror's reflection, which the geometry model places in the
+ * reflected room). Untrusted points are never marked. Same depth-relative scale as the fit's
+ * inlier threshold.
+ */
+export const offPlaneCells = (m: PointMap, planes: FittedPlane[], tolerance: number): Uint8Array => {
+  const out = new Uint8Array(m.width * m.height);
+  if (!planes.length) return out;
+  const ds = planes.map((p) => dot(p.normal, p.origin));
+  for (let i = 0; i < out.length; i++) {
+    if (!m.valid[i]) continue;
+    const p = pointAt(m, i);
+    const limit = tolerance * Math.abs(p[2]);
+    if (planes.every((pl, k) => Math.abs(dot(pl.normal, p) - ds[k]) > limit)) out[i] = 1;
+  }
+  return out;
+};

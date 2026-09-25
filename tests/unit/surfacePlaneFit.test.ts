@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitSurfacePlanes, PointMap } from '../../services/surfacePlaneFit';
+import { fitSurfacePlanes, offPlaneCells, PointMap } from '../../services/surfacePlaneFit';
 import { recoverFocalShift } from '../../services/geometryRecovery';
 
 // Synthetic room corner seen by a pinhole camera: left wall x = -2 m, back wall z = 6 m
@@ -55,5 +55,37 @@ describe('focal/shift recovery', () => {
     expect(res.shift).toBeCloseTo(shift, 2);
     expect(res.focalPx).toBeCloseTo(F, 0);
     expect(res.error).toBeLessThan(0.5);
+  });
+});
+
+describe('offPlaneCells', () => {
+  // Back wall z = 6 m, with a cushion 1 m in front (z = 5) and a mirror reflection 0.3 m behind (z = 6.3)
+  const room = (): PointMap => {
+    const points = new Float32Array(W * H * 3);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const z = x < 20 ? 5 : x >= 140 ? 6.3 : 6;
+        points.set([((x + 0.5 - W / 2) / F) * z, ((y + 0.5 - H / 2) / F) * z, z], (y * W + x) * 3);
+      }
+    }
+    return { width: W, height: H, points, valid: new Uint8Array(W * H).fill(1) };
+  };
+
+  it('marks points in front of and behind every plane, not those on one', () => {
+    const m = room();
+    const wall = Array.from({ length: W * H }, (_, i) => i).filter((i) => i % W >= 20 && i % W < 140);
+    const planes = fitSurfacePlanes(m, wall, { orientation: 'vertical', seed: 1 });
+    const off = offPlaneCells(m, planes, 0.03);
+    expect(off[50 * W + 10]).toBe(1); // cushion, in front
+    expect(off[50 * W + 150]).toBe(1); // reflection, 5% behind
+    expect(off[50 * W + 80]).toBe(0); // wall
+  });
+
+  it("never marks points the geometry model doesn't trust", () => {
+    const m = room();
+    m.valid.fill(0);
+    const wall = Array.from({ length: W * H }, (_, i) => i).filter((i) => i % W >= 20 && i % W < 140);
+    const planes = fitSurfacePlanes(room(), wall, { orientation: 'vertical', seed: 1 });
+    expect(offPlaneCells(m, planes, 0.03).every((v) => v === 0)).toBe(true);
   });
 });
