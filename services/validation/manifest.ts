@@ -21,7 +21,7 @@ export const validateManifest = (photos: unknown): string[] => {
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const p of photos as ValidationPhoto[]) {
-    if (!p?.id || !/^[a-z0-9-]+$/i.test(p.id)) problems.push(`invalid id ${JSON.stringify(p?.id)}`);
+    if (!p?.id || !/^[a-z0-9_-]+$/i.test(p.id)) problems.push(`invalid id ${JSON.stringify(p?.id)}`);
     else if (seen.has(p.id)) problems.push(`duplicate id "${p.id}"`);
     seen.add(p?.id);
     if (!VALIDATION_CATEGORIES.includes(p?.category)) problems.push(`"${p?.id}": unknown category ${JSON.stringify(p?.category)}`);
