@@ -27,6 +27,7 @@ import {
 } from '../services/analysis/maskOps';
 import { fitSurfacePlanes, offPlaneCells, PlaneOrientation } from '../services/surfacePlaneFit';
 import { compositeConfidence, ConfidenceInputs } from '../services/qualityGate';
+import { Cancelled, createCancelRegistry } from '../services/analysis/cancellation';
 
 // ADE20K classes a vendor/customer might re-surface, in suggestion order
 const SURFACE_LABELS = ['wall', 'floor', 'ceiling', 'cabinet', 'countertop', 'kitchen island', 'door', 'column', 'stairs', 'wardrobe', 'shelf'];
@@ -99,11 +100,13 @@ interface RoomState {
   prompts?: Promise<PromptEncoding>;
 }
 
-const rooms = new Map<string, Promise<RoomState>>();
-
-// Progress for one request. Requests can overlap (they're async), so each carries its own;
-// a photo load shared by several requests reports to the one that started it.
+// Progress for one request. Requests can overlap (they're async), so each carries its own.
 type ReportStage = (stage: AnalysisStage) => void;
+
+// One load per photo, shared by every job that needs it; `waiters` are the jobs waiting on it
+// (with their progress), so it stops only when all of them have been cancelled
+const rooms = new Map<string, { promise: Promise<RoomState>; waiters: Map<number, ReportStage> }>();
+const cancels = createCancelRegistry();
 
 const toGray = (image: RawImage) => {
   const gray = new Float32Array(image.width * image.height);
@@ -131,11 +134,18 @@ const decodePhoto = async (url: string): Promise<RawImage> => {
   return new RawImage(data, width, height, 4);
 };
 
-const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState> => {
+const loadRoom = async (imageUrl: string, jobId: number, reportStage: ReportStage): Promise<RoomState> => {
   let entry = rooms.get(imageUrl);
   if (!entry) {
-    entry = (async () => {
-      reportStage('loading-photo');
+    // The first job is a waiter before the load starts, so it gets the very first step too
+    const waiters = new Map<number, ReportStage>([[jobId, reportStage]]);
+    // Every step: stop if nobody still wants this photo, else tell each waiter what's running
+    const step = (stage: AnalysisStage) => {
+      cancels.checkAll(waiters.keys());
+      waiters.forEach((report, id) => !cancels.isCancelled(id) && report(stage));
+    };
+    const promise = (async () => {
+      step('loading-photo');
       const image = await decodePhoto(imageUrl);
       const warnings: string[] = [];
       if (Math.max(image.width, image.height) < MIN_LONG_EDGE_PX) {
@@ -146,7 +156,7 @@ const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState
       let semantic: SemanticMap;
       let geometry: SceneGeometry | null = null;
       if (cached) {
-        reportStage('from-cache');
+        step('from-cache');
         semantic = { labels: cached.labels, labelMap: cached.labelMap };
         if (cached.geometry) {
           const g = cached.geometry;
@@ -157,9 +167,9 @@ const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState
           };
         }
       } else {
-        reportStage('surfaces');
+        step('surfaces');
         semantic = await segmentSemantics(image);
-        reportStage('geometry');
+        step('geometry');
         try {
           geometry = await estimateGeometry(image);
         } catch (err) {
@@ -178,14 +188,22 @@ const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState
       if (!geometry) warnings.push('3D geometry is unavailable for this photo, so perspective is estimated — check the layout grid.');
       return { image, width: image.width, height: image.height, gray: toGray(image), semantic, geometry, warnings, fromCache: Boolean(cached) };
     })();
-    entry.catch(() => rooms.delete(imageUrl));
+    entry = { promise, waiters };
+    // A failed or cancelled load is forgotten, so a later request starts clean
+    promise.catch(() => rooms.delete(imageUrl));
     rooms.set(imageUrl, entry);
   }
-  return entry;
+  entry.waiters.set(jobId, reportStage);
+  try {
+    return await entry.promise;
+  } finally {
+    entry.waiters.delete(jobId);
+  }
 };
 
-const analyze = async (imageUrl: string, reportStage: ReportStage) => {
-  const room = await loadRoom(imageUrl, reportStage);
+const analyze = async (imageUrl: string, jobId: number, reportStage: ReportStage) => {
+  const room = await loadRoom(imageUrl, jobId, reportStage);
+  cancels.check(jobId);
   const { width: w, height: h, semantic } = room;
   const proposals: SurfaceProposal[] = [];
   for (const label of SURFACE_LABELS) {
@@ -222,13 +240,16 @@ const guideRadiusFor = (w: number, h: number) => Math.max(2, Math.round(Math.max
  * candidate that contains the click and isn't room-sized; null when there is none.
  */
 const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>, reportStage: ReportStage) => {
-  const room = await loadRoom(req.imageUrl, reportStage);
+  const room = await loadRoom(req.imageUrl, req.id, reportStage);
   const { width: w, height: h, gray } = room;
   const px = Math.min(w - 1, Math.max(0, Math.round((req.point.xPct / 100) * w)));
   const py = Math.min(h - 1, Math.max(0, Math.round((req.point.yPct / 100) * h)));
+  cancels.check(req.id);
   reportStage('refining');
   room.prompts ??= encodeForPrompts(room.image);
-  const sam = await segmentWithPrompts(await room.prompts, [{ x: px, y: py, positive: true }], null, w, h);
+  const objectPrompts = await room.prompts;
+  cancels.check(req.id);
+  const sam = await segmentWithPrompts(objectPrompts, [{ x: px, y: py, positive: true }], null, w, h);
   // Candidates best score first (ties keep SAM's order): the first that contains the click and
   // isn't room-sized wins, so coverage is only counted until then, and each count stops as soon
   // as it passes the limit (a room-sized candidate isn't scanned to the end)
@@ -299,7 +320,7 @@ const wholeRug = async (enc: PromptEncoding, labels: string[], labelMap: Uint8Ar
 };
 
 const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: ReportStage) => {
-  const room = await loadRoom(req.imageUrl, reportStage);
+  const room = await loadRoom(req.imageUrl, req.id, reportStage);
   const { width: w, height: h, semantic, gray } = room;
   const px = Math.min(w - 1, Math.max(0, Math.round((req.point.xPct / 100) * w)));
   const py = Math.min(h - 1, Math.max(0, Math.round((req.point.yPct / 100) * h)));
@@ -325,9 +346,11 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   const occluder = Uint8Array.from(semantic.labelMap, (v) => (occluderIdx.has(v) ? 1 : 0));
   const nearOccluder = Uint8Array.from(occluder, (v, i) => (v && near[i] ? 1 : 0));
 
+  cancels.check(req.id);
   reportStage('refining');
   room.prompts ??= encodeForPrompts(room.image);
   const enc = await room.prompts;
+  cancels.check(req.id);
 
   // 2b. A rug is one object, however the class map splits it ("rug" where it's shaded, "floor"
   // where it's sunlit): on a floor it's segmented whole and kept on top, and the floor is
@@ -471,6 +494,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   }
   capture('skirtingRemoved', surface);
 
+  cancels.check(req.id);
   // 4. One plane per physical surface (a wall mask across a corner becomes two)
   const parts: Array<{ binary: Uint8Array; plane: import('../services/analysis/protocol').SurfacePartResult['plane'] }> = [];
   let planeInlierRatio = 0;
@@ -587,13 +611,16 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
 };
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
-  if (e.data.type === 'cancel') return;
   const req = e.data;
+  if (req.type === 'cancel') {
+    cancels.cancel(req.target);
+    return;
+  }
   const post = (response: WorkerResponse, transfer: Transferable[] = []) => (self as unknown as Worker).postMessage(response, transfer);
   const reportStage: ReportStage = (stage) => post({ id: req.id, type: 'progress', stage });
   try {
     if (req.type === 'analyze') {
-      post({ id: req.id, type: 'analyze', ...(await analyze(req.imageUrl, reportStage)) });
+      post({ id: req.id, type: 'analyze', ...(await analyze(req.imageUrl, req.id, reportStage)) });
     } else if (req.type === 'cutObject') {
       const result = await cutObject(req, reportStage);
       post({ id: req.id, type: 'cutObject', ...result }, result.mask ? [result.mask.buffer] : []);
@@ -604,6 +631,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       post({ id: req.id, type: 'cut', ...result }, [...result.parts.map((p) => p.mask.buffer), result.occluder.buffer, ...stageBuffers]);
     }
   } catch (err) {
+    // A cancelled job sends nothing more: its client has already stopped waiting
+    if (err instanceof Cancelled) return;
     post({ id: req.id, type: 'error', error: err instanceof Error ? err.message : String(err) });
+  } finally {
+    cancels.release(req.id);
   }
 };
