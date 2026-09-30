@@ -33,5 +33,8 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 
 export const compositeConfidence = (c: ConfidenceInputs): number =>
   (Object.keys(CONFIDENCE_WEIGHTS) as Array<keyof ConfidenceInputs>).reduce((sum, k) => sum + CONFIDENCE_WEIGHTS[k] * clamp01(c[k]), 0);
 
-export const reviewDecision = (confidence: number): ReviewDecision =>
-  confidence >= CONFIDENCE_THRESHOLDS.auto ? 'auto' : confidence >= CONFIDENCE_THRESHOLDS.review ? 'confirm' : 'correct';
+/** A decision from the confidence; any review reason (a mirror, an object covered…) asks for at least a check. */
+export const reviewDecision = (confidence: number, reasons: readonly string[] = []): ReviewDecision => {
+  const decision: ReviewDecision = confidence >= CONFIDENCE_THRESHOLDS.auto ? 'auto' : confidence >= CONFIDENCE_THRESHOLDS.review ? 'confirm' : 'correct';
+  return decision === 'auto' && reasons.length ? 'confirm' : decision;
+};

@@ -193,20 +193,26 @@ export const fitSurfacePlanes = (m: PointMap, regionPixels: number[], opts: Plan
 };
 
 /**
- * Point-map cells that lie off every plane by more than `tolerance` × their depth, in front
- * (an object) or behind (a mirror's reflection, which the geometry model places in the
- * reflected room). Untrusted points are never marked. Same depth-relative scale as the fit's
- * inlier threshold.
+ * Point-map cells that lie off every plane by more than `tolerance` × their depth: +1 in front
+ * of the nearest plane (an object), −1 behind it (a mirror's reflection, which the geometry
+ * model places in the reflected room), 0 on a plane or untrusted. Same depth-relative scale as
+ * the fit's inlier threshold.
  */
-export const offPlaneCells = (m: PointMap, planes: FittedPlane[], tolerance: number): Uint8Array => {
-  const out = new Uint8Array(m.width * m.height);
+export const offPlaneCells = (m: PointMap, planes: FittedPlane[], tolerance: number): Int8Array => {
+  const out = new Int8Array(m.width * m.height);
   if (!planes.length) return out;
   const ds = planes.map((p) => dot(p.normal, p.origin));
   for (let i = 0; i < out.length; i++) {
     if (!m.valid[i]) continue;
     const p = pointAt(m, i);
     const limit = tolerance * Math.abs(p[2]);
-    if (planes.every((pl, k) => Math.abs(dot(pl.normal, p) - ds[k]) > limit)) out[i] = 1;
+    // Normals face the camera, so a positive distance is nearer the camera than the plane
+    let nearest = Infinity;
+    for (let k = 0; k < planes.length; k++) {
+      const e = dot(planes[k].normal, p) - ds[k];
+      if (Math.abs(e) < Math.abs(nearest)) nearest = e;
+    }
+    if (Math.abs(nearest) > limit) out[i] = nearest > 0 ? 1 : -1;
   }
   return out;
 };

@@ -134,6 +134,22 @@ export const largeComponents = (mask: Uint8Array, w: number, h: number, minPx: n
   return out;
 };
 
+/**
+ * The confident interiors of a class map's objects: each component eroded by `r` (its outline is
+ * too loose to trust), except a thin one the full erosion would erase entirely (a radiator, a
+ * low cabinet, a door frame), which keeps a `minR`-eroded core instead of no protection at all.
+ */
+export const objectCores = (mask: Uint8Array, w: number, h: number, r: number, minR: number): Uint8Array => {
+  const deep = erode(mask, w, h, r);
+  const thin = erode(mask, w, h, minR);
+  const out = Uint8Array.from(deep);
+  for (const comp of connectedComponents(mask, w, h)) {
+    if (comp.some((i) => deep[i])) continue;
+    for (const i of comp) if (thin[i]) out[i] = 1;
+  }
+  return out;
+};
+
 export const bbox = (mask: Uint8Array, w: number) => {
   let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
   for (let i = 0; i < mask.length; i++) {
@@ -223,8 +239,19 @@ export const boundaryEdgeAgreement = (mask: Uint8Array, gray: Float32Array, w: n
 const SKIRTING_MAX_HEIGHT = 0.07;
 const SKIRTING_MIN_HEIGHT = 0.008;
 const SKIRTING_MIN_EDGE = 0.04;
+// Mean tone difference between the band below the line and the wall above it
+const SKIRTING_MIN_TONE = 0.04;
 
-export const removeSkirting = (binary: Uint8Array, gray: Float32Array, w: number, h: number, seed = 7) => {
+export const removeSkirting = (
+  binary: Uint8Array,
+  gray: Float32Array,
+  w: number,
+  h: number,
+  seed = 7,
+  // Whether the mask's bottom edge in column x (at row y) meets the floor; only there can the
+  // band above it be a skirting board (behind a bed, the bottom edge is the headboard's top)
+  meetsFloor: (x: number, y: number) => boolean = () => true
+) => {
   const maxBand = Math.round(h * SKIRTING_MAX_HEIGHT);
   const minBand = Math.max(2, Math.round(h * SKIRTING_MIN_HEIGHT));
   const samples: Array<{ x: number; y: number }> = [];
@@ -236,7 +263,7 @@ export const removeSkirting = (binary: Uint8Array, gray: Float32Array, w: number
         break;
       }
     }
-    if (bottom < 0 || bottom >= h - 2) continue;
+    if (bottom < 0 || bottom >= h - 2 || !meetsFloor(x, bottom)) continue;
     let bestY = -1;
     let bestEdge = SKIRTING_MIN_EDGE;
     for (let y = bottom - minBand; y >= Math.max(2, bottom - maxBand); y--) {
@@ -270,6 +297,21 @@ export const removeSkirting = (binary: Uint8Array, gray: Float32Array, w: number
     }
   }
   if (!best || bestInliers < samples.length * 0.4) return;
+  // A skirting board differs in tone from the wall above it; a shadow line or another object's
+  // edge has the same wall on both sides, so there's nothing to remove
+  let below = 0;
+  let above = 0;
+  let count = 0;
+  for (const { x } of samples) {
+    const top = Math.round(best.a * x + best.b);
+    if (top - 2 - minBand < 0 || top + 2 + minBand >= h) continue;
+    for (let k = 0; k < minBand; k++) {
+      below += gray[(top + 2 + k) * w + x];
+      above += gray[(top - 2 - k) * w + x];
+    }
+    count += minBand;
+  }
+  if (!count || Math.abs(below - above) / count < SKIRTING_MIN_TONE) return;
   for (let x = 0; x < w; x++) {
     const top = Math.round(best.a * x + best.b);
     for (let y = Math.max(0, top); y <= Math.min(h - 1, top + maxBand); y++) binary[y * w + x] = 0;

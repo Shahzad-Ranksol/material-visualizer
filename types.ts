@@ -181,4 +181,4 @@ export interface CuratedRoom {
   }>;
 }
 
-export type ViewMode = 'slider' | 'side-by-side' | 'rendered' | 'original' | 'hotspots';
+export type ViewMode = 'slider' | 'side-by-side' | 'rendered' | 'original' | 'hotspots' | 'area';

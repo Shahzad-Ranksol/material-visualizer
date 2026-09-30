@@ -31,9 +31,29 @@ const DEFAULT_JOINT_COLOR = '#2a2a2a';
 // Rendered images are object URLs; keep only the most recent few alive
 const MAX_LIVE_RESULTS = 8;
 const liveResults: string[] = [];
+const keepResult = (url: string) => {
+  liveResults.push(url);
+  while (liveResults.length > MAX_LIVE_RESULTS) URL.revokeObjectURL(liveResults.shift()!);
+  return url;
+};
+// Strength of the amber wash over the selected area (at full coverage)
+const SELECTED_AREA_TINT = 0.55;
+
+/**
+ * Whether a mask made for one image fits a photo of this size: the same size, or the same
+ * shape at another resolution (a re-hosted copy), within a pixel after scaling. Anything else
+ * (a rotated decode, a replaced photo) would be silently stretched onto the wrong pixels.
+ */
+export const maskFitsPhoto = (mw: number, mh: number, w: number, h: number) =>
+  (mw === w && mh === h) || Math.abs((mh * w) / mw - h) <= 1;
 
 const loadMask = async (source: MaskSource, w: number, h: number) => {
   const drawable = typeof source === 'string' ? await loadImage(source) : source;
+  const mw = 'naturalWidth' in drawable ? drawable.naturalWidth : drawable.width;
+  const mh = 'naturalHeight' in drawable ? drawable.naturalHeight : drawable.height;
+  if (!maskFitsPhoto(mw, mh, w, h)) {
+    throw new NeedsSurfaceReviewError(`This surface's area (${mw}×${mh}) doesn't match the photo (${w}×${h}) — detect it again.`);
+  }
   // Over black, so both white-on-black PNGs and in-editor alpha masks read correctly
   const [canvas, ctx] = canvas2d(w, h);
   ctx.fillStyle = '#000';
@@ -47,6 +67,57 @@ const loadMask = async (source: MaskSource, w: number, h: number) => {
     if (values[i] > 0.5) covered++;
   }
   return { canvas, values, covered };
+};
+
+/** Where a layer paints, 0–1: its mask with the occluders in front of it restored (mask × (1 − occluder)). */
+export const layerAlpha = (mask: number, occluder: number) => mask * (1 - occluder);
+
+/**
+ * The exact area the renderer paints for these surfaces (before the per-pixel plane test): the
+ * union of every layer's mask × (1 − occluder), loaded and sized just as `renderMaterial` does.
+ * For "Show selected area" and the developer view — never a second, approximate mask.
+ */
+export const selectedAreaAlpha = async (
+  roomImageUrl: string,
+  surfaces: RenderableSurface[]
+): Promise<{ width: number; height: number; alpha: Float32Array }> => {
+  const room = await loadImage(roomImageUrl);
+  const w = room.naturalWidth;
+  const h = room.naturalHeight;
+  const alpha = new Float32Array(w * h);
+  for (const surface of surfaces) {
+    const mask = await loadMask(surface.mask, w, h);
+    const occluder = surface.occluderMask ? (await loadMask(surface.occluderMask, w, h)).values : null;
+    for (let i = 0; i < alpha.length; i++) {
+      const v = layerAlpha(mask.values[i], occluder ? occluder[i] : 0);
+      if (v > alpha[i]) alpha[i] = v;
+    }
+  }
+  return { width: w, height: h, alpha };
+};
+
+/**
+ * The photo with exactly the area `renderMaterial` would paint tinted amber (its soft edges at
+ * their real strength), as a PNG object URL: "Show selected area" before any material goes on.
+ */
+export const selectedAreaImage = async (roomImageUrl: string, surfaces: RenderableSurface[]): Promise<string> => {
+  const room = await loadImage(roomImageUrl);
+  const { width: w, height: h, alpha } = await selectedAreaAlpha(roomImageUrl, surfaces);
+  const [canvas, ctx] = canvas2d(w, h);
+  ctx.drawImage(room, 0, 0);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  for (let i = 0; i < alpha.length; i++) {
+    const a = alpha[i] * SELECTED_AREA_TINT;
+    if (a <= 0) continue;
+    d[i * 4] = d[i * 4] * (1 - a) + 251 * a;
+    d[i * 4 + 1] = d[i * 4 + 1] * (1 - a) + 191 * a;
+    d[i * 4 + 2] = d[i * 4 + 2] * (1 - a) + 36 * a;
+  }
+  ctx.putImageData(img, 0, 0);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('Could not draw the selected area.');
+  return keepResult(URL.createObjectURL(blob));
 };
 
 const toColumnMajor = (m: Mat3) => [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
@@ -132,7 +203,7 @@ export const renderMaterial = async (
       if (mask.covered < MIN_RENDER_PIXELS) throw new NeedsSurfaceReviewError('This surface has no area selected yet — review it before rendering.');
       const occluder = layer.surface.occluderMask ? (await loadMask(layer.surface.occluderMask, w, h)).values : null;
       for (let i = 0; i < unionMask.length; i++) {
-        const v = mask.values[i] * (occluder ? 1 - occluder[i] : 1);
+        const v = layerAlpha(mask.values[i], occluder ? occluder[i] : 0);
         if (v > unionMask[i]) unionMask[i] = v;
       }
 
@@ -191,7 +262,7 @@ export const renderMaterial = async (
 
       // Composite: surface alpha from the mask, occluders restored exactly on top
       for (let i = 0; i < mask.values.length; i++) {
-        const a = mask.values[i] * (pixels[i * 4 + 3] / 255) * (occluder ? 1 - occluder[i] : 1);
+        const a = layerAlpha(mask.values[i], occluder ? occluder[i] : 0) * (pixels[i * 4 + 3] / 255);
         if (a <= 0) continue;
         const p = i * 4;
         out[p] = out[p] * (1 - a) + pixels[p] * a;
@@ -212,8 +283,5 @@ export const renderMaterial = async (
   const blob = await new Promise<Blob>((resolve, reject) =>
     roomCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not encode the render'))), 'image/png')
   );
-  const url = URL.createObjectURL(blob);
-  liveResults.push(url);
-  while (liveResults.length > MAX_LIVE_RESULTS) URL.revokeObjectURL(liveResults.shift()!);
-  return url;
+  return keepResult(URL.createObjectURL(blob));
 };

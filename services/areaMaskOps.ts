@@ -52,7 +52,7 @@ export const fillPolygon = (mask: AlphaMask, points: Pt[], mode: 'add' | 'remove
 };
 
 // Binary (alpha > 127) dilation by a disc of radius r
-const dilateDisc = (mask: AlphaMask, r: number): AlphaMask => {
+export const dilateDisc = (mask: AlphaMask, r: number): AlphaMask => {
   if (r <= 0) return mask;
   const { width: w, height: h } = mask;
   const out = emptyMask(w, h);
@@ -293,6 +293,50 @@ export const splitEditsIntoParts = (
 };
 
 /** The occluder with the area removed (anything in the area is surface): min(o, 255 − a). Same size. */
+/**
+ * The area with protected objects kept out: min(area, 255 − protected). Applied after every
+ * edit, so no brush, polygon or include can put material back on a protected object.
+ */
+export const withoutProtected = (area: AlphaMask, protectedMask: AlphaMask): AlphaMask => clearOccluderAlpha(area, protectedMask);
+
+/**
+ * "Include area": of a re-cut surface (SAM prompted with the user's include clicks), only the
+ * new pixels connected to this click — never a protected one, and nothing elsewhere, so the
+ * area grows exactly where the user pointed. Seeds are new pixels within `radius` of the click.
+ * Returns the area with them added, or null when the click's region isn't new surface.
+ */
+export const includeConnected = (current: AlphaMask, recut: AlphaMask, protectedMask: AlphaMask, click: Pt, radius: number): AlphaMask | null => {
+  const { width: w, height: h } = current;
+  const n = w * h;
+  const isNew = (i: number) => recut.alpha[i] > 127 && current.alpha[i] <= 127 && protectedMask.alpha[i] <= 127;
+  const seen = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let tail = 0;
+  const cx = Math.round(click.x);
+  const cy = Math.round(click.y);
+  const r = Math.max(0, Math.round(radius));
+  for (let y = Math.max(0, cy - r); y <= Math.min(h - 1, cy + r); y++) {
+    for (let x = Math.max(0, cx - r); x <= Math.min(w - 1, cx + r); x++) {
+      const i = y * w + x;
+      if (isNew(i)) (seen[i] = 1), (queue[tail++] = i);
+    }
+  }
+  if (!tail) return null;
+  for (let head = 0; head < tail; head++) {
+    const i = queue[head];
+    const x = i % w;
+    for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i >= w ? i - w : -1, i < n - w ? i + w : -1]) {
+      if (j >= 0 && !seen[j] && isNew(j)) (seen[j] = 1), (queue[tail++] = j);
+    }
+  }
+  const out = cloneMask(current);
+  for (let k = 0; k < tail; k++) {
+    const i = queue[k];
+    if (recut.alpha[i] > out.alpha[i]) out.alpha[i] = recut.alpha[i];
+  }
+  return out;
+};
+
 export const clearOccluderAlpha = (occluder: AlphaMask, area: AlphaMask): AlphaMask => {
   if (occluder.width !== area.width || occluder.height !== area.height) throw new Error('clearOccluderAlpha: size mismatch');
   const out = new Uint8ClampedArray(occluder.alpha.length);

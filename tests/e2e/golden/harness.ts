@@ -313,8 +313,53 @@ export const runGolden = async () => {
     }
   }
 
+  // 1b. A soft-edged mask loaded from a PNG (as saved surfaces are): every pixel whose loaded
+  // mask value is exactly 0 stays byte-identical, with no tolerance band at all
+  const softPng = canvasOf(W, H, (ctx) => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    ctx.filter = 'blur(3px)';
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(SURFACE.x0, SURFACE.y0, SURFACE.x1 - SURFACE.x0, SURFACE.y1 - SURFACE.y0);
+  }).toDataURL('image/png');
+  const softMaskValues = await pixelsOf(softPng);
+  const softRender = await pixelsOf(await renderMaterial(room, [{ surface: { ...wall, mask: softPng, occluderMask: null }, material: tiles }]));
+  let softOutsideChanged = 0;
+  let softEdgePixels = 0;
+  for (let i = 0; i < W * H; i++) {
+    const v = softMaskValues[i * 4];
+    if (v > 0 && v < 255) softEdgePixels++;
+    if (v !== 0) continue;
+    const p = i * 4;
+    if (softRender[p] !== original[p] || softRender[p + 1] !== original[p + 1] || softRender[p + 2] !== original[p + 2]) softOutsideChanged++;
+  }
+
+  // 2b. Two layers, each with its own occluder: both restored exactly
+  const LEFT = { x0: SURFACE.x0, y0: SURFACE.y0, x1: 190, y1: SURFACE.y1 };
+  const RIGHT = { x0: 190, y0: SURFACE.y0, x1: SURFACE.x1, y1: SURFACE.y1 };
+  const OCC_A = { x0: 80, y0: 250, x1: 120, y1: 300 };
+  const OCC_B = { x0: 250, y0: 250, x1: 300, y1: 300 };
+  const twoLayers = await pixelsOf(
+    await renderMaterial(room, [
+      { surface: { ...wall, mask: rectMask(LEFT), occluderMask: rectMask(OCC_A) }, material: tiles },
+      { surface: { ...wall, mask: rectMask(RIGHT), occluderMask: rectMask(OCC_B) }, material: tiles },
+    ])
+  );
+  let twoLayerOccludersChanged = 0;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (!inRect(OCC_A, x, y) && !inRect(OCC_B, x, y)) continue;
+      const i = (y * W + x) * 4;
+      if (twoLayers[i] !== original[i] || twoLayers[i + 1] !== original[i + 1] || twoLayers[i + 2] !== original[i + 2]) twoLayerOccludersChanged++;
+    }
+  }
+
   // 8. Safe failure: never a silent or fallback render
   const failures = {
+    // A mask of another shape (a rotated decode, a replaced photo) is refused, not stretched
+    sizeMismatch: await errorName(
+      renderMaterial(room, [{ surface: { ...wall, mask: canvasOf(W, H / 2, (ctx) => ctx.fillRect(0, 0, W, H / 2)) }, material: tiles }])
+    ),
     noLayers: await errorName(renderMaterial(room, [])),
     emptyMask: await errorName(renderMaterial(room, [{ surface: { ...wall, mask: rectMask({ x0: 0, y0: 0, x1: 0, y1: 0 }) }, material: tiles }])),
     brokenTexture: await errorName(
@@ -334,6 +379,9 @@ export const runGolden = async () => {
     calibratedSpacing,
     colour: { rendered: renderedColour, target, deltaE: deltaE2000(renderedColour, target) },
     seams: { seamGrad, bodyGrad, seamCount, bodyCount },
+    softOutsideChanged,
+    softEdgePixels,
+    twoLayerOccludersChanged,
     failures,
   };
 };

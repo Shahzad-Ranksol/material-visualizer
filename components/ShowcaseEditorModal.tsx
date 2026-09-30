@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, MapPin, Trash2, Loader2, AlertCircle, Plus, Pencil, ScanSearch, RefreshCw, Check, Grid3x3, Ruler } from 'lucide-react';
 import { RemoteShowcaseImage, RemoteHotspot, NewShowcaseImageInput, NewHotspotInput, NewSurfaceInput, RemoteSurface } from '../services/apiClient';
-import { analyzeRoom, cutSurface, surfaceKindFor, ANALYSIS_VERSION, MODEL_VERSIONS } from '../services/roomAnalysis';
+import { analyzeRoom, cutSurface, CutSurface, surfaceKindFor, ANALYSIS_VERSION, MODEL_VERSIONS } from '../services/roomAnalysis';
+import { PipelineStagesView } from './PipelineStagesView';
 import { HotspotImage, HotspotViewModel } from './HotspotImage';
 import { SurfaceMaskOverlay } from './SurfaceMaskOverlay';
 import { AreaEditor, EMPTY_AREA_MESSAGE } from './AreaEditor';
-import { previewArea } from '../services/areaPreview';
+import { acceptedArea, previewArea } from '../services/areaPreview';
 import { coveragePct } from '../services/areaMaskOps';
 import { PlaneOverlay, toManualCorners } from './PlaneOverlay';
 import { DetectedItem, Material, PlanePoint, SurfaceCalibration, SurfaceGeometry, SurfaceKind } from '../types';
 import { ReviewDecision, reviewDecision } from '../services/qualityGate';
-import { alphaMaskToPngBlob, applyEditsToParts, canvasToAlphaMask, clearOccluderUnder, loadMaskAsAlpha, unionMasks } from '../services/maskCanvas';
+import { alphaMaskToPngBlob, canvasToAlphaMask, loadMaskAsAlpha, unionMasks } from '../services/maskCanvas';
 import { MATERIAL_CATEGORIES, CURATED_ROOMS } from '../constants';
 
 type PendingForm =
@@ -35,6 +36,10 @@ interface AreaState {
   occluder: HTMLCanvasElement | null;
   confidence: number;
   decision: ReviewDecision;
+  // From a fresh detection only (a reloaded saved area has none)
+  reviewReasons?: string[];
+  // A saved area cut from a photo that has since been replaced: must be detected again
+  stale?: boolean;
 }
 
 const PENDING_PIN_ID = '__pending';
@@ -79,6 +84,8 @@ interface ShowcaseEditorModalProps {
   onDeleteSurface: (imageId: string, surfaceId: string) => Promise<void>;
   // The studio's current material, for the Area Editor's Preview button
   previewMaterial?: Material | null;
+  // Staff (OWNER/ADMIN): cuts also return every pipeline stage, viewable in PipelineStagesView
+  showDebugTools?: boolean;
 }
 
 export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
@@ -102,6 +109,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   onSaveSurface,
   onDeleteSurface,
   previewMaterial,
+  showDebugTools = false,
 }) => {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [newImageName, setNewImageName] = useState('');
@@ -116,6 +124,11 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
 
   // The hotspot area being created/edited
   const [area, setArea] = useState<AreaState | null>(null);
+  // Staff: the last detection with its pipeline stages, and whether the stage view is open
+  const [stagedCut, setStagedCut] = useState<CutSurface | null>(null);
+  // Objects protected in the Area Editor: saved into the occluder, restored on top for customers
+  const [protectedMask, setProtectedMask] = useState<HTMLCanvasElement | null>(null);
+  const [stagesOpen, setStagesOpen] = useState(false);
   // Union of the parts: what the overlay shows and the Area Editor edits
   const [areaMask, setAreaMask] = useState<HTMLCanvasElement | null>(null);
   const [areaStatus, setAreaStatus] = useState<AreaStatus>('idle');
@@ -126,6 +139,8 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   const [areaDirty, setAreaDirty] = useState(false);
   const [clickTool, setClickTool] = useState<ClickTool>('move');
   const [areaEditorOpen, setAreaEditorOpen] = useState(false);
+  // Whether the vendor has looked at the current area in Adjust area (a 'correct' area must be)
+  const [areaChecked, setAreaChecked] = useState(false);
   // A Cut/Add or stroke still in progress in the Area Editor: closing now would drop it
   const [areaEditorBusy, setAreaEditorBusy] = useState(false);
   const [calibration, setCalibration] = useState<SurfaceCalibration | null>(null);
@@ -165,12 +180,15 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   const setAreaState = (next: AreaState | null) => {
     // A new area replaces whatever an open Area Editor was working on
     setAreaEditorOpen(false);
+    setAreaChecked(false);
+    setProtectedMask(null);
     setArea(next);
     setAreaMask(next ? unionMasks(next.parts.map((p) => p.mask)) : null);
   };
 
   const resetArea = () => {
     areaRequest.current++;
+    setStagedCut(null);
     setAreaState(null);
     setAreaStatus('idle');
     setAreaError(null);
@@ -191,9 +209,18 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
     setAreaStatus('detecting');
     setAreaError(null);
     try {
-      const cut = await cutSurface(selectedImage.imageUrl, point, { label, connectedOnly: connected });
+      const cut = await cutSurface(selectedImage.imageUrl, point, { label, connectedOnly: connected, debugStages: showDebugTools });
       if (request !== areaRequest.current) return;
-      setAreaState({ label: cut.label, kind: cut.kind, parts: cut.parts, occluder: cut.occluder, confidence: cut.confidence, decision: cut.decision });
+      setStagedCut(cut.stages ? cut : null);
+      setAreaState({
+        label: cut.label,
+        kind: cut.kind,
+        parts: cut.parts,
+        occluder: cut.occluder,
+        confidence: cut.confidence,
+        decision: cut.decision,
+        reviewReasons: cut.reviewReasons,
+      });
       setMaskDirty(false);
       setAreaDirty(true);
       setAreaStatus('ready');
@@ -275,7 +302,10 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
           parts: all.map((s, k) => ({ mask: masks[k], geometry: s.plane ?? null })),
           occluder,
           confidence: main.confidence,
-          decision: reviewDecision(main.confidence),
+          decision: main.needsReview ? 'correct' : reviewDecision(main.confidence),
+          // Saved areas are only flagged when the photo was replaced after they were cut
+          reviewReasons: main.needsReview ? ['The photo changed after this area was saved — detect it again.'] : undefined,
+          stale: main.needsReview,
         });
         setCalibration(main.calibration ?? null);
         setAreaStatus('ready');
@@ -350,6 +380,15 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
       setSaveError(EMPTY_AREA_MESSAGE);
       return;
     }
+    // Below the review threshold: customers would see an uncertain area, so it needs a look first
+    if (area?.decision === 'correct' && !areaChecked && areaDirty) {
+      setSaveError('This area needs a check before customers see it — open Adjust area, fix anything wrong, then save.');
+      return;
+    }
+    if (area?.stale && (areaDirty || maskDirty)) {
+      setSaveError('This area was cut from the old photo — detect it again before saving it.');
+      return;
+    }
     const allowedCategories = Array.from<string>(formCategories);
     setSaving(true);
     setSaveError(null);
@@ -359,13 +398,11 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
       if (area && areaMask && (areaDirty || maskDirty || !surfaceId)) {
         // Parts the edit emptied are dropped with their planes (the first survivor becomes the
         // main surface), so no saved layer is too small to render
-        const parts = maskDirty ? applyEditsToParts(area.parts, areaMask) : area.parts;
+        const { parts, occluder } = acceptedArea(area, areaMask, maskDirty, protectedMask);
         if (!parts.length) throw new Error(EMPTY_AREA_MESSAGE);
         const [maskUrls, occluderMaskUrl] = await Promise.all([
           Promise.all(parts.map(async (p) => onUploadMask(await alphaMaskToPngBlob(p.mask)))),
-          area.occluder
-            ? onUploadMask(await alphaMaskToPngBlob(maskDirty ? clearOccluderUnder(area.occluder, areaMask) : area.occluder))
-            : Promise.resolve(null),
+          occluder ? onUploadMask(await alphaMaskToPngBlob(occluder)) : Promise.resolve(null),
         ]);
         const common = {
           kind: area.kind === 'custom' ? surfaceKindFor(area.label) : area.kind,
@@ -486,7 +523,19 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
             setMaskDirty(true);
             setSaveError(null);
           }}
-          onPreview={previewMaterial ? (mask) => previewArea(selectedImage.imageUrl, area, mask, previewMaterial, calibration) : undefined}
+          onPreview={
+            previewMaterial ? (mask) => previewArea(selectedImage.imageUrl, area, mask, maskDirty, previewMaterial, calibration, protectedMask) : undefined
+          }
+          onProtectedChange={setProtectedMask}
+          // Include area: this hotspot's surface re-cut with the vendor's include/exclude prompts
+          onInclude={
+            pendingForm
+              ? (include, exclude) =>
+                  cutSurface(selectedImage.imageUrl, { xPct: pendingForm.xPct, yPct: pendingForm.yPct }, { label: area.label, connectedOnly, include, exclude }).then(
+                    (c) => unionMasks(c.parts.map((p) => p.mask))
+                  )
+              : undefined
+          }
         />
       </div>
     ) : null;
@@ -786,9 +835,25 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                             {DECISION_STYLE[area.decision].text} · {Math.round(area.confidence * 100)}%
                           </span>
                         )}
+                        {stagedCut && areaStatus === 'ready' && (
+                          <button
+                            type="button"
+                            onClick={() => setStagesOpen(true)}
+                            className="text-[10px] px-2 py-0.5 rounded-md border border-white/[0.1] text-slate-300 hover:text-white"
+                          >
+                            Pipeline stages
+                          </button>
+                        )}
                       </div>
 
                       {areaStatus === 'error' && <p className="text-[11px] text-rose-300">{areaError}</p>}
+                      {area && areaStatus === 'ready' && area.reviewReasons && area.reviewReasons.length > 0 && (
+                        <ul data-testid="area-review-reasons" className="text-[10px] text-amber-300/90 list-disc list-inside">
+                          {area.reviewReasons.map((r) => (
+                            <li key={r}>{r}</li>
+                          ))}
+                        </ul>
+                      )}
                       {!area && areaStatus === 'idle' && (
                         <p className="text-[11px] text-slate-500">This hotspot has no surface yet — customers can't preview it until you detect one.</p>
                       )}
@@ -822,7 +887,10 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                       {area && areaMask && (
                         <button
                           type="button"
-                          onClick={() => setAreaEditorOpen(true)}
+                          onClick={() => {
+                            setAreaEditorOpen(true);
+                            setAreaChecked(true);
+                          }}
                           disabled={areaStatus !== 'ready'}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 disabled:opacity-50"
                         >
@@ -967,6 +1035,9 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
       </div>
     </div>
     {areaEditorLayer}
+    {stagesOpen && stagedCut && selectedImage && (
+      <PipelineStagesView imageUrl={selectedImage.imageUrl} cut={stagedCut} onClose={() => setStagesOpen(false)} />
+    )}
     </>
   );
 };

@@ -71,13 +71,13 @@ describe('offPlaneCells', () => {
     return { width: W, height: H, points, valid: new Uint8Array(W * H).fill(1) };
   };
 
-  it('marks points in front of and behind every plane, not those on one', () => {
+  it('marks points in front of (+1) and behind (−1) every plane, not those on one', () => {
     const m = room();
     const wall = Array.from({ length: W * H }, (_, i) => i).filter((i) => i % W >= 20 && i % W < 140);
     const planes = fitSurfacePlanes(m, wall, { orientation: 'vertical', seed: 1 });
     const off = offPlaneCells(m, planes, 0.03);
-    expect(off[50 * W + 10]).toBe(1); // cushion, in front
-    expect(off[50 * W + 150]).toBe(1); // reflection, 5% behind
+    expect(off[50 * W + 10]).toBe(1); // cushion: in front (+1)
+    expect(off[50 * W + 150]).toBe(-1); // reflection, 5% behind (−1)
     expect(off[50 * W + 80]).toBe(0); // wall
   });
 

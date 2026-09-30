@@ -56,10 +56,12 @@ test('upload, check the surface, render, compare and download', async ({ page })
     const viewport = page.getByTestId('area-editor-viewport');
     await expect(viewport).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId('surface-review-confidence')).toHaveText(/^Confidence \d{1,3}%$/);
-    await page.getByRole('button', { name: 'Cut out object' }).click();
+    await page.getByRole('button', { name: 'Protect object' }).click();
     const box = (await viewport.locator('img').boundingBox())!;
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.9);
     await expect(page.getByText('Outlining the object…')).toHaveCount(0, { timeout: 60_000 });
+    // A protected object waits for Apply (a click on a shadow is refused instead)
+    if (await page.getByTestId('area-pending').count()) await page.getByRole('button', { name: 'Apply' }).click();
     await page.getByRole('button', { name: 'Use this area' }).click();
     await expect(title).toHaveCount(0);
   }

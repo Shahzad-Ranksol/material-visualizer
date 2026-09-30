@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Scissors, CirclePlus, Pentagon, Hexagon, Brush, Eraser, Undo2, Redo2, ZoomIn, ZoomOut, Maximize, Loader2, Eye } from 'lucide-react';
+import { ShieldCheck, CirclePlus, Pentagon, Hexagon, Brush, Eraser, Undo2, Redo2, ZoomIn, ZoomOut, Maximize, Loader2, Eye, Check, X } from 'lucide-react';
 import {
   AlphaMask,
   History,
@@ -10,10 +10,14 @@ import {
   coveragePct,
   createMaskHistory,
   diffRect,
+  dilateDisc,
+  emptyMask,
   fillPolygon,
+  includeConnected,
   isUsableObjectMask,
   maskOutline,
   paintStroke,
+  withoutProtected,
 } from '../services/areaMaskOps';
 import { alphaMaskToCanvas, canvasToAlphaMask, scaleMaskCanvas } from '../services/maskCanvas';
 import { cutObject } from '../services/roomAnalysis';
@@ -40,15 +44,21 @@ export interface AreaEditorProps {
   onChange: (mask: HTMLCanvasElement) => void;
   // Renders the material on the current area; resolves to an image URL
   onPreview?: (mask: HTMLCanvasElement) => Promise<string>;
-  // True while a Cut/Add request or a brush/eraser stroke is in progress (an accept button
-  // should wait: the edit isn't committed yet)
+  // True while a Protect/Include request, a stroke or an unapplied result is in progress (an
+  // accept button should wait: the edit isn't committed yet)
   onBusyChange?: (busy: boolean) => void;
+  // "Include area": re-cuts the surface with the include clicks (and the protected objects'
+  // clicks as exclude prompts), resolving to the whole re-cut area. Without it, the add tool
+  // adds the single object at the click instead.
+  onInclude?: (include: Array<{ xPct: number; yPct: number }>, exclude: Array<{ xPct: number; yPct: number }>) => Promise<HTMLCanvasElement>;
+  // The protected objects (white, alpha = coverage) after every change: restored on top on save
+  onProtectedChange?: (mask: HTMLCanvasElement) => void;
 }
 
 // Lives with the mask ops so services (areaPreview) can use it without importing a component
 export { EMPTY_AREA_MESSAGE } from '../services/areaMaskOps';
 
-type Tool = 'cut' | 'add' | 'polyAdd' | 'polyRemove' | 'brush' | 'erase';
+type Tool = 'protect' | 'include' | 'add' | 'polyAdd' | 'polyRemove' | 'brush' | 'erase';
 type View = 'fill' | 'outline' | 'original';
 
 const HISTORY_LIMIT = 30;
@@ -58,13 +68,22 @@ const CLOSE_RADIUS_SCREEN_PX = 10;
 // A one-finger touch that moves further than this from where it went down is a drag, not a tap
 const TAP_SLOP_SCREEN_PX = 10;
 const NO_OBJECT_MESSAGE = "Couldn't find a distinct object there — try the polygon tool";
+const SHADOW_MESSAGE = 'That looks like part of the surface (a shadow or a patch of light) — it stays surface, and its lighting carries onto the material.';
+const NOTHING_TO_INCLUDE_MESSAGE = 'Nothing new to include there — try the brush or the polygon tool.';
+// A clicked "object" the class map calls this much room surface is a shadow, not an object
+const SHADOW_SURFACE_SHARE = 0.7;
+// Include keeps the new region within this share of the photo width of the click
+const INCLUDE_SEED_FRACTION = 0.01;
+const PROTECTED_RGB = [56, 189, 248];
+const PROTECTED_WASH = 0.35;
 const FILL_RGB = [251, 191, 36];
 const OUTLINE_RGB = [34, 211, 238];
 const CUT_RGB = [239, 68, 68];
 const ADD_RGB = [34, 197, 94];
 
 const TOOLS: Array<{ id: Tool; label: string; Icon: React.ComponentType<{ className?: string }> }> = [
-  { id: 'cut', label: 'Cut out object', Icon: Scissors },
+  { id: 'protect', label: 'Protect object', Icon: ShieldCheck },
+  { id: 'include', label: 'Include area', Icon: CirclePlus },
   { id: 'add', label: 'Add object/area', Icon: CirclePlus },
   { id: 'polyAdd', label: 'Polygon: add', Icon: Pentagon },
   { id: 'polyRemove', label: 'Polygon: remove', Icon: Hexagon },
@@ -73,7 +92,8 @@ const TOOLS: Array<{ id: Tool; label: string; Icon: React.ComponentType<{ classN
 ];
 
 const HINTS: Record<Tool, string> = {
-  cut: 'Click an object that should keep its look (a lamp, the headboard, a curtain) to cut it out.',
+  protect: 'Click an object that must keep its look (a chair, a curtain, the bed): it stays out of the area, whatever you paint later.',
+  include: 'Click a part of the surface that was missed: only the region you click is added.',
   add: 'Click a part of the surface that was missed to add it.',
   polyAdd: 'Click corners to outline an area to add. Click the first corner or double-click to finish · Backspace removes a corner · Esc cancels.',
   polyRemove: 'Click corners to outline an area to remove. Click the first corner or double-click to finish · Backspace removes a corner · Esc cancels.',
@@ -96,14 +116,26 @@ const revokeIfBlob = (url: string | null) => {
  * The one place a surface's area is adjusted (hotspot editor and studio area check). Every tool
  * edits the mask directly, so each correction does exactly what it shows, and can be undone.
  */
-export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, label, onChange, onPreview, onBusyChange }) => {
+export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, label, onChange, onPreview, onBusyChange, onInclude, onProtectedChange }) => {
   const [mask, setMask] = useState<AlphaMask>(() => canvasToAlphaMask(initialMask));
   const history = useRef<History<AlphaMask> | null>(null);
   if (!history.current) history.current = createMaskHistory(mask, HISTORY_LIMIT);
   // Summed once per committed mask, not on every render (pan/zoom re-render constantly)
   const coverage = useMemo(() => coveragePct(mask), [mask]);
   const [, setHistoryVersion] = useState(0);
-  const [tool, setTool] = useState<Tool>('cut');
+  const [tool, setTool] = useState<Tool>('protect');
+  // Protected objects (Protect object): kept out of the area after every edit, restored on top
+  // on save. Their own history steps in lockstep with the area's, so one undo reverts both.
+  const [protectedMask, setProtectedMask] = useState<AlphaMask>(() => emptyMask(mask.width, mask.height));
+  const protectHistory = useRef<History<AlphaMask> | null>(null);
+  if (!protectHistory.current) protectHistory.current = createMaskHistory(protectedMask, HISTORY_LIMIT);
+  // The session's include clicks and protect clicks, as SAM prompts for Include area
+  const includePoints = useRef<Pt[]>([]);
+  const excludePoints = useRef<Pt[]>([]);
+  // A Protect/Include result shown for Apply/Discard before it changes anything
+  const [pending, setPending] = useState<{ kind: 'protect' | 'include'; area: AlphaMask; protectedNext: AlphaMask; show: AlphaMask } | null>(
+    null
+  );
   const [view, setView] = useState<View>('fill');
   const [opacity, setOpacity] = useState(0.45);
   const [brushPct, setBrushPct] = useState(2);
@@ -221,10 +253,24 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     [onChange, showPreview, maskCanvasOf]
   );
 
-  // The changed rectangle is found once and shared by the history step and the mirror update
-  // (a brush commit's mirror already shows `next`, so syncMirror doesn't use it there)
-  const commit = useCallback(
+  const emitProtected = useCallback(
     (next: AlphaMask) => {
+      setProtectedMask(next);
+      onProtectedChange?.(alphaMaskToCanvas(next));
+    },
+    [onProtectedChange]
+  );
+
+  // The changed rectangle is found once and shared by the history step and the mirror update
+  // (a brush commit's mirror already shows `next`, so syncMirror doesn't use it there). Every
+  // commit keeps the protected objects out of the area, whatever tool painted it, and steps
+  // both histories so they stay in lockstep.
+  const commit = useCallback(
+    (painted: AlphaMask, nextProtected: AlphaMask = protectHistory.current!.current()) => {
+      const next = withoutProtected(painted, nextProtected);
+      const prevProtected = protectHistory.current!.current();
+      protectHistory.current!.push(nextProtected, nextProtected === prevProtected ? null : undefined);
+      if (nextProtected !== prevProtected) emitProtected(nextProtected);
       const base = history.current!.current();
       if (base.width !== next.width || base.height !== next.height) {
         history.current!.push(next);
@@ -235,22 +281,28 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       history.current!.push(next, rect);
       emit(next, { base, rect });
     },
-    [emit]
+    [emit, emitProtected]
   );
 
   // Undo/Redo are no-ops while a Cut/Add is in flight or a brush stroke is active — both cases
   // hold a snapshot that must not be clobbered by history navigating underneath it.
   const undo = useCallback(() => {
-    if (busy || strokeActive) return;
+    if (busy || strokeActive || pending) return;
+    const before = protectHistory.current!.current();
     const state = history.current!.undo();
+    const prot = protectHistory.current!.undo();
     if (state) emit(state);
-  }, [emit, busy, strokeActive]);
+    if (prot && prot !== before) emitProtected(prot);
+  }, [emit, emitProtected, busy, strokeActive, pending]);
 
   const redo = useCallback(() => {
-    if (busy || strokeActive) return;
+    if (busy || strokeActive || pending) return;
+    const before = protectHistory.current!.current();
     const state = history.current!.redo();
+    const prot = protectHistory.current!.redo();
     if (state) emit(state);
-  }, [emit, busy, strokeActive]);
+    if (prot && prot !== before) emitProtected(prot);
+  }, [emit, emitProtected, busy, strokeActive, pending]);
 
   // Re-sync with the props: a new `initialMask` (other than the canvas we just emitted) or a new
   // photo starts over — history, mask, preview and in-flight work — as if remounted with a key.
@@ -265,6 +317,12 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const next = canvasToAlphaMask(initialMask);
     sessionRef.current++;
     history.current = createMaskHistory(next, HISTORY_LIMIT);
+    const noneProtected = emptyMask(next.width, next.height);
+    protectHistory.current = createMaskHistory(noneProtected, HISTORY_LIMIT);
+    setProtectedMask(noneProtected);
+    includePoints.current = [];
+    excludePoints.current = [];
+    setPending(null);
     stroke.current = null;
     pendingTapRef.current = null;
     setStrokeActive(false);
@@ -288,7 +346,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   useLayoutEffect(() => {
     onBusyChangeRef.current = onBusyChange;
   }, [onBusyChange]);
-  const editorBusy = busy || strokeActive;
+  const editorBusy = busy || strokeActive || pending !== null;
   useEffect(() => {
     if (!editorBusy) return;
     onBusyChangeRef.current?.(true);
@@ -327,10 +385,12 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   }, [fitStage]);
 
   // A flash canvas is built once per Cut/Add (opaque colour where the object is), not per draw
+  // A pending Protect/Include result is shown the same way, until it's applied or discarded
+  const shown = pending ? { mask: pending.show, mode: pending.kind === 'protect' ? ('subtract' as const) : ('add' as const) } : flash;
   const flashCanvas = useMemo(() => {
-    if (!flash) return null;
-    const { width: w, height: h, alpha } = flash.mask;
-    const rgb = flash.mode === 'subtract' ? CUT_RGB : ADD_RGB;
+    if (!shown) return null;
+    const { width: w, height: h, alpha } = shown.mask;
+    const rgb = shown.mode === 'subtract' ? CUT_RGB : ADD_RGB;
     const img = new ImageData(w, h);
     const d = img.data;
     for (let i = 0; i < alpha.length; i++) {
@@ -344,7 +404,24 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const c = newCanvas(w, h);
     c.getContext('2d')!.putImageData(img, 0, 0);
     return c;
-  }, [flash]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flash, pending]);
+
+  // Protected objects, tinted so it's clear what stays untouched (built once per change)
+  const protectedCanvas = useMemo(() => {
+    const { width: w, height: h, alpha } = protectedMask;
+    let any = false;
+    const img = new ImageData(w, h);
+    for (let i = 0; i < alpha.length; i++) {
+      if (alpha[i] <= 127) continue;
+      any = true;
+      img.data.set([PROTECTED_RGB[0], PROTECTED_RGB[1], PROTECTED_RGB[2], 255], i * 4);
+    }
+    if (!any) return null;
+    const c = newCanvas(w, h);
+    c.getContext('2d')!.putImageData(img, 0, 0);
+    return c;
+  }, [protectedMask]);
 
   // Outline thickness in mask px for ~2 screen px (the photo is shown at stage width x zoom),
   // bucketed so smooth zoom only occasionally changes it
@@ -400,6 +477,11 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         }
         ctx.putImageData(buf.image, 0, 0);
       }
+      if (protectedCanvas && view !== 'original') {
+        ctx.globalAlpha = PROTECTED_WASH;
+        ctx.drawImage(protectedCanvas, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
+      }
       if (flashCanvas) {
         // Replace (not blend) what's under the object, as a 170/255 wash of the flash colour
         ctx.globalCompositeOperation = 'destination-out';
@@ -410,7 +492,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         ctx.globalAlpha = 1;
       }
     },
-    [view, opacity, flashCanvas, syncMirror, outlineWidth]
+    [view, opacity, flashCanvas, protectedCanvas, syncMirror, outlineWidth]
   );
 
   // Updated on every commit (a layout effect, so before any frame scheduled below can fire, and
@@ -448,7 +530,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   const zoomRelevant = view === 'outline';
   useEffect(() => {
     drawOverlay(mask);
-  }, [mask, drawOverlay, view, opacity, flash, previewUrl, zoomRelevant ? outlineWidth : 0]);
+  }, [mask, drawOverlay, view, opacity, flash, pending, protectedMask, previewUrl, zoomRelevant ? outlineWidth : 0]);
 
   // (cx, cy) is stage-local; the pan is clamped so the photo can't be lost off screen
   const zoomAt = useCallback(
@@ -508,6 +590,10 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     setPolygon([...polygon, p]);
   };
 
+  const toPct = (p: Pt) => ({ xPct: (p.x / mask.width) * 100, yPct: (p.y / mask.height) * 100 });
+
+  // Protect object / Include area show their result for Apply or Discard; Add object/area (no
+  // re-cut available) adds the object at once, after a flash
   const runObjectTool = async (p: Pt) => {
     setBusy(true);
     setMessage(null);
@@ -515,28 +601,70 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const session = sessionRef.current;
     const current = () => mountedRef.current && sessionRef.current === session;
     try {
-      const canvas = await cutObject(imageUrl, { xPct: (p.x / mask.width) * 100, yPct: (p.y / mask.height) * 100 });
+      // Based on the histories' current state, not the `mask` closed over at click time
+      const area = history.current!.current();
+      const prot = protectHistory.current!.current();
+      if (tool === 'include' && onInclude) {
+        includePoints.current.push(p);
+        const recutCanvas = await onInclude(includePoints.current.map(toPct), excludePoints.current.map(toPct));
+        if (!current()) return;
+        const recut = canvasToAlphaMask(scaleMaskCanvas(recutCanvas, mask.width, mask.height));
+        const next = includeConnected(area, recut, prot, p, mask.width * INCLUDE_SEED_FRACTION);
+        if (!next) {
+          includePoints.current.pop();
+          setMessage(NOTHING_TO_INCLUDE_MESSAGE);
+          return;
+        }
+        const added = emptyMask(mask.width, mask.height);
+        for (let i = 0; i < added.alpha.length; i++) if (next.alpha[i] > area.alpha[i]) added.alpha[i] = 255;
+        setPending({ kind: 'include', area: next, protectedNext: prot, show: added });
+        return;
+      }
+      const result = await cutObject(imageUrl, toPct(p));
       if (!current()) return;
-      const object = canvas ? canvasToAlphaMask(scaleMaskCanvas(canvas, mask.width, mask.height)) : null;
+      const object = result ? canvasToAlphaMask(scaleMaskCanvas(result.mask, mask.width, mask.height)) : null;
       if (!object || !isUsableObjectMask(object)) {
         setMessage(NO_OBJECT_MESSAGE);
         return;
       }
-      const mode = tool === 'cut' ? 'subtract' : 'add';
-      setFlash({ mask: object, mode });
+      if (tool === 'protect') {
+        // A shadow is surface: its lighting carries onto the material, so it isn't cut out
+        if (result!.surfaceShare >= SHADOW_SURFACE_SHARE) {
+          setMessage(SHADOW_MESSAGE);
+          return;
+        }
+        excludePoints.current.push(p);
+        // Protected is exactly what's removed (the object and its 2px ring), so painting the
+        // same spot again can't bring back a halo around it
+        const removed = dilateDisc(object, CUT_DILATE_PX);
+        setPending({ kind: 'protect', area: combine(area, removed, 'subtract', 0), protectedNext: combine(prot, removed, 'add', 0), show: object });
+        return;
+      }
+      setFlash({ mask: object, mode: 'add' });
       await new Promise((resolve) => setTimeout(resolve, FLASH_MS));
       if (!current()) return; // (a reset already cleared the flash)
       setFlash(null);
-      // Base the combine on the history's current state, not the `mask` closed over at click
-      // time — Undo/Redo are disabled while busy (see `undo`/`redo` above), but this keeps the
-      // result correct even if that guard is ever loosened.
-      commit(combine(history.current!.current(), object, mode, mode === 'subtract' ? CUT_DILATE_PX : 0));
+      commit(combine(history.current!.current(), object, 'add', 0));
     } catch (err) {
       if (!current()) return;
+      if (tool === 'include') includePoints.current.pop();
       setMessage(err instanceof Error ? err.message : 'Could not outline that object.');
     } finally {
       if (mountedRef.current) setBusy(false);
     }
+  };
+
+  const applyPending = () => {
+    if (!pending) return;
+    commit(pending.area, pending.protectedNext);
+    setPending(null);
+  };
+
+  const discardPending = () => {
+    if (!pending) return;
+    if (pending.kind === 'include') includePoints.current.pop();
+    else excludePoints.current.pop();
+    setPending(null);
   };
 
   const brushRadius = () => ((brushPct / 100) * mask.width) / 2;
@@ -582,7 +710,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       panDrag.current = { startX: e.clientX, startY: e.clientY, x: transform.x, y: transform.y };
       return;
     }
-    if (e.button !== 0 || busy || previewUrl) return;
+    if (e.button !== 0 || busy || previewUrl || pending) return;
     const p = toImagePoint(e.clientX, e.clientY);
     if (!p) return;
     if (tool === 'brush' || tool === 'erase') {
@@ -598,7 +726,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     } else if (e.pointerType === 'touch') {
       // Acts on release, unless a pinch starts or the finger drags away
       pendingTapRef.current = { pointerId: e.pointerId, p, clientX: e.clientX, clientY: e.clientY };
-    } else if (tool === 'cut' || tool === 'add') {
+    } else if (tool === 'protect' || tool === 'include' || tool === 'add') {
       runObjectTool(p);
     } else {
       handlePolygonClick(p);
@@ -661,8 +789,8 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
     const tap = pendingTapRef.current;
     if (tap && tap.pointerId === e.pointerId) {
       pendingTapRef.current = null;
-      if (e.type === 'pointerup' && !busy && !previewUrl) {
-        if (tool === 'cut' || tool === 'add') runObjectTool(tap.p);
+      if (e.type === 'pointerup' && !busy && !previewUrl && !pending) {
+        if (tool === 'protect' || tool === 'include' || tool === 'add') runObjectTool(tap.p);
         else if (tool === 'polyAdd' || tool === 'polyRemove') handlePolygonClick(tap.p);
       }
     }
@@ -714,7 +842,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   return (
     <div ref={rootRef} className="flex flex-col gap-3 min-h-0">
       <div className="flex flex-wrap items-center gap-1.5">
-        {TOOLS.map(({ id, label: toolLabel, Icon }) => (
+        {TOOLS.filter(({ id }) => (id === 'include' ? Boolean(onInclude) : id === 'add' ? !onInclude : true)).map(({ id, label: toolLabel, Icon }) => (
           <button key={id} type="button" aria-label={toolLabel} title={toolLabel} onClick={() => selectTool(id)} className={button(tool === id)}>
             <Icon className="w-3.5 h-3.5" /> <span className="hidden md:inline">{toolLabel}</span>
           </button>
@@ -731,7 +859,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
           aria-label="Undo"
           title="Undo (Ctrl+Z)"
           onClick={undo}
-          disabled={busy || strokeActive || !history.current!.canUndo()}
+          disabled={busy || strokeActive || pending !== null || !history.current!.canUndo()}
           className={button(false)}
         >
           <Undo2 className="w-3.5 h-3.5" />
@@ -741,7 +869,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
           aria-label="Redo"
           title="Redo (Ctrl+Shift+Z)"
           onClick={redo}
-          disabled={busy || strokeActive || !history.current!.canRedo()}
+          disabled={busy || strokeActive || pending !== null || !history.current!.canRedo()}
           className={button(false)}
         >
           <Redo2 className="w-3.5 h-3.5" />
@@ -827,7 +955,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         </div>
         {busy && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 text-[11px] text-slate-200">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Outlining the object…
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> {tool === 'include' ? 'Finding the missed area…' : 'Outlining the object…'}
           </div>
         )}
       </div>
@@ -838,6 +966,17 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         </span>
         <span className="text-slate-500">{HINTS[tool]} · Scroll to zoom · Space+drag to pan</span>
         {message && <span className="text-rose-300">{message}</span>}
+        {pending && (
+          <span data-testid="area-pending" className="flex items-center gap-1.5">
+            <span className="text-slate-200">{pending.kind === 'protect' ? 'Protect this object?' : 'Add this area?'}</span>
+            <button type="button" onClick={applyPending} className={button(true)}>
+              <Check className="w-3.5 h-3.5" /> Apply
+            </button>
+            <button type="button" onClick={discardPending} className={button(false)}>
+              <X className="w-3.5 h-3.5" /> Discard
+            </button>
+          </span>
+        )}
         {onPreview && (
           <button
             type="button"

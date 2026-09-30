@@ -18,4 +18,9 @@ describe('quality gate', () => {
     expect(reviewDecision(0.7)).toBe('confirm');
     expect(reviewDecision(0.6)).toBe('correct');
   });
+  it('asks for a check whenever there is a review reason, however confident', () => {
+    expect(reviewDecision(0.95, ['It is next to a mirror or reflection — check the reflection is left out.'])).toBe('confirm');
+    expect(reviewDecision(0.6, ['It may cover part of the rug.'])).toBe('correct'); // never lowers the bar
+    expect(reviewDecision(0.95, [])).toBe('auto');
+  });
 });

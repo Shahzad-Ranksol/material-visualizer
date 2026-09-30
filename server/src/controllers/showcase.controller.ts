@@ -80,6 +80,12 @@ export const updateShowcaseImage = async (req: Request, res: Response) => {
     return;
   }
 
+  // A new photo makes every saved area stale (the masks were cut from the old one): flag them so
+  // the storefront won't paint them until the vendor detects them again
+  if (parsed.data.imageUrl !== undefined && parsed.data.imageUrl !== result.image.imageUrl) {
+    await prisma.surface.updateMany({ where: { showcaseImageId: req.params.id }, data: { needsReview: true } });
+  }
+
   const updated = await prisma.showcaseImage.update({
     where: { id: req.params.id },
     data: parsed.data,

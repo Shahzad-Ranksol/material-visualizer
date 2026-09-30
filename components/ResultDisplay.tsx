@@ -10,7 +10,9 @@ import {
   RotateCcw,
   Sliders,
   Layers,
-  MapPin
+  MapPin,
+  Scan,
+  Loader2
 } from 'lucide-react';
 import { ViewMode, Material, RenderDebugView } from '../types';
 import { RemoteHotspot } from '../services/apiClient';
@@ -37,6 +39,10 @@ interface ResultDisplayProps {
   // Temporary staff benchmark (only passed when a Gemini key is configured)
   onCompareWithGemini?: () => void;
   notice?: string | null;
+  // "Selected area": the photo with exactly the area the render paints, before any material
+  selectedAreaUrl?: string | null;
+  selectedAreaLoading?: boolean;
+  onShowSelectedArea?: () => void;
 }
 
 const DEBUG_VIEWS: Array<{ view: RenderDebugView; label: string }> = [
@@ -62,6 +68,9 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   onDebugViewChange,
   onCompareWithGemini,
   notice,
+  selectedAreaUrl = null,
+  selectedAreaLoading = false,
+  onShowSelectedArea,
 }) => {
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -276,6 +285,27 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
             <Eye className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Original</span>
           </button>
+
+          {onShowSelectedArea && (
+            <button
+              type="button"
+              id="btn-view-selected-area"
+              onClick={() => {
+                setViewMode('area');
+                onShowSelectedArea();
+              }}
+              disabled={selectedItemsCount === 0}
+              title="Show exactly the area the material goes on"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 ${
+                viewMode === 'area'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Scan className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Selected area</span>
+            </button>
+          )}
         </div>
 
         {/* Action icons */}
@@ -529,13 +559,15 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
         )}
 
         {/* VIEW MODE: Single Image (Render or Original) */}
-        {uploadedImageUrl && !(viewMode === 'hotspots' && hasHotspots) && (viewMode === 'rendered' || viewMode === 'original' || !hasBothImages) && (
+        {uploadedImageUrl && !(viewMode === 'hotspots' && hasHotspots) && (viewMode === 'rendered' || viewMode === 'original' || viewMode === 'area' || !hasBothImages) && (
           <div className="relative w-full h-full flex items-center justify-center p-3">
             <img
               src={
-                viewMode === 'original' || !processedImageUrl
-                  ? uploadedImageUrl
-                  : processedImageUrl
+                viewMode === 'area'
+                  ? selectedAreaUrl ?? uploadedImageUrl
+                  : viewMode === 'original' || !processedImageUrl
+                    ? uploadedImageUrl
+                    : processedImageUrl
               }
               alt="Interior Visualizer"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition-all duration-500"
@@ -544,9 +576,19 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
             <div className="absolute bottom-6 right-6">
               <span className="px-3.5 py-1.5 rounded-full bg-black/80 backdrop-blur border border-white/10 text-[11px] font-medium tracking-wider text-slate-300 shadow-xl flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                {viewMode === 'original' || !processedImageUrl
-                  ? 'Original Space'
-                  : `Render: ${selectedMaterial?.name || 'Re-clad'}`}
+                {viewMode === 'area' ? (
+                  selectedAreaLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Finding the selected area…
+                    </>
+                  ) : (
+                    <span data-testid="selected-area-label">Selected area — amber is exactly what gets the material</span>
+                  )
+                ) : viewMode === 'original' || !processedImageUrl ? (
+                  'Original Space'
+                ) : (
+                  `Render: ${selectedMaterial?.name || 'Re-clad'}`
+                )}
               </span>
             </div>
           </div>

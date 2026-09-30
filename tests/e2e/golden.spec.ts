@@ -13,6 +13,11 @@ test('renderer golden checks', async ({ page }) => {
   expect(r.outsideChanged).toBe(0);
   // 2. Occluders restored exactly (stricter than the plan's SSIM >= 0.995)
   expect(r.occluderChanged).toBe(0);
+  // ...with a soft-edged mask loaded from a PNG, nothing changes where the mask is 0 (no 2px band)
+  expect(r.softEdgePixels).toBeGreaterThan(0);
+  expect(r.softOutsideChanged).toBe(0);
+  // ...and each layer's own occluder is restored when two layers render together
+  expect(r.twoLayerOccludersChanged).toBe(0);
   // ...and the surface itself really was re-surfaced
   expect(r.surfaceChangedFraction).toBeGreaterThan(0.95);
 
@@ -40,6 +45,7 @@ test('renderer golden checks', async ({ page }) => {
   // 8. Fail safely: a clear error, never a fallback render
   expect(r.failures.noLayers).toBe('NeedsSurfaceReviewError');
   expect(r.failures.emptyMask).toBe('NeedsSurfaceReviewError');
+  expect(r.failures.sizeMismatch).toBe('NeedsSurfaceReviewError');
   expect(r.failures.brokenTexture).not.toBe('resolved');
 
   expect(errors).toEqual([]);

@@ -34,6 +34,8 @@ export type WorkerRequest =
       connectedOnly: boolean;
       include?: Array<{ xPct: number; yPct: number }>;
       exclude?: Array<{ xPct: number; yPct: number }>;
+      // Also return every pipeline stage's mask (developer view, evidence runs)
+      debugStages?: boolean;
     }
   | { id: number; type: 'cutObject'; imageUrl: string; point: { xPct: number; yPct: number } };
 
@@ -61,11 +63,39 @@ export type WorkerResponse =
       confidence: number;
       confidenceInputs: ConfidenceInputs;
       areaPct: number;
+      // Plain-language reasons a person should check this area, whatever the confidence says
+      reviewReasons: string[];
+      stages?: CutStages;
     }
-  | { id: number; type: 'cutObject'; width: number; height: number; mask: Uint8Array | null }
+  // `surfaceShare`: the share of the object the class map calls a room surface (a shadow is mostly surface)
+  | { id: number; type: 'cutObject'; width: number; height: number; mask: Uint8Array | null; surfaceShare: number }
   | { id: number; type: 'error'; error: string }
   // Sent while a request runs; the final response follows
   | { id: number; type: 'progress'; stage: AnalysisStage };
+
+/**
+ * A surface cut's pipeline, one binary (0/1) mask per stage at photo size, each the whole
+ * surface as that stage left it (diff two neighbours to see what a stage added or removed).
+ */
+export const CUT_STAGES = ['classCandidate', 'samRaw', 'samAfterExclusions', 'bandRefined', 'body', 'grown', 'skirtingRemoved', 'onPlane'] as const;
+export type CutStage = (typeof CUT_STAGES)[number];
+export const CUT_STAGE_LABELS: Record<CutStage, string> = {
+  classCandidate: 'SegFormer surface candidate',
+  samRaw: "SAM's mask",
+  samAfterExclusions: 'SAM minus other surfaces/objects',
+  bandRefined: 'Edge band re-decided by colour',
+  body: 'Body (specks dropped)',
+  grown: 'Grown across continuous colour',
+  skirtingRemoved: 'Skirting removed',
+  onPlane: 'Off-plane pixels removed',
+};
+export interface CutStages {
+  masks: Record<CutStage, Uint8Array>;
+  // Objects restored on top (binary, before edge refinement), and the class map
+  occluder: Uint8Array;
+  labelMap: Uint8Array;
+  labels: string[];
+}
 
 export type AnalysisStage = 'loading-photo' | 'surfaces' | 'geometry' | 'refining' | 'from-cache';
 

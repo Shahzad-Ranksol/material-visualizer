@@ -11,7 +11,9 @@ import {
   MIN_PART_PIXELS,
   MIN_RENDER_PIXELS,
   fillPolygon,
+  includeConnected,
   isUsableObjectMask,
+  withoutProtected,
   maskOutline,
   paintStroke,
   splitEditsIntoParts,
@@ -401,3 +403,38 @@ describe('clearOccluderAlpha', () => {
   });
 });
 
+
+describe('withoutProtected', () => {
+  it('keeps a protected object out of the area, whatever tool painted it', () => {
+    const W2 = 20;
+    const H2 = 10;
+    const area = square(W2, H2, 0, 0, W2, H2); // brushed over everything
+    const sofa = square(W2, H2, 5, 2, 10, 6);
+    const out = withoutProtected(area, sofa);
+    expect(at(out, 7, 4)).toBe(0);
+    expect(at(out, 1, 1)).toBe(255);
+    expect(count(out)).toBe(W2 * H2 - 5 * 4);
+  });
+});
+
+describe('includeConnected', () => {
+  const W2 = 40;
+  const H2 = 20;
+  // Current area: left third. The re-cut surface also has a missed middle patch (connected to
+  // the click) and a far-right patch (not connected): only the clicked one may be added.
+  const current = square(W2, H2, 0, 0, 12, H2);
+  const recut = combine(combine(current, square(W2, H2, 12, 0, 20, H2), 'add', 0), square(W2, H2, 30, 0, 38, H2), 'add', 0);
+
+  it('adds only the new pixels connected to the click', () => {
+    const out = includeConnected(current, recut, emptyMask(W2, H2), { x: 16, y: 10 }, 2)!;
+    expect(at(out, 16, 10)).toBe(255); // the clicked patch
+    expect(at(out, 34, 10)).toBe(0); // elsewhere in the re-cut: untouched
+    expect(at(out, 5, 5)).toBe(255); // the existing area is kept
+  });
+
+  it('never adds a protected object, and returns null when the click adds nothing', () => {
+    const prot = square(W2, H2, 12, 0, 20, H2);
+    expect(includeConnected(current, recut, prot, { x: 16, y: 10 }, 2)).toBeNull();
+    expect(includeConnected(current, recut, emptyMask(W2, H2), { x: 25, y: 10 }, 2)).toBeNull(); // not surface
+  });
+});

@@ -13,7 +13,7 @@ import { SurfaceReviewModal } from './components/SurfaceReviewModal';
 import { ResultDisplay } from './components/ResultDisplay';
 import { SpecSheetModal } from './components/SpecSheetModal';
 import { CURATED_ROOMS, MATERIALS, ROOM_TYPES } from './constants';
-import { renderMaterial, RenderLayerInput, NeedsSurfaceReviewError } from './services/renderer/materialRenderer';
+import { renderMaterial, RenderLayerInput, NeedsSurfaceReviewError, selectedAreaImage } from './services/renderer/materialRenderer';
 import { WebGLUnavailableError } from './services/renderer/webglContext';
 import { setStudioLightingProvider } from './services/renderer/studioLighting';
 import { createStudioLightingProvider } from './services/renderer/studioLightingProvider';
@@ -109,6 +109,10 @@ const App: React.FC = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([]);
   const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
+  // "Selected area" image of the current photo + selection (null until asked for)
+  const [selectedAreaUrl, setSelectedAreaUrl] = useState<string | null>(null);
+  const [selectedAreaLoading, setSelectedAreaLoading] = useState(false);
+  const selectedAreaRequest = useRef(0);
   // Surface whose area the user is checking (low analysis confidence)
   const [reviewingItem, setReviewingItem] = useState<DetectedItem | null>(null);
   useEffect(() => {
@@ -524,8 +528,12 @@ const App: React.FC = () => {
     for (const h of activeShowcaseImage.hotspots) {
       if (!selections[h.id]) continue;
       const surface = activeShowcaseImage.surfaces.find((s) => s.id === h.surfaceId);
-      if (!surface) {
-        setErrorMessage(`"${h.label}" has no reviewed surface yet — open Manage Showcase & Hotspots and detect its area.`);
+      if (!surface || surface.needsReview) {
+        setErrorMessage(
+          surface
+            ? `"${h.label}" was saved for a different photo — open Manage Showcase & Hotspots and detect its area again.`
+            : `"${h.label}" has no reviewed surface yet — open Manage Showcase & Hotspots and detect its area.`
+        );
         return;
       }
       for (const part of [surface, ...activeShowcaseImage.surfaces.filter((p) => p.parentSurfaceId === surface.id)]) {
@@ -643,17 +651,47 @@ const App: React.FC = () => {
   };
 
 
+  // A different photo or selection (or a corrected area) makes the shown area stale
+  const clearSelectedArea = () => {
+    selectedAreaRequest.current++;
+    setSelectedAreaUrl(null);
+  };
+  useEffect(clearSelectedArea, [uploadedImageUrl, selectedItemIds]);
+
+  // Cut each selected surface (once): the cut masks and their confidence are kept, so switching
+  // materials or showing the area never re-runs a model
+  const resolveSelected = async (imageUrl: string) => {
+    const selected = detectedItems.filter((item) => selectedItemIds.has(item.id));
+    const resolved = await Promise.all(selected.map((item) => resolveSurface(imageUrl, item)));
+    setDetectedItems((prev) => prev.map((item) => resolved.find((r) => r.item.id === item.id)?.item ?? item));
+    return resolved;
+  };
+
+  // "Selected area": exactly what the render would paint, before (or after) any material
+  const handleShowSelectedArea = async () => {
+    if (!uploadedImageUrl || selectedItemIds.size === 0 || selectedAreaUrl) return;
+    const imageUrl = uploadedImageUrl;
+    const request = ++selectedAreaRequest.current;
+    setSelectedAreaLoading(true);
+    try {
+      const resolved = await resolveSelected(imageUrl);
+      const url = await selectedAreaImage(imageUrl, resolved.flatMap((r) => r.surfaces));
+      if (request === selectedAreaRequest.current) setSelectedAreaUrl(url);
+    } catch (err) {
+      setErrorMessage(errorText(err, 'Could not show the selected area.'));
+    } finally {
+      setSelectedAreaLoading(false);
+    }
+  };
+
   // Materialize: cut/resolve each selected surface (once), then render them all
   const applyMaterial = async (material: Material | null = selectedMaterial) => {
     if (!uploadedImageUrl || selectedItemIds.size === 0 || !material) return;
     const selectedMaterial = material;
     const imageUrl = uploadedImageUrl;
-    const selected = detectedItems.filter((item) => selectedItemIds.has(item.id));
     setApplicationLoading(true);
     try {
-      const resolved = await Promise.all(selected.map((item) => resolveSurface(imageUrl, item)));
-      // Keep the cut masks (and their confidence) so switching materials never re-runs a model
-      setDetectedItems((prev) => prev.map((item) => resolved.find((r) => r.item.id === item.id)?.item ?? item));
+      const resolved = await resolveSelected(imageUrl);
       const needsCorrection = resolved.find((r) => r.item.reviewDecision === 'correct');
       if (needsCorrection) {
         // Below the review threshold: show the area for correction straight away
@@ -819,6 +857,9 @@ const App: React.FC = () => {
               onDebugViewChange={handleDebugViewChange}
               notice={renderNotice}
               onCompareWithGemini={isStaff && isGeminiCompareAvailable() ? handleCompareWithGemini : undefined}
+              selectedAreaUrl={selectedAreaUrl}
+              selectedAreaLoading={selectedAreaLoading}
+              onShowSelectedArea={analyzing ? undefined : handleShowSelectedArea}
             />
 
             {/* Materialization CTA & Directive Refinement */}
@@ -1019,9 +1060,11 @@ const App: React.FC = () => {
           imageUrl={uploadedImageUrl}
           item={reviewingItem}
           previewMaterial={selectedMaterial}
+          showDebugTools={isStaff}
           onClose={() => setReviewingItem(null)}
           onAccept={(fixed) => {
             setReviewingItem(null);
+            clearSelectedArea();
             const items = detectedItems.map((i) => (i.id === fixed.id ? fixed : i));
             setDetectedItems(items);
             setRenderNotice(null);
@@ -1083,6 +1126,7 @@ const App: React.FC = () => {
         onUpdateHotspot={handleUpdateHotspot}
         onDeleteHotspot={handleDeleteHotspot}
         onUploadMask={handleUploadShowcaseMask}
+        showDebugTools={isStaff}
         onSaveSurface={handleSaveSurface}
         onDeleteSurface={handleDeleteSurface}
         previewMaterial={selectedMaterial}

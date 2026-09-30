@@ -1,5 +1,5 @@
 import { DetectedItem, PlanePoint, RenderableSurface, SurfaceAnalysis, SurfaceGeometry, SurfaceKind } from '../types';
-import type { AnalysisStage, SurfaceProposal, WorkerRequest, WorkerResponse } from './analysis/protocol';
+import type { AnalysisStage, CutStages, SurfaceProposal, WorkerRequest, WorkerResponse } from './analysis/protocol';
 import { STAGE_LABELS } from './analysis/protocol';
 import { autoFitPlane, planeKindFor } from './planeGeometry';
 import { ConfidenceInputs, ReviewDecision, reviewDecision } from './qualityGate';
@@ -132,7 +132,11 @@ export interface CutSurface {
   confidence: number;
   confidenceInputs: ConfidenceInputs;
   decision: ReviewDecision;
+  // Why a person should check this area (a mirror, an object covered…); any one means ≥ 'confirm'
+  reviewReasons: string[];
   areaPct: number;
+  // Only with `debugStages`: every pipeline stage's binary mask at photo size
+  stages?: CutStages & { width: number; height: number };
 }
 
 /**
@@ -143,7 +147,7 @@ export interface CutSurface {
 export const cutSurface = async (
   imageUrl: string,
   point: PlanePoint,
-  options: { label?: string; connectedOnly?: boolean; include?: PlanePoint[]; exclude?: PlanePoint[] } = {}
+  options: { label?: string; connectedOnly?: boolean; include?: PlanePoint[]; exclude?: PlanePoint[]; debugStages?: boolean } = {}
 ): Promise<CutSurface> => {
   const res = await send({
     type: 'cut',
@@ -153,6 +157,7 @@ export const cutSurface = async (
     connectedOnly: options.connectedOnly ?? planeKindFor(options.label ?? 'wall') === 'vertical',
     include: options.include,
     exclude: options.exclude,
+    debugStages: options.debugStages,
   });
   if (res.type !== 'cut') throw new Error('Unexpected analysis response');
   const kind = surfaceKindFor(res.label);
@@ -175,16 +180,18 @@ export const cutSurface = async (
     occluder: alphaCanvas(res.occluder, res.width, res.height),
     confidence: res.confidence,
     confidenceInputs: res.confidenceInputs,
-    decision: reviewDecision(res.confidence),
+    decision: reviewDecision(res.confidence, res.reviewReasons),
+    reviewReasons: res.reviewReasons,
     areaPct: res.areaPct,
+    stages: res.stages && { ...res.stages, width: res.width, height: res.height },
   };
 };
 
 /** The single object at a point (a lamp, a headboard…) as an alpha mask, or null if there is none. */
-export const cutObject = async (imageUrl: string, point: PlanePoint): Promise<HTMLCanvasElement | null> => {
+export const cutObject = async (imageUrl: string, point: PlanePoint): Promise<{ mask: HTMLCanvasElement; surfaceShare: number } | null> => {
   const res = await send({ type: 'cutObject', imageUrl, point });
   if (res.type !== 'cutObject') throw new Error('Unexpected analysis response');
-  return res.mask ? alphaCanvas(res.mask, res.width, res.height) : null;
+  return res.mask ? { mask: alphaCanvas(res.mask, res.width, res.height), surfaceShare: res.surfaceShare } : null;
 };
 
 export const cutToRenderables = (cut: CutSurface): RenderableSurface[] =>

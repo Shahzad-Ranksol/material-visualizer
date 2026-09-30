@@ -6,7 +6,7 @@ import { RawImage } from '@huggingface/transformers';
 import { segmentSemantics, SemanticMap } from '../services/analysis/semanticSegmentation';
 import { encodeForPrompts, segmentWithPrompts, PromptEncoding, PromptPoint } from '../services/analysis/promptSegmentation';
 import { estimateGeometry, SceneGeometry } from '../services/analysis/geometryEstimation';
-import { ANALYSIS_VERSION, AnalysisStage, WorkerRequest, WorkerResponse, SurfaceProposal } from '../services/analysis/protocol';
+import { ANALYSIS_VERSION, AnalysisStage, CutStage, WorkerRequest, WorkerResponse, SurfaceProposal } from '../services/analysis/protocol';
 import { imageKey, readCachedAnalysis, writeCachedAnalysis } from '../services/analysis/analysisCache';
 import {
   bbox,
@@ -20,6 +20,7 @@ import {
   interiorPoints,
   iou,
   largeComponents,
+  objectCores,
   refineBandByColor,
   growAcrossContinuousColour,
   removeSkirting,
@@ -42,6 +43,8 @@ const OCCLUDER_LABELS = new Set([
 const STRUCTURAL_LABELS = new Set(['wall', 'floor', 'ceiling', 'windowpane', 'door', 'column', 'stairs', 'stairway', 'railing']);
 // Depth (px, at 1600px) from which another structural surface's pixels are certain enough to exclude
 const STRUCTURAL_CORE_PX = 6;
+// Erosion (px, at 1600px) for objects too thin to have a matting-band-deep interior, and mirrors
+const THIN_CORE_PX = 2;
 // Colour-matting band around SAM's edge and the window for local colour statistics (fraction of long side)
 const MATTING_BAND_FRACTION = 0.025;
 // Must exceed the band, so every band pixel sees reference colours from the surface interior
@@ -56,6 +59,14 @@ const BRIDGE_FRACTION = 0.002;
 const OFF_PLANE_TOLERANCE = 0.03;
 // If more of the surface than this is off-plane, trust the mask over the geometry
 const MAX_OFF_PLANE_SHARE = 0.25;
+// How far below the wall mask's bottom edge (fraction of photo height) the floor may start, for
+// that edge to count as the wall meeting the floor (a skirting board's own outline sits between)
+const SKIRTING_FLOOR_REACH = 0.01;
+// Review reasons: the area covers this share of itself on one object class, has this share
+// dropped as reflections, or overlaps the class map by less than this IoU
+const REVIEW_OBJECT_SHARE = 0.04;
+const REVIEW_REFLECTION_SHARE = 0.002;
+const REVIEW_MIN_AGREEMENT = 0.7;
 // Surfaces smaller than this (% of the photo) aren't proposed automatically
 const MIN_PROPOSAL_AREA_PCT = 2;
 // Edge refinement (guided filter) settings
@@ -93,12 +104,28 @@ const toGray = (image: RawImage) => {
   return gray;
 };
 
+/**
+ * The photo as RGBA pixels with its EXIF orientation applied — as `<img>`, the Area Editor and the
+ * renderer show it — explicitly, instead of relying on `createImageBitmap`'s default (what
+ * `RawImage.fromURL` uses), so masks line up with the photo in every browser.
+ */
+const decodePhoto = async (url: string): Promise<RawImage> => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Could not load the photo (${response.status})`);
+  const bitmap = await createImageBitmap(await response.blob(), { imageOrientation: 'from-image' });
+  const ctx = new OffscreenCanvas(bitmap.width, bitmap.height).getContext('2d')!;
+  ctx.drawImage(bitmap, 0, 0);
+  const { data, width, height } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+  bitmap.close();
+  return new RawImage(data, width, height, 4);
+};
+
 const loadRoom = (imageUrl: string, reportStage: ReportStage): Promise<RoomState> => {
   let entry = rooms.get(imageUrl);
   if (!entry) {
     entry = (async () => {
       reportStage('loading-photo');
-      const image = await RawImage.fromURL(imageUrl);
+      const image = await decodePhoto(imageUrl);
       const warnings: string[] = [];
       if (Math.max(image.width, image.height) < MIN_LONG_EDGE_PX) {
         warnings.push(`This photo is ${Math.max(image.width, image.height)}px on its long edge; ${MIN_LONG_EDGE_PX}px or more gives sharper renders.`);
@@ -208,10 +235,20 @@ const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>, rep
       for (let i = 0; i < m.length; i++) if (m[i] && ++covered > limit) return false;
       return true;
     }) ?? -1;
-  if (best < 0) return { width: w, height: h, mask: null };
+  if (best < 0) return { width: w, height: h, mask: null, surfaceShare: 0 };
   const binary = Uint8Array.from(sam.masks[best], (v) => (v ? 1 : 0));
+  // How much of it the class map calls a room surface (wall, floor…): a "object" that is mostly
+  // surface is usually a shadow or a patch of light, which must stay surface
+  const { labels, labelMap } = room.semantic;
+  let inside = 0;
+  let onSurface = 0;
+  for (let i = 0; i < binary.length; i++) {
+    if (!binary[i]) continue;
+    inside++;
+    if (labelMap[i] !== 255 && STRUCTURAL_LABELS.has(labels[labelMap[i]])) onSurface++;
+  }
   const radius = guideRadiusFor(w, h);
-  return { width: w, height: h, mask: guidedFilter(gray, binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS) };
+  return { width: w, height: h, mask: guidedFilter(gray, binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS), surfaceShare: inside ? onSurface / inside : 0 };
 };
 
 const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: ReportStage) => {
@@ -287,10 +324,27 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   // around foliage, which the same colour band repairs.
   const otherStructural = Uint8Array.from(semantic.labelMap, (v) => (v !== labelIndex && v !== 255 && STRUCTURAL_LABELS.has(semantic.labels[v]) ? 1 : 0));
   const structuralCore = erode(otherStructural, w, h, Math.max(2, Math.round((STRUCTURAL_CORE_PX * long) / 1600)));
-  // Object outlines are looser than structural ones: trust only what's a matting band deep
-  const objectCore = erode(occluder, w, h, Math.max(2, Math.round(long * MATTING_BAND_FRACTION)));
+  // Object outlines are looser than structural ones: trust only what's a matting band deep, but
+  // an object thinner than two bands (a radiator, a low cabinet) still keeps a thin core
+  const thinCorePx = Math.max(1, Math.round((THIN_CORE_PX * long) / 1600));
+  const objectCore = objectCores(occluder, w, h, Math.max(2, Math.round(long * MATTING_BAND_FRACTION)), thinCorePx);
+  // A mirror's reflection looks exactly like the wall, so colour can't decide its rim: all of it
+  // but a thin outline is excluded
+  const mirrorIndex = semantic.labels.indexOf('mirror');
+  if (mirrorIndex >= 0 && mirrorIndex !== labelIndex) {
+    const mirror = erode(Uint8Array.from(semantic.labelMap, (v) => (v === mirrorIndex ? 1 : 0)), w, h, thinCorePx);
+    for (let i = 0; i < mirror.length; i++) if (mirror[i]) objectCore[i] = 1;
+  }
   const excluded = (i: number) => structuralCore[i] === 1 || objectCore[i] === 1;
   const samMask = Uint8Array.from(sam.masks[chosen], (v, i) => (v && !excluded(i) ? 1 : 0));
+  // Every stage's mask, only when asked (developer view, evidence runs)
+  const stages: Partial<Record<CutStage, Uint8Array>> | null = req.debugStages ? {} : null;
+  const capture = (stage: CutStage, mask: ArrayLike<number>) => {
+    if (stages) stages[stage] = Uint8Array.from(mask, (v) => (v ? 1 : 0));
+  };
+  capture('classCandidate', region);
+  capture('samRaw', sam.masks[chosen]);
+  capture('samAfterExclusions', samMask);
   // Reference colours for "not this surface": objects in front and neighbouring structures
   const notSurface = Uint8Array.from(occluder, (v, i) => (v || structuralCore[i] ? 1 : 0));
   let surface = refineBandByColor(
@@ -314,19 +368,36 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   // SAM leaves specks inside same-coloured objects, and the band reclaims more beyond their
   // frame lines; grown from, each would flood a picture's white mat. SAM's own specks stay put.
   // Connectivity is judged a few pixels in, so a thin bridge across a frame line doesn't count.
+  capture('bandRefined', surface);
   const bridgePx = Math.max(1, Math.round(long * BRIDGE_FRACTION));
   const bodyCore = connectedTo(erode(surface, w, h, bridgePx), largeComponents(samMask, w, h, Math.round(w * h * MIN_BODY_FRACTION)), w, h);
   const reach = dilate(bodyCore, w, h, bridgePx);
   const body = Uint8Array.from(surface, (v, i) => (v && reach[i] ? 1 : 0));
+  capture('body', body);
   surface = growAcrossContinuousColour(body, room.image.data, room.image.channels, w, h, Math.round(long * MATTING_BAND_FRACTION), (i) => !excluded(i));
   for (let i = 0; i < surface.length; i++) if (samMask[i]) surface[i] = 1;
+  capture('grown', surface);
   for (let i = 0; i < occluder.length; i++) if (surface[i]) occluder[i] = 0;
-  if (label === 'wall') removeSkirting(surface, gray, w, h);
+  if (label === 'wall') {
+    // A skirting board only sits where the wall meets the floor (not on a headboard's top edge)
+    const floorish = new Set(['floor', 'rug', 'carpet'].map((l) => semantic.labels.indexOf(l)).filter((k) => k >= 0));
+    const reach = Math.max(2, Math.round(h * SKIRTING_FLOOR_REACH));
+    const meetsFloor = (x: number, y: number) => {
+      for (let yy = y + 1; yy <= Math.min(h - 1, y + reach); yy++) if (floorish.has(semantic.labelMap[yy * w + x])) return true;
+      return false;
+    };
+    removeSkirting(surface, gray, w, h, undefined, meetsFloor);
+  }
+  capture('skirtingRemoved', surface);
 
   // 4. One plane per physical surface (a wall mask across a corner becomes two)
   const parts: Array<{ binary: Uint8Array; plane: import('../services/analysis/protocol').SurfacePartResult['plane'] }> = [];
   let planeInlierRatio = 0;
   let normalConsistency = 0;
+  // For review reasons: pixels dropped as behind the plane (reflections), and whether the
+  // off-plane test was skipped because too much disagreed with the geometry
+  let reflectionRemoved = 0;
+  let offPlaneSkipped = false;
   if (room.geometry) {
     const pm = room.geometry.pointMap;
     const toImage = (i: number) => {
@@ -340,9 +411,15 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     if (planes.length) {
       planeInlierRatio = planes.reduce((s, p) => s + p.inlierRatio, 0);
       normalConsistency = planes.reduce((s, p) => s + p.normalConsistency * p.inlierRatio, 0) / Math.max(planeInlierRatio, 1e-6);
-      // Pixels whose 3D point is clearly off every plane aren't this surface: a cushion in front
-      // that shares the wall's colour in shade, or the wall reflected in a mirror
+      // Pixels whose 3D point is clearly off every plane aren't this surface: an object of another
+      // class in front or behind (a cushion that shares the wall's colour in shade), or this
+      // class's colour *behind* the plane (the wall reflected in a mirror). This class in front
+      // stays: that's a second wall across a corner too small to get its own plane.
       const off = offPlaneCells(pm, planes, OFF_PLANE_TOLERANCE);
+      const notThis = (i: number) => {
+        const c = cellOf(i);
+        return off[c] !== 0 && (semantic.labelMap[i] !== labelIndex || off[c] < 0);
+      };
       const cellOf = (i: number) => {
         const x = i % w;
         const y = (i - x) / w;
@@ -353,9 +430,15 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
       for (let i = 0; i < surface.length; i++) {
         if (!surface[i]) continue;
         total++;
-        if (off[cellOf(i)]) offCount++;
+        if (notThis(i)) offCount++;
       }
-      if (offCount <= total * MAX_OFF_PLANE_SHARE) for (let i = 0; i < surface.length; i++) if (surface[i] && off[cellOf(i)]) surface[i] = 0;
+      if (offCount <= total * MAX_OFF_PLANE_SHARE) {
+        for (let i = 0; i < surface.length; i++) {
+          if (!surface[i] || !notThis(i)) continue;
+          surface[i] = 0;
+          if (off[cellOf(i)] < 0) reflectionRemoved++;
+        }
+      } else offPlaneSkipped = true;
       // Each geometry cell votes for its plane; image pixels follow their cell
       const owner = new Int8Array(pm.width * pm.height).fill(-1);
       planes.forEach((p, k) => p.pixels.forEach((i) => (owner[i] = k)));
@@ -370,6 +453,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     }
   }
   if (!parts.length) parts.push({ binary: surface, plane: null });
+  capture('onPlane', surface);
 
   // 5. Edge refinement at full resolution
   const radius = guideRadiusFor(w, h);
@@ -386,6 +470,24 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   };
   let covered = 0;
   for (let i = 0; i < surface.length; i++) covered += surface[i];
+
+  // 7. Why this area needs a person to check it, whatever the confidence says
+  const reviewReasons: string[] = [];
+  const onObject = new Map<number, number>();
+  for (let i = 0; i < surface.length; i++) {
+    const v = semantic.labelMap[i];
+    if (surface[i] && v !== labelIndex && v !== 255 && OCCLUDER_LABELS.has(semantic.labels[v])) onObject.set(v, (onObject.get(v) ?? 0) + 1);
+  }
+  const worst = [...onObject.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (worst && worst[1] >= covered * REVIEW_OBJECT_SHARE) reviewReasons.push(`It may cover part of the ${semantic.labels[worst[0]].trim()}.`);
+  const nearMirror =
+    mirrorIndex >= 0 &&
+    mirrorIndex !== labelIndex &&
+    dilate(Uint8Array.from(semantic.labelMap, (v) => (v === mirrorIndex ? 1 : 0)), w, h, thinCorePx * 4).some((v, i) => v === 1 && surface[i] === 1);
+  if (nearMirror || reflectionRemoved >= covered * REVIEW_REFLECTION_SHARE) reviewReasons.push('It is next to a mirror or reflection — check the reflection is left out.');
+  if (confidenceInputs.semanticAgreement < REVIEW_MIN_AGREEMENT) reviewReasons.push('The two analysis models disagree about where this surface ends.');
+  if (offPlaneSkipped) reviewReasons.push("Much of this area doesn't match the room's 3D shape.");
+
   return {
     label,
     width: w,
@@ -396,6 +498,10 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     confidence: compositeConfidence(confidenceInputs),
     confidenceInputs,
     areaPct: (covered / (w * h)) * 100,
+    reviewReasons,
+    stages: stages
+      ? { masks: stages as Record<CutStage, Uint8Array>, occluder: Uint8Array.from(occluder, (v) => (v ? 1 : 0)), labelMap: semantic.labelMap, labels: semantic.labels }
+      : undefined,
   };
 };
 
@@ -411,7 +517,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       post({ id: req.id, type: 'cutObject', ...result }, result.mask ? [result.mask.buffer] : []);
     } else {
       const result = await cut(req, reportStage);
-      post({ id: req.id, type: 'cut', ...result }, [...result.parts.map((p) => p.mask.buffer), result.occluder.buffer]);
+      // (the class map is the cached analysis's own array, so it's copied, not transferred)
+      const stageBuffers = result.stages ? [...Object.values(result.stages.masks).map((m) => m.buffer), result.stages.occluder.buffer] : [];
+      post({ id: req.id, type: 'cut', ...result }, [...result.parts.map((p) => p.mask.buffer), result.occluder.buffer, ...stageBuffers]);
     }
   } catch (err) {
     post({ id: req.id, type: 'error', error: err instanceof Error ? err.message : String(err) });

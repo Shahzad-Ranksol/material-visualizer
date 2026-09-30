@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { connectedComponents, connectedTo, guidedFilter, iou, largeComponents, refineBandByColor, removeSkirting, upscaleMaskLogits } from '../../services/analysis/maskOps';
+import { connectedComponents, connectedTo, guidedFilter, iou, largeComponents, objectCores, refineBandByColor, removeSkirting, upscaleMaskLogits } from '../../services/analysis/maskOps';
 
 const W = 60;
 const H = 40;
@@ -75,6 +75,30 @@ describe('mask operations', () => {
     expect(wall[185 * w + 50]).toBe(0);
   });
 
+  it("leaves the band alone where the wall's bottom edge doesn't meet the floor (a headboard top)", () => {
+    const w = 200;
+    const h = 200;
+    const gray = new Float32Array(w * h).fill(0.8);
+    for (let y = 180; y < 190; y++) for (let x = 0; x < w; x++) gray[y * w + x] = 0.95;
+    const wall = new Uint8Array(w * h);
+    for (let i = 0; i < 190 * w; i++) wall[i] = 1;
+    removeSkirting(wall, gray, w, h, 7, () => false); // below the mask is a bed, not floor
+    expect(wall[185 * w + 50]).toBe(1);
+    removeSkirting(wall, gray, w, h, 7, () => true);
+    expect(wall[185 * w + 50]).toBe(0);
+  });
+
+  it('keeps plain wall below an edge that is not a skirting board (a shadow line)', () => {
+    const w = 200;
+    const h = 200;
+    const gray = new Float32Array(w * h).fill(0.8);
+    for (let x = 0; x < w; x++) gray[178 * w + x] = 0.5; // a thin dark line; the wall below is unchanged
+    const wall = new Uint8Array(w * h);
+    for (let i = 0; i < 190 * w; i++) wall[i] = 1;
+    removeSkirting(wall, gray, w, h);
+    expect(wall[185 * w + 50]).toBe(1);
+  });
+
   it('computes IoU', () => {
     expect(iou(rect(0, 0, 10, 10), rect(5, 0, 15, 10))).toBeCloseTo(50 / 150, 9);
   });
@@ -126,5 +150,21 @@ describe('largeComponents', () => {
     // 5x2: a 4-px block on the left, a lone pixel on the right
     const mask = Uint8Array.from([1, 1, 0, 0, 1, 1, 1, 0, 0, 0]);
     expect(Array.from(largeComponents(mask, 5, 2, 3))).toEqual([1, 1, 0, 0, 0, 1, 1, 0, 0, 0]);
+  });
+});
+
+describe('objectCores', () => {
+  it('keeps a thin core for objects the full erosion would erase', () => {
+    // A 40x40 block and a 4px-tall strip (a radiator), eroded by 10 (min 1)
+    const w = 60;
+    const h = 60;
+    const m = new Uint8Array(w * h);
+    for (let y = 5; y < 45; y++) for (let x = 5; x < 45; x++) m[y * w + x] = 1;
+    for (let y = 52; y < 56; y++) for (let x = 5; x < 55; x++) m[y * w + x] = 1;
+    const core = objectCores(m, w, h, 10, 1);
+    expect(core[25 * w + 25]).toBe(1); // the block's deep interior
+    expect(core[7 * w + 7]).toBe(0); // its edge band stays undecided
+    expect(core[54 * w + 30]).toBe(1); // the strip keeps a core
+    expect(core[52 * w + 30]).toBe(0); // (but not its 1px rim)
   });
 });

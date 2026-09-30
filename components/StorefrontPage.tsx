@@ -104,6 +104,8 @@ export const StorefrontPage: React.FC = () => {
         if (!next[h.id]) continue;
         const surface = activeImage.surfaces.find((sf) => sf.id === h.surfaceId);
         if (!surface) throw new Error(`"${h.label}" isn't ready for previews yet.`);
+        // Flagged when the photo was replaced: its masks belong to the old photo
+        if (surface.needsReview) throw new Error(`"${h.label}" is being updated by the showroom — try again soon.`);
         for (const part of [surface, ...activeImage.surfaces.filter((p) => p.parentSurfaceId === surface.id)]) {
           layers.push({ surface: savedSurfaceToRenderable(part), material: next[h.id] });
         }
