@@ -34,3 +34,7 @@ test-results/
 playwright-report/
 tests/e2e/.cache/
 vision-service/.venv/
+
+# Validation photos and run output (validation/manifest.json and validation/approved/ are committed)
+validation/.cache/
+validation/results/

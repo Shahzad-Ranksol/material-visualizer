@@ -1,0 +1,46 @@
+[
+  {
+    "id": "minimalist-living",
+    "url": "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=85",
+    "source": "unsplash",
+    "credit": "Unsplash (curated demo room)",
+    "category": "hard",
+    "surfaces": [
+      "wall",
+      "floor"
+    ]
+  },
+  {
+    "id": "nordic-master-bedroom",
+    "url": "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1600&q=85",
+    "source": "unsplash",
+    "credit": "Unsplash (curated demo room)",
+    "category": "wall",
+    "surfaces": [
+      "wall",
+      "floor"
+    ]
+  },
+  {
+    "id": "penthouse-dining-room",
+    "url": "https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1600&q=85",
+    "source": "unsplash",
+    "credit": "Unsplash (curated demo room)",
+    "category": "wall",
+    "surfaces": [
+      "wall",
+      "floor"
+    ]
+  },
+  {
+    "id": "executive-atelier-office",
+    "url": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=85",
+    "source": "unsplash",
+    "credit": "Unsplash (curated demo room)",
+    "category": "wall",
+    "surfaces": [
+      "wall",
+      "floor"
+    ]
+  }
+]
