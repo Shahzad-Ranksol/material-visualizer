@@ -8,6 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "assets:fetch": "node scripts/fetchAssets.mjs",
+    "validation:fetch": "node scripts/fetchValidation.mjs",
+    "validation:find": "node --env-file-if-exists=.env scripts/findValidationPhotos.mjs",
+    "validation:score": "VALIDATION=1 playwright test tests/e2e/validation-score.spec.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
