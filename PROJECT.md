@@ -16,6 +16,7 @@ Room analysis and rendering run entirely in the browser with **zero external API
   - Segmentation faults are measured stage by stage. The opt-in evidence run covers the curated rooms with regression limits, and staff get a Pipeline stages view.
   - The Area Editor offers Protect object (restored on top) and Include area (re-cut, only the clicked region), with Apply/Discard, undo and a material preview. Preview, studio accept and showcase save share one rule, so the preview is what customers see.
   - Every analysis job can be cancelled and has a hard time limit.
+  - Validation tooling: a manifest of free-licence photos, a dev-only approve tool for the correct areas, a scoring run (coverage, leak, IoU, boundary accuracy, failing stage, false autos, threshold calibration) and a dev-only results dashboard with history.
   - Tests: Vitest unit tests, plus Playwright golden-image, studio, Area Editor, showcase, storefront-consistency and cancellation suites (see `CLAUDE.md` Commands).
   - Studio Lighting's MatSwap call is a stub until a GPU host exists.
 - **Catalog:** the material schema is generalized (tile/sheet/carpet/wallpaper/paint plus the luxury finishes, `tenantId`, a physical profile). Signed-out users get the offline catalog in `constants.ts`. A signed-in tenant sees **only its own materials**: `GET /api/materials` and the public endpoint both exclude the shared `tenantId: null` defaults, which `server/prisma/seed.ts` mirrors from `constants.ts`.
@@ -30,7 +31,7 @@ Room analysis and rendering run entirely in the browser with **zero external API
 
 ## Roadmap
 
-1. **Rendering phase 4:** the 60-photo validation set and a quality dashboard (the evidence run in `tests/e2e/pipeline-evidence.spec.ts` is the start), and privacy/retention controls for customer photos.
+1. **Fill the validation set** to about 60 approved surfaces (`npm run validation:find` + `/dev/validation`), then calibrate `CONFIDENCE_THRESHOLDS` from its calibration table. Also privacy/retention controls for customer photos.
 2. **Multi-user tenant invites:** registration always creates a new tenant today, and there's no "join an existing tenant" flow.
 3. **Billing:** Stripe or equivalent, per tenant.
 4. **Rendering phase 3, once a GPU host exists:** benchmark SAM 3.1 and MoGe-3 against the lighter pipeline, MatSwap Studio Lighting, and a GPU-worker queue.
