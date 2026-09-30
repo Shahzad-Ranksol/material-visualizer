@@ -37,7 +37,9 @@ export type WorkerRequest =
       // Also return every pipeline stage's mask (developer view, evidence runs)
       debugStages?: boolean;
     }
-  | { id: number; type: 'cutObject'; imageUrl: string; point: { xPct: number; yPct: number } };
+  | { id: number; type: 'cutObject'; imageUrl: string; point: { xPct: number; yPct: number } }
+  // Stop job `target` at its next step boundary (it then sends nothing more)
+  | { id: number; type: 'cancel'; target: number };
 
 export type WorkerResponse =
   | {

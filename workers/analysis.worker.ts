@@ -587,6 +587,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
 };
 
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+  if (e.data.type === 'cancel') return;
   const req = e.data;
   const post = (response: WorkerResponse, transfer: Transferable[] = []) => (self as unknown as Worker).postMessage(response, transfer);
   const reportStage: ReportStage = (stage) => post({ id: req.id, type: 'progress', stage });
