@@ -28,6 +28,7 @@ import {
 import { fitSurfacePlanes, offPlaneCells, PlaneOrientation } from '../services/surfacePlaneFit';
 import { compositeConfidence, ConfidenceInputs } from '../services/qualityGate';
 import { Cancelled, createCancelRegistry } from '../services/analysis/cancellation';
+import { COUNTER_CONTEXT_LABELS, countertopCells } from '../services/analysis/countertop';
 
 // ADE20K classes a vendor/customer might re-surface, in suggestion order
 const SURFACE_LABELS = ['wall', 'floor', 'ceiling', 'cabinet', 'countertop', 'kitchen island', 'door', 'column', 'stairs', 'wardrobe', 'shelf'];
@@ -79,6 +80,8 @@ const RUG_MAX_OF_FLOOR = 0.8;
 // for a piece of at least this share of the photo
 const MAX_PIECE_PROMPTS = 4;
 const MIN_PIECE_SHARE = 0.003;
+// A countertop found by geometry must be at least this share (%) of the photo to be proposed
+const MIN_COUNTER_AREA_PCT = 1;
 // Surfaces smaller than this (% of the photo) aren't proposed automatically
 const MIN_PROPOSAL_AREA_PCT = 2;
 // Edge refinement (guided filter) settings
@@ -201,6 +204,35 @@ const loadRoom = async (imageUrl: string, jobId: number, reportStage: ReportStag
   }
 };
 
+/**
+ * The countertop found by geometry (image-size binary mask), for photos with kitchen or bath
+ * context whose class map has no countertop — SegFormer calls counters wall, sink, table or
+ * floor. See services/analysis/countertop.ts.
+ */
+const countertopRegion = (room: RoomState): Uint8Array | null => {
+  const { semantic, geometry, width: w, height: h } = room;
+  if (!geometry || semantic.labels.includes('countertop')) return null;
+  if (!COUNTER_CONTEXT_LABELS.some((l) => semantic.labels.includes(l))) return null;
+  const pm = geometry.pointMap;
+  const floorIdx = new Set(['floor', 'rug', 'carpet'].map((l) => semantic.labels.indexOf(l)).filter((k) => k >= 0));
+  const floorCells: number[] = [];
+  for (let gy = 0; gy < pm.height; gy++) {
+    for (let gx = 0; gx < pm.width; gx++) {
+      const y = Math.min(h - 1, Math.floor(((gy + 0.5) * h) / pm.height));
+      const x = Math.min(w - 1, Math.floor(((gx + 0.5) * w) / pm.width));
+      if (floorIdx.has(semantic.labelMap[y * w + x])) floorCells.push(gy * pm.width + gx);
+    }
+  }
+  const cells = countertopCells(pm, floorCells);
+  if (!cells) return null;
+  const region = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const row = Math.min(pm.height - 1, Math.floor((y * pm.height) / h)) * pm.width;
+    for (let x = 0; x < w; x++) if (cells[row + Math.min(pm.width - 1, Math.floor((x * pm.width) / w))]) region[y * w + x] = 1;
+  }
+  return region;
+};
+
 const analyze = async (imageUrl: string, jobId: number, reportStage: ReportStage) => {
   const room = await loadRoom(imageUrl, jobId, reportStage);
   cancels.check(jobId);
@@ -221,6 +253,15 @@ const analyze = async (imageUrl: string, jobId: number, reportStage: ReportStage
       if (!anchor) return;
       proposals.push({ id: `${label}-${k}`, label, areaPct, anchor: { xPct: (anchor.x / w) * 100, yPct: (anchor.y / h) * 100 } });
     });
+  }
+  // A countertop the class map missed, found by geometry
+  const counter = countertopRegion(room);
+  if (counter) {
+    const areaPct = (counter.reduce((a, v) => a + v, 0) / (w * h)) * 100;
+    const [anchor] = interiorPoints(counter, w, h, 1);
+    if (anchor && areaPct >= MIN_COUNTER_AREA_PCT) {
+      proposals.push({ id: 'countertop-geometry', label: 'countertop', areaPct, anchor: { xPct: (anchor.x / w) * 100, yPct: (anchor.y / h) * 100 } });
+    }
   }
   return { width: w, height: h, labels: semantic.labels, proposals, warnings: room.warnings, geometryAvailable: Boolean(room.geometry), fromCache: room.fromCache };
 };
@@ -325,13 +366,18 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   const px = Math.min(w - 1, Math.max(0, Math.round((req.point.xPct / 100) * w)));
   const py = Math.min(h - 1, Math.max(0, Math.round((req.point.yPct / 100) * h)));
   const start = py * w + px;
-  const labelIndex = req.label !== undefined ? semantic.labels.indexOf(req.label) : semantic.labelMap[start];
-  if (labelIndex < 0 || labelIndex === 255) throw new Error('No surface detected at this point');
-  const label = semantic.labels[labelIndex];
+  // A countertop the class map has no class for comes from geometry; its pixels carry whatever
+  // wrong labels SegFormer gave them (wall, sink, table, floor), which mustn't exclude it
+  const counterGeo = req.label === 'countertop' ? countertopRegion(room) : null;
+  const labelIndex = counterGeo ? -1 : req.label !== undefined ? semantic.labels.indexOf(req.label) : semantic.labelMap[start];
+  if (!counterGeo && (labelIndex < 0 || labelIndex === 255)) throw new Error('No surface detected at this point');
+  const label = counterGeo ? 'countertop' : semantic.labels[labelIndex];
+  const onCounter = (i: number) => counterGeo !== null && counterGeo[i] === 1;
 
-  // 1. Semantic proposal
-  const region =
-    req.connectedOnly && semantic.labelMap[start] === labelIndex
+  // 1. Semantic proposal (or the geometric countertop)
+  const region = counterGeo
+    ? counterGeo.slice()
+    : req.connectedOnly && semantic.labelMap[start] === labelIndex
       ? floodRegion(w, h, start, (i) => semantic.labelMap[i] === labelIndex)
       : Uint8Array.from(semantic.labelMap, (v) => (v === labelIndex ? 1 : 0));
   let box = bbox(region, w);
@@ -439,7 +485,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     for (let i = 0; i < mirror.length; i++) if (mirror[i]) objectCore[i] = 1;
   }
   if (rug) for (let i = 0; i < rug.length; i++) if (rug[i]) objectCore[i] = 1;
-  const excluded = (i: number) => structuralCore[i] === 1 || objectCore[i] === 1;
+  const excluded = (i: number) => (structuralCore[i] === 1 || objectCore[i] === 1) && !onCounter(i);
   const samMask = Uint8Array.from(sam.masks[chosen], (v, i) => (v && !excluded(i) ? 1 : 0));
   // Every stage's mask, only when asked (developer view, evidence runs)
   const stages: Partial<Record<CutStage, Uint8Array>> | null = req.debugStages ? {} : null;
@@ -450,7 +496,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   capture('samRaw', sam.masks[chosen]);
   capture('samAfterExclusions', samMask);
   // Reference colours for "not this surface": objects in front and neighbouring structures
-  const notSurface = Uint8Array.from(occluder, (v, i) => (v || structuralCore[i] ? 1 : 0));
+  const notSurface = Uint8Array.from(occluder, (v, i) => ((v || structuralCore[i]) && !onCounter(i) ? 1 : 0));
   let surface = refineBandByColor(
     samMask,
     notSurface,
@@ -581,7 +627,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   const onObject = new Map<number, number>();
   for (let i = 0; i < surface.length; i++) {
     const v = semantic.labelMap[i];
-    if (surface[i] && v !== labelIndex && v !== 255 && OCCLUDER_LABELS.has(semantic.labels[v])) onObject.set(v, (onObject.get(v) ?? 0) + 1);
+    if (surface[i] && v !== labelIndex && v !== 255 && !onCounter(i) && OCCLUDER_LABELS.has(semantic.labels[v])) onObject.set(v, (onObject.get(v) ?? 0) + 1);
   }
   const worst = [...onObject.entries()].sort((a, b) => b[1] - a[1])[0];
   if (worst && worst[1] >= covered * REVIEW_OBJECT_SHARE) reviewReasons.push(`It may cover part of the ${semantic.labels[worst[0]].trim()}.`);
