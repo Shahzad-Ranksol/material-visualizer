@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { X, Loader2, Check } from 'lucide-react';
 import { DetectedItem, Material } from '../types';
 import { AreaEditor, EMPTY_AREA_MESSAGE } from './AreaEditor';
-import { cutSurface, cutToRenderables, CutSurface } from '../services/roomAnalysis';
+import { cutSurface, cutToRenderables, CutSurface, isAbortError } from '../services/roomAnalysis';
+import { useSlowJob } from './useSlowJob';
+import { SlowJobNotice } from './SlowJobNotice';
 import { canvasToAlphaMask, unionMasks } from '../services/maskCanvas';
 import { coveragePct } from '../services/areaMaskOps';
 import { acceptedArea, previewArea } from '../services/areaPreview';
@@ -26,6 +28,7 @@ interface SurfaceReviewModalProps {
  */
 export const SurfaceReviewModal: React.FC<SurfaceReviewModalProps> = ({ imageUrl, item, previewMaterial, onClose, onAccept, showDebugTools = false }) => {
   const [stagesOpen, setStagesOpen] = useState(false);
+  const job = useSlowJob();
   // The cut remembers which photo and surface it was made for: on the render where those change
   // (before the effect below clears it) the old cut is already treated as gone
   const [loaded, setLoaded] = useState<{ cut: CutSurface; imageUrl: string; anchor: typeof item.anchor; label: typeof item.surfaceLabel } | null>(null);
@@ -51,17 +54,22 @@ export const SurfaceReviewModal: React.FC<SurfaceReviewModalProps> = ({ imageUrl
       return;
     }
     let cancelled = false;
-    cutSurface(imageUrl, item.anchor, { label: item.surfaceLabel, debugStages: showDebugTools })
+    const { signal, onProgress } = job.start();
+    cutSurface(imageUrl, item.anchor, { label: item.surfaceLabel, debugStages: showDebugTools, signal, onProgress })
       .then((result) => {
         if (cancelled) return;
+        job.finish();
         setLoaded({ cut: result, imageUrl, anchor: item.anchor, label: item.surfaceLabel });
         setEdited(unionMasks(result.parts.map((p) => p.mask)));
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load the area.');
+        if (cancelled || isAbortError(err)) return;
+        job.finish();
+        setError(err instanceof Error ? err.message : 'Could not load the area.');
       });
     return () => {
       cancelled = true;
+      job.cancel();
     };
   }, [imageUrl, item.anchor, item.surfaceLabel, item.name, showDebugTools]);
 
@@ -114,9 +122,10 @@ export const SurfaceReviewModal: React.FC<SurfaceReviewModalProps> = ({ imageUrl
       </div>
       {!cut && !error && (
         <p className="flex items-center gap-1.5 text-[11px] text-slate-400">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading the area…
+          <Loader2 className="w-3.5 h-3.5 animate-spin" /> {job.label ?? 'Loading the area…'}
         </p>
       )}
+      {!cut && !error && <SlowJobNotice slow={job.slow} label={job.label} onCancel={onClose} />}
       {cut && edited && (
         <AreaEditor
           imageUrl={imageUrl}

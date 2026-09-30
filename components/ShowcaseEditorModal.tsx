@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, MapPin, Trash2, Loader2, AlertCircle, Plus, Pencil, ScanSearch, RefreshCw, Check, Grid3x3, Ruler } from 'lucide-react';
 import { RemoteShowcaseImage, RemoteHotspot, NewShowcaseImageInput, NewHotspotInput, NewSurfaceInput, RemoteSurface } from '../services/apiClient';
-import { analyzeRoom, cutSurface, CutSurface, surfaceKindFor, ANALYSIS_VERSION, MODEL_VERSIONS } from '../services/roomAnalysis';
+import { analyzeRoom, cutSurface, CutSurface, isAbortError, surfaceKindFor, ANALYSIS_VERSION, MODEL_VERSIONS } from '../services/roomAnalysis';
+import { useSlowJob } from './useSlowJob';
+import { SlowJobNotice } from './SlowJobNotice';
 import { PipelineStagesView } from './PipelineStagesView';
 import { HotspotImage, HotspotViewModel } from './HotspotImage';
 import { SurfaceMaskOverlay } from './SurfaceMaskOverlay';
@@ -149,6 +151,9 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const areaRequest = useRef(0);
+  // The photo's analysis, and the current surface detection (a new one supersedes it)
+  const analysisJob = useSlowJob();
+  const detectJob = useSlowJob();
 
   const selectedImage = images?.find((img) => img.id === selectedImageId) || null;
   const selectedImageUrl = selectedImage?.imageUrl ?? null;
@@ -161,17 +166,20 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
     }
     let cancelled = false;
     setAnalysis({ status: 'loading', imageUrl: selectedImageUrl });
-    analyzeRoom(selectedImageUrl)
+    analyzeRoom(selectedImageUrl, analysisJob.start())
       .then(({ items, warnings, geometryAvailable }) => {
-        if (!cancelled) setAnalysis({ status: 'ready', imageUrl: selectedImageUrl, items, warnings, geometryAvailable });
+        if (cancelled) return;
+        analysisJob.finish();
+        setAnalysis({ status: 'ready', imageUrl: selectedImageUrl, items, warnings, geometryAvailable });
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setAnalysis({ status: 'error', imageUrl: selectedImageUrl, error: err instanceof Error ? err.message : 'Could not analyze this photo.' });
-        }
+        if (cancelled || isAbortError(err)) return;
+        analysisJob.finish();
+        setAnalysis({ status: 'error', imageUrl: selectedImageUrl, error: err instanceof Error ? err.message : 'Could not analyze this photo.' });
       });
     return () => {
       cancelled = true;
+      analysisJob.cancel(); // another photo, or the editor closed
     };
   }, [isOpen, selectedImageUrl]);
 
@@ -188,6 +196,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
 
   const resetArea = () => {
     areaRequest.current++;
+    detectJob.cancel();
     setStagedCut(null);
     setAreaState(null);
     setAreaStatus('idle');
@@ -208,9 +217,11 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
     const request = ++areaRequest.current;
     setAreaStatus('detecting');
     setAreaError(null);
+    const { signal, onProgress } = detectJob.start(); // supersedes an earlier detection
     try {
-      const cut = await cutSurface(selectedImage.imageUrl, point, { label, connectedOnly: connected, debugStages: showDebugTools });
+      const cut = await cutSurface(selectedImage.imageUrl, point, { label, connectedOnly: connected, debugStages: showDebugTools, signal, onProgress });
       if (request !== areaRequest.current) return;
+      detectJob.finish();
       setStagedCut(cut.stages ? cut : null);
       setAreaState({
         label: cut.label,
@@ -226,7 +237,8 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
       setAreaStatus('ready');
       setFormLabel((prev) => prev || titleCase(cut.label));
     } catch (err) {
-      if (request !== areaRequest.current) return;
+      if (request !== areaRequest.current || isAbortError(err)) return;
+      detectJob.finish();
       setAreaStatus('error');
       setAreaError(err instanceof Error ? err.message : 'Could not detect a surface here.');
     }
@@ -822,7 +834,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Area</span>
                         {areaStatus === 'detecting' && (
                           <span className="flex items-center gap-1 text-[10px] text-slate-400">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Detecting surface…
+                            <Loader2 className="w-3 h-3 animate-spin" /> {detectJob.label ?? 'Detecting surface…'}
                           </span>
                         )}
                         {areaStatus === 'loading' && (
@@ -846,6 +858,7 @@ export const ShowcaseEditorModal: React.FC<ShowcaseEditorModalProps> = ({
                         )}
                       </div>
 
+                      {areaStatus === 'detecting' && <SlowJobNotice slow={detectJob.slow} label={detectJob.label} onCancel={resetArea} />}
                       {areaStatus === 'error' && <p className="text-[11px] text-rose-300">{areaError}</p>}
                       {area && areaStatus === 'ready' && area.reviewReasons && area.reviewReasons.length > 0 && (
                         <ul data-testid="area-review-reasons" className="text-[10px] text-amber-300/90 list-disc list-inside">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { DetectedItem } from '../types';
 import { Check, Layers, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { SlowJobNotice } from './SlowJobNotice';
 
 interface DetectedItemsProps {
   items: DetectedItem[];
@@ -12,6 +13,9 @@ interface DetectedItemsProps {
   analyzing?: boolean;
   // Current analysis step, e.g. "Estimating 3D geometry…"
   progressLabel?: string | null;
+  // The analysis has run long: offer to stop it
+  analysisSlow?: boolean;
+  onCancelAnalysis?: () => void;
   analysisError?: string | null;
   warnings?: string[];
   // Opens the area check for a flagged surface
@@ -28,6 +32,8 @@ export const DetectedItems: React.FC<DetectedItemsProps> = ({
   onClearAll,
   analyzing,
   progressLabel,
+  analysisSlow,
+  onCancelAnalysis,
   analysisError,
   warnings = [],
   onReviewItem,
@@ -58,6 +64,7 @@ export const DetectedItems: React.FC<DetectedItemsProps> = ({
           {progressLabel ?? 'Analyzing the room…'} (the first photo also loads the local AI models)
         </p>
       )}
+      {analyzing && onCancelAnalysis && <SlowJobNotice slow={Boolean(analysisSlow)} label={progressLabel ?? null} onCancel={onCancelAnalysis} />}
       {analysisError && <p className="text-[11px] text-rose-300">{analysisError}</p>}
       {warnings.map((w) => (
         <p key={w} className="flex items-start gap-1.5 text-[10px] text-amber-300/80">

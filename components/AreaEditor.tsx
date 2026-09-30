@@ -20,7 +20,9 @@ import {
   withoutProtected,
 } from '../services/areaMaskOps';
 import { alphaMaskToCanvas, canvasToAlphaMask, scaleMaskCanvas } from '../services/maskCanvas';
-import { cutObject } from '../services/roomAnalysis';
+import { cutObject, isAbortError } from '../services/roomAnalysis';
+import { useSlowJob } from './useSlowJob';
+import { SlowJobNotice } from './SlowJobNotice';
 import { putAlphaRect, segmentRect } from './areaEditor/maskRects';
 import { useEditorKeys } from './areaEditor/useEditorKeys';
 import {
@@ -133,6 +135,8 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
   const includePoints = useRef<Pt[]>([]);
   const excludePoints = useRef<Pt[]>([]);
   // A Protect/Include result shown for Apply/Discard before it changes anything
+  // The object request in flight (cancelled on unmount; Cancel offered when slow)
+  const objectJob = useSlowJob();
   const [pending, setPending] = useState<{ kind: 'protect' | 'include'; area: AlphaMask; protectedNext: AlphaMask; show: AlphaMask } | null>(
     null
   );
@@ -620,7 +624,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         setPending({ kind: 'include', area: next, protectedNext: prot, show: added });
         return;
       }
-      const result = await cutObject(imageUrl, toPct(p));
+      const result = await cutObject(imageUrl, toPct(p), objectJob.start());
       if (!current()) return;
       const object = result ? canvasToAlphaMask(scaleMaskCanvas(result.mask, mask.width, mask.height)) : null;
       if (!object || !isUsableObjectMask(object)) {
@@ -646,10 +650,11 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
       setFlash(null);
       commit(combine(history.current!.current(), object, 'add', 0));
     } catch (err) {
-      if (!current()) return;
+      if (isAbortError(err) || !current()) return;
       if (tool === 'include') includePoints.current.pop();
       setMessage(err instanceof Error ? err.message : 'Could not outline that object.');
     } finally {
+      objectJob.finish();
       if (mountedRef.current) setBusy(false);
     }
   };
@@ -966,6 +971,7 @@ export const AreaEditor: React.FC<AreaEditorProps> = ({ imageUrl, initialMask, l
         </span>
         <span className="text-slate-500">{HINTS[tool]} · Scroll to zoom · Space+drag to pan</span>
         {message && <span className="text-rose-300">{message}</span>}
+        <SlowJobNotice slow={objectJob.slow} label={objectJob.label} onCancel={objectJob.cancel} />
         {pending && (
           <span data-testid="area-pending" className="flex items-center gap-1.5">
             <span className="text-slate-200">{pending.kind === 'protect' ? 'Protect this object?' : 'Add this area?'}</span>

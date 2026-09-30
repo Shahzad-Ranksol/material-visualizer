@@ -17,7 +17,9 @@ import { renderMaterial, RenderLayerInput, NeedsSurfaceReviewError, selectedArea
 import { WebGLUnavailableError } from './services/renderer/webglContext';
 import { setStudioLightingProvider } from './services/renderer/studioLighting';
 import { createStudioLightingProvider } from './services/renderer/studioLightingProvider';
-import { analyzeRoom, resolveSurface, savedSurfaceToItem, savedSurfaceToRenderable } from './services/roomAnalysis';
+import { analyzeRoom, isAbortError, resolveSurface, savedSurfaceToItem, savedSurfaceToRenderable } from './services/roomAnalysis';
+import { useSlowJob } from './components/useSlowJob';
+import { SlowJobNotice } from './components/SlowJobNotice';
 import { compareWithGemini, isGeminiCompareAvailable } from './services/geminiCompare';
 import {
   AuthSession,
@@ -109,6 +111,9 @@ const App: React.FC = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([]);
   const [analysisProgress, setAnalysisProgress] = useState<string | null>(null);
+  // The analysis the studio is waiting on, and the surface cuts behind a render or Selected area
+  const analysisJob = useSlowJob();
+  const surfaceJob = useSlowJob();
   // "Selected area" image of the current photo + selection (null until asked for)
   const [selectedAreaUrl, setSelectedAreaUrl] = useState<string | null>(null);
   const [selectedAreaLoading, setSelectedAreaLoading] = useState(false);
@@ -586,7 +591,14 @@ const App: React.FC = () => {
     }
     setDetectedItems([]);
     setAnalyzing(true);
-    analyzeRoom(uploadedImageUrl)
+    const { signal, onProgress } = analysisJob.start();
+    analyzeRoom(uploadedImageUrl, {
+      signal,
+      onProgress: (label) => {
+        onProgress(label);
+        setAnalysisProgress(label);
+      },
+    })
       .then(({ items, warnings }) => {
         if (cancelled) return;
         setDetectedItems(items);
@@ -596,13 +608,18 @@ const App: React.FC = () => {
         if (items.length === 0) setAnalysisError('No re-surfaceable walls, floors or ceilings were found in this photo.');
       })
       .catch((err: unknown) => {
-        if (!cancelled) setAnalysisError(errorText(err, 'Could not analyze this photo.'));
+        if (cancelled || isAbortError(err)) return;
+        setAnalysisError(errorText(err, 'Could not analyze this photo.'));
       })
       .finally(() => {
-        if (!cancelled) setAnalyzing(false);
+        if (cancelled) return;
+        analysisJob.finish();
+        setAnalyzing(false);
+        setAnalysisProgress(null);
       });
     return () => {
       cancelled = true;
+      analysisJob.cancel(); // a new photo (or the vendor's room after sign-in) supersedes this one
     };
     // showcaseSurfaceKey stands in for activeShowcaseImage's surfaces
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -656,9 +673,14 @@ const App: React.FC = () => {
   // materials or showing the area never re-runs a model
   const resolveSelected = async (imageUrl: string) => {
     const selected = detectedItems.filter((item) => selectedItemIds.has(item.id));
-    const resolved = await Promise.all(selected.map((item) => resolveSurface(imageUrl, item)));
-    setDetectedItems((prev) => prev.map((item) => resolved.find((r) => r.item.id === item.id)?.item ?? item));
-    return resolved;
+    const job = surfaceJob.start();
+    try {
+      const resolved = await Promise.all(selected.map((item) => resolveSurface(imageUrl, item, job)));
+      setDetectedItems((prev) => prev.map((item) => resolved.find((r) => r.item.id === item.id)?.item ?? item));
+      return resolved;
+    } finally {
+      surfaceJob.finish();
+    }
   };
 
   // "Selected area": exactly what the render would paint, before (or after) any material
@@ -672,7 +694,7 @@ const App: React.FC = () => {
       const url = await selectedAreaImage(imageUrl, resolved.flatMap((r) => r.surfaces));
       if (request === selectedAreaRequest.current) setSelectedAreaUrl(url);
     } catch (err) {
-      setErrorMessage(errorText(err, 'Could not show the selected area.'));
+      if (!isAbortError(err)) setErrorMessage(errorText(err, 'Could not show the selected area.'));
     } finally {
       setSelectedAreaLoading(false);
     }
@@ -694,7 +716,7 @@ const App: React.FC = () => {
       }
       await runRender(imageUrl, resolved.flatMap((r) => r.surfaces.map((surface) => ({ surface, material: selectedMaterial }))));
     } catch (err) {
-      setErrorMessage(errorText(err, 'Could not prepare these surfaces.'));
+      if (!isAbortError(err)) setErrorMessage(errorText(err, 'Could not prepare these surfaces.'));
       setApplicationLoading(false);
     }
   };
@@ -823,6 +845,13 @@ const App: React.FC = () => {
                 onClearAll={handleClearAll}
                 analyzing={analyzing}
                 progressLabel={analysisProgress}
+                analysisSlow={analysisJob.slow}
+                onCancelAnalysis={() => {
+                  analysisJob.cancel();
+                  setAnalyzing(false);
+                  setAnalysisProgress(null);
+                  setAnalysisError('Analysis stopped — pick the photo again to retry.');
+                }}
                 onReviewItem={setReviewingItem}
                 analysisError={analysisError}
                 warnings={analysisWarnings}
@@ -855,6 +884,7 @@ const App: React.FC = () => {
               selectedAreaLoading={selectedAreaLoading}
               onShowSelectedArea={analyzing ? undefined : handleShowSelectedArea}
             />
+            <SlowJobNotice slow={surfaceJob.slow} label={surfaceJob.label} onCancel={surfaceJob.cancel} />
 
             {/* Materialization CTA & Directive Refinement */}
             <div className="p-5 rounded-2xl bg-[#12141c] border border-white/[0.08] shadow-xl space-y-4">
