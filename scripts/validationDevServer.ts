@@ -45,6 +45,10 @@ export const validationDevServer = (root: string): Plugin => {
           const name = url.slice('/validation-approved/'.length).replace(/\.png$/, '');
           return safe(name) ? sendFile(res, path.join(dir, 'approved', `${name}.png`), 'image/png') : json(res, 400, { error: 'bad name' });
         }
+        if (req.method === 'GET' && url.startsWith('/validation-overlays/')) {
+          const name = url.slice('/validation-overlays/'.length).replace(/\.jpg$/, '');
+          return safe(name) ? sendFile(res, path.join(dir, '.cache', 'overlays', `${name}.jpg`), 'image/jpeg') : json(res, 400, { error: 'bad name' });
+        }
         if (req.method === 'GET' && url === '/__validation/state') {
           const approvedDir = path.join(dir, 'approved');
           const approved = fs.existsSync(approvedDir) ? fs.readdirSync(approvedDir).filter((f) => f.endsWith('.png')).map((f) => f.slice(0, -4)) : [];
