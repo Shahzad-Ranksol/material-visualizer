@@ -5,6 +5,7 @@ import App from './App';
 import { StorefrontPage } from './components/StorefrontPage';
 import { LandingPage } from './components/LandingPage';
 import { AdminPage } from './components/AdminPage';
+import { ValidationApprovePage } from './components/dev/ValidationApprovePage';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -20,6 +21,8 @@ root.render(
         <Route path="/studio" element={<App />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/store/:slug" element={<StorefrontPage />} />
+        {/* Dev-server only: the validation set tools (validation/) */}
+        {import.meta.env.DEV && <Route path="/dev/validation" element={<ValidationApprovePage />} />}
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
