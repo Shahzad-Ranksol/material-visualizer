@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig, loadEnv, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { validationDevServer } from './scripts/validationDevServer';
 
 // The model loader probes for optional files (tokenizer.json, …). The SPA fallback would answer
 // a missing one with index.html and 200, which the loader takes as the file — so under /models/
@@ -30,7 +31,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
-      plugins: [react(), modelsNotFound()],
+      plugins: [react(), modelsNotFound(), validationDevServer(__dirname)],
       // Served as-is (not pre-bundled) so ONNX Runtime resolves its own .wasm/.mjs files next to
       // itself: from node_modules in dev, emitted into the build for production — the app serves
       // them from its own origin, never a CDN
