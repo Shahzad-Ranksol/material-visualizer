@@ -1,6 +1,8 @@
 import { DetectedItem, PlanePoint, RenderableSurface, SurfaceAnalysis, SurfaceGeometry, SurfaceKind } from '../types';
-import type { AnalysisStage, CutStages, SurfaceProposal, WorkerRequest, WorkerResponse } from './analysis/protocol';
-import { STAGE_LABELS } from './analysis/protocol';
+import type { CutStages, SurfaceProposal } from './analysis/protocol';
+import { createWorkerClient, JobOptions } from './analysis/workerClient';
+export { isAbortError, AnalysisTimeoutError } from './analysis/workerClient';
+export type { JobOptions } from './analysis/workerClient';
 import { autoFitPlane, planeKindFor } from './planeGeometry';
 import { ConfidenceInputs, ReviewDecision, reviewDecision } from './qualityGate';
 
@@ -12,45 +14,9 @@ import { ConfidenceInputs, ReviewDecision, reviewDecision } from './qualityGate'
 export { ANALYSIS_VERSION, MODEL_VERSIONS } from './analysis/protocol';
 export type { SurfaceProposal };
 
-// Listeners for human-readable progress of the running analysis step
-const progressListeners = new Set<(label: string) => void>();
-export const onAnalysisProgress = (fn: (label: string) => void) => {
-  progressListeners.add(fn);
-  return () => progressListeners.delete(fn);
-};
-
-type RequestBody = WorkerRequest extends infer R ? (R extends WorkerRequest ? Omit<R, 'id'> : never) : never;
-
-let worker: Worker | null = null;
-let nextId = 0;
-const pending = new Map<number, (response: WorkerResponse) => void>();
-
-const send = (body: RequestBody): Promise<WorkerResponse> => {
-  if (!worker) {
-    worker = new Worker(new URL('../workers/analysis.worker.ts', import.meta.url), { type: 'module' });
-    worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
-      if (e.data.type === 'progress') {
-        const label = STAGE_LABELS[e.data.stage as AnalysisStage];
-        progressListeners.forEach((fn) => fn(label));
-        return;
-      }
-      pending.get(e.data.id)?.(e.data);
-      pending.delete(e.data.id);
-    };
-    worker.onerror = (e) => {
-      // A worker that fails to load or crashes would otherwise leave every request hanging
-      const error = `The analysis worker stopped: ${e.message || 'unknown error'}`;
-      pending.forEach((resolve, id) => resolve({ id, type: 'error', error }));
-      pending.clear();
-      worker = null;
-    };
-  }
-  const id = nextId++;
-  return new Promise((resolve, reject) => {
-    pending.set(id, (response) => ('error' in response ? reject(new Error(response.error)) : resolve(response)));
-    worker!.postMessage({ ...body, id } as WorkerRequest);
-  });
-};
+// One worker for the app; `new Worker(new URL(...))` stays literal here so Vite bundles it
+const client = createWorkerClient(() => new Worker(new URL('../workers/analysis.worker.ts', import.meta.url), { type: 'module' }));
+const send = client.send;
 
 const KIND_BY_LABEL: Record<string, SurfaceKind> = {
   wall: 'wall',
@@ -85,8 +51,8 @@ export interface RoomAnalysisResult {
 }
 
 /** Analyzes a room photo into selectable surface proposals (exact masks are cut on first use). */
-export const analyzeRoom = async (imageUrl: string): Promise<RoomAnalysisResult> => {
-  const res = await send({ type: 'analyze', imageUrl });
+export const analyzeRoom = async (imageUrl: string, options: JobOptions = {}): Promise<RoomAnalysisResult> => {
+  const res = await send({ type: 'analyze', imageUrl }, options);
   if (res.type !== 'analyze') throw new Error('Unexpected analysis response');
   const counts: Record<string, number> = {};
   const items: DetectedItem[] = res.proposals.map((p) => {
@@ -147,7 +113,7 @@ export interface CutSurface {
 export const cutSurface = async (
   imageUrl: string,
   point: PlanePoint,
-  options: { label?: string; connectedOnly?: boolean; include?: PlanePoint[]; exclude?: PlanePoint[]; debugStages?: boolean } = {}
+  options: { label?: string; connectedOnly?: boolean; include?: PlanePoint[]; exclude?: PlanePoint[]; debugStages?: boolean } & JobOptions = {}
 ): Promise<CutSurface> => {
   const res = await send({
     type: 'cut',
@@ -158,7 +124,7 @@ export const cutSurface = async (
     include: options.include,
     exclude: options.exclude,
     debugStages: options.debugStages,
-  });
+  }, { signal: options.signal, onProgress: options.onProgress });
   if (res.type !== 'cut') throw new Error('Unexpected analysis response');
   const kind = surfaceKindFor(res.label);
   const parts = res.parts.map((p) => {
@@ -188,8 +154,12 @@ export const cutSurface = async (
 };
 
 /** The single object at a point (a lamp, a headboard…) as an alpha mask, or null if there is none. */
-export const cutObject = async (imageUrl: string, point: PlanePoint): Promise<{ mask: HTMLCanvasElement; surfaceShare: number } | null> => {
-  const res = await send({ type: 'cutObject', imageUrl, point });
+export const cutObject = async (
+  imageUrl: string,
+  point: PlanePoint,
+  options: JobOptions = {}
+): Promise<{ mask: HTMLCanvasElement; surfaceShare: number } | null> => {
+  const res = await send({ type: 'cutObject', imageUrl, point }, options);
   if (res.type !== 'cutObject') throw new Error('Unexpected analysis response');
   return res.mask ? { mask: alphaCanvas(res.mask, res.width, res.height), surfaceShare: res.surfaceShare } : null;
 };
@@ -198,10 +168,14 @@ export const cutToRenderables = (cut: CutSurface): RenderableSurface[] =>
   cut.parts.map((p) => ({ kind: cut.kind, mask: p.mask, occluderMask: cut.occluder, plane: p.geometry }));
 
 /** Cuts (once) the surfaces behind a studio target and records the confidence on it. */
-export const resolveSurface = async (imageUrl: string, item: DetectedItem): Promise<{ surfaces: RenderableSurface[]; item: DetectedItem }> => {
+export const resolveSurface = async (
+  imageUrl: string,
+  item: DetectedItem,
+  options: JobOptions = {}
+): Promise<{ surfaces: RenderableSurface[]; item: DetectedItem }> => {
   if (item.surfaces?.length) return { surfaces: item.surfaces, item };
   if (!item.anchor || !item.surfaceLabel) throw new Error(`"${item.name}" has no detected area to render.`);
-  const cut = await cutSurface(imageUrl, item.anchor, { label: item.surfaceLabel });
+  const cut = await cutSurface(imageUrl, item.anchor, { label: item.surfaceLabel, ...options });
   const surfaces = cutToRenderables(cut);
   return {
     surfaces,

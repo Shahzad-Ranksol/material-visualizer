@@ -17,7 +17,7 @@ import { renderMaterial, RenderLayerInput, NeedsSurfaceReviewError, selectedArea
 import { WebGLUnavailableError } from './services/renderer/webglContext';
 import { setStudioLightingProvider } from './services/renderer/studioLighting';
 import { createStudioLightingProvider } from './services/renderer/studioLightingProvider';
-import { analyzeRoom, onAnalysisProgress, resolveSurface, savedSurfaceToItem, savedSurfaceToRenderable } from './services/roomAnalysis';
+import { analyzeRoom, resolveSurface, savedSurfaceToItem, savedSurfaceToRenderable } from './services/roomAnalysis';
 import { compareWithGemini, isGeminiCompareAvailable } from './services/geminiCompare';
 import {
   AuthSession,
@@ -115,12 +115,6 @@ const App: React.FC = () => {
   const selectedAreaRequest = useRef(0);
   // Surface whose area the user is checking (low analysis confidence)
   const [reviewingItem, setReviewingItem] = useState<DetectedItem | null>(null);
-  useEffect(() => {
-    const off = onAnalysisProgress(setAnalysisProgress);
-    return () => {
-      off();
-    };
-  }, []);
 
   // Materials & Rendering State
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(MATERIALS[0]);
