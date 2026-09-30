@@ -19,11 +19,12 @@ const CACHED_ROOM = path.join(HERE, '.cache', 'room.jpg');
 // final coverage at or above. Tighten as the pipeline improves.
 const LIMITS: Record<string, { missed?: number; leak?: number; finalAtLeast?: number }> = {
   'minimalist-living-wall': { missed: 7.3, leak: 0.8 },
-  'minimalist-living-floor': { missed: 4.7, finalAtLeast: 17 },
+  // The rug is kept on top (its whole object), so the floor is only the visible wood
+  'minimalist-living-floor': { missed: 3.0, finalAtLeast: 4.3 },
   'nordic-master-bedroom-wall': { missed: 2.8, leak: 0.7 },
-  'nordic-master-bedroom-floor': { missed: 1.0, finalAtLeast: 5.7 },
+  'nordic-master-bedroom-floor': { missed: 0.8, finalAtLeast: 5.8 },
   'penthouse-dining-room-wall': { missed: 3.8, leak: 0.7 },
-  'penthouse-dining-room-floor': { missed: 2.5, finalAtLeast: 9.1 },
+  'penthouse-dining-room-floor': { missed: 2.1, finalAtLeast: 9.2 },
   'executive-atelier-office-wall': { leak: 3.8 },
   'executive-atelier-office-floor': { missed: 3.5, finalAtLeast: 5.6 },
 };

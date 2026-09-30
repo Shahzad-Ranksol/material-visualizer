@@ -67,6 +67,17 @@ const SKIRTING_FLOOR_REACH = 0.01;
 const REVIEW_OBJECT_SHARE = 0.04;
 const REVIEW_REFLECTION_SHARE = 0.002;
 const REVIEW_MIN_AGREEMENT = 0.7;
+// Rugs on a floor: kept on top as whole objects (see wholeRug). A rug-labelled part must be this
+// share of the photo; SAM's rug must cover this share of it, and at most this share of the
+// floor-or-rug area (more means SAM took the floor)
+const RUG_LABELS = ['rug', 'carpet'];
+const RUG_MIN_SHARE = 0.005;
+const RUG_MIN_COVER = 0.7;
+const RUG_MAX_OF_FLOOR = 0.8;
+// Extra visible pieces of a surface taken whole: at most this many more positive prompts, each
+// for a piece of at least this share of the photo
+const MAX_PIECE_PROMPTS = 4;
+const MIN_PIECE_SHARE = 0.003;
 // Surfaces smaller than this (% of the photo) aren't proposed automatically
 const MIN_PROPOSAL_AREA_PCT = 2;
 // Edge refinement (guided filter) settings
@@ -251,6 +262,42 @@ const cutObject = async (req: Extract<WorkerRequest, { type: 'cutObject' }>, rep
   return { width: w, height: h, mask: guidedFilter(gray, binary, w, h, radius, GUIDE_EPSILON, EDGE_SHARPNESS), surfaceShare: inside ? onSurface / inside : 0 };
 };
 
+/**
+ * The whole rug on a floor as one object (binary), or null: SAM prompted from inside the largest
+ * rug-labelled part, taking the best-scoring candidate that covers most of that part without
+ * claiming nearly all of the floor (that would be SAM grabbing the floor itself). Null too when
+ * there's no sizeable rug, or nothing of the floor would be left beside it.
+ */
+const wholeRug = async (enc: PromptEncoding, labels: string[], labelMap: Uint8Array, floorRegion: Uint8Array, w: number, h: number) => {
+  const rugIdx = new Set(RUG_LABELS.map((l) => labels.indexOf(l)).filter((k) => k >= 0));
+  if (!rugIdx.size) return null;
+  const rugClass = Uint8Array.from(labelMap, (v) => (rugIdx.has(v) ? 1 : 0));
+  const [largest] = connectedComponents(rugClass, w, h);
+  if (!largest || largest.length < w * h * RUG_MIN_SHARE) return null;
+  const part = new Uint8Array(w * h);
+  for (const i of largest) part[i] = 1;
+  const prompts = interiorPoints(part, w, h, 2);
+  if (!prompts.length) return null;
+  const sam = await segmentWithPrompts(enc, prompts.map((p) => ({ ...p, positive: true })), null, w, h);
+  let floorOrRug = 0;
+  for (let i = 0; i < floorRegion.length; i++) if (floorRegion[i] || rugClass[i]) floorOrRug++;
+  let best = -1;
+  sam.masks.forEach((m, k) => {
+    let area = 0;
+    let onPart = 0;
+    let floorLeft = 0;
+    for (let i = 0; i < m.length; i++) {
+      if (m[i]) {
+        area++;
+        if (part[i]) onPart++;
+      } else if (floorRegion[i]) floorLeft++;
+    }
+    if (onPart < largest.length * RUG_MIN_COVER || area > floorOrRug * RUG_MAX_OF_FLOOR || floorLeft < w * h * RUG_MIN_SHARE) return;
+    if (best < 0 || sam.scores[k] > sam.scores[best]) best = k;
+  });
+  return best >= 0 ? Uint8Array.from(sam.masks[best], (v) => (v ? 1 : 0)) : null;
+};
+
 const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: ReportStage) => {
   const room = await loadRoom(req.imageUrl, reportStage);
   const { width: w, height: h, semantic, gray } = room;
@@ -266,7 +313,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     req.connectedOnly && semantic.labelMap[start] === labelIndex
       ? floodRegion(w, h, start, (i) => semantic.labelMap[i] === labelIndex)
       : Uint8Array.from(semantic.labelMap, (v) => (v === labelIndex ? 1 : 0));
-  const box = bbox(region, w);
+  let box = bbox(region, w);
   if (!box) throw new Error('No surface detected at this point');
 
   // 2. Occluders (restored on top at render time). Anywhere in the photo, not just next to the
@@ -279,10 +326,45 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
   const nearOccluder = Uint8Array.from(occluder, (v, i) => (v && near[i] ? 1 : 0));
 
   reportStage('refining');
+  room.prompts ??= encodeForPrompts(room.image);
+  const enc = await room.prompts;
+
+  // 2b. A rug is one object, however the class map splits it ("rug" where it's shaded, "floor"
+  // where it's sunlit): on a floor it's segmented whole and kept on top, and the floor is
+  // prompted from outside it — never a patchwork of rug that got the new finish and rug that didn't
+  const rug = label === 'floor' ? await wholeRug(enc, semantic.labels, semantic.labelMap, region, w, h) : null;
+  let anchor = { x: px, y: py };
+  const rugNegatives: PromptPoint[] = [];
+  if (rug) {
+    for (let i = 0; i < rug.length; i++) {
+      if (!rug[i]) continue;
+      region[i] = 0;
+      occluder[i] = 1;
+    }
+    box = bbox(region, w)!;
+    if (rug[start]) anchor = interiorPoints(region, w, h, 1)[0];
+    rugNegatives.push(...interiorPoints(rug, w, h, 2).map((p) => ({ ...p, positive: false })));
+  }
+
   // 3. SAM: positive points inside the proposal, negative points on nearby occluders, box
+  // A surface taken whole (a floor) may be in several visible pieces (either side of a rug or a
+  // sofa): each sizeable piece gets its own positive point, or SAM returns only the one it's in
+  const pieces = req.connectedOnly
+    ? []
+    : connectedComponents(region, w, h)
+        .slice(1, MAX_PIECE_PROMPTS + 1)
+        .filter((c) => c.length > w * h * MIN_PIECE_SHARE)
+        .map((c) => {
+          const m = new Uint8Array(w * h);
+          for (const i of c) m[i] = 1;
+          return interiorPoints(m, w, h, 1)[0];
+        })
+        .filter(Boolean);
   const points: PromptPoint[] = [
-    { x: px, y: py, positive: true },
+    { ...anchor, positive: true },
+    ...rugNegatives,
     ...interiorPoints(region, w, h, 3).map((p) => ({ ...p, positive: true })),
+    ...pieces.map((p) => ({ ...p, positive: true })),
     ...connectedComponents(nearOccluder, w, h)
       .slice(0, 8)
       .filter((c) => c.length > w * h * 0.001)
@@ -296,8 +378,6 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     ...(req.include ?? []).map((p) => ({ x: (p.xPct / 100) * w, y: (p.yPct / 100) * h, positive: true })),
     ...(req.exclude ?? []).map((p) => ({ x: (p.xPct / 100) * w, y: (p.yPct / 100) * h, positive: false })),
   ];
-  room.prompts ??= encodeForPrompts(room.image);
-  const enc = await room.prompts;
   const pad = Math.round(Math.max(w, h) * 0.02);
   const sam = await segmentWithPrompts(
     enc,
@@ -335,6 +415,7 @@ const cut = async (req: Extract<WorkerRequest, { type: 'cut' }>, reportStage: Re
     const mirror = erode(Uint8Array.from(semantic.labelMap, (v) => (v === mirrorIndex ? 1 : 0)), w, h, thinCorePx);
     for (let i = 0; i < mirror.length; i++) if (mirror[i]) objectCore[i] = 1;
   }
+  if (rug) for (let i = 0; i < rug.length; i++) if (rug[i]) objectCore[i] = 1;
   const excluded = (i: number) => structuralCore[i] === 1 || objectCore[i] === 1;
   const samMask = Uint8Array.from(sam.masks[chosen], (v, i) => (v && !excluded(i) ? 1 : 0));
   // Every stage's mask, only when asked (developer view, evidence runs)
