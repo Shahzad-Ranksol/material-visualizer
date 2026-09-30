@@ -10,18 +10,28 @@ Room analysis and rendering run entirely in the browser with **zero external API
 
 ## Current state
 
-- Rendering (plan phases 0–2 done, 3 scaffolded): surface analysis with confidence and review (`auto`/`confirm`/`correct`), per-surface planes, WebGL2 linear-light renderer, physical material profiles, analysis cache. Covered by Vitest unit tests and Playwright golden-image + end-to-end suites (see `CLAUDE.md` Commands). Studio Lighting's MatSwap call is a stub until a GPU host exists.
-- Frontend: material schema generalized (new categories, `tenantId` field, physical profile). The real generic catalog (tile/sheet/carpet/wallpaper/paint) is populated with verified thumbnails and has working category filters in the UI.
-- Backend (`server/`): standalone Node/Express/Prisma/MySQL API with tenant registration, JWT auth, and tenant-scoped material CRUD.
-- Frontend↔backend wiring: `App.tsx` holds an auth session (persisted to `localStorage`), `components/AuthPanel.tsx` handles sign in/register/sign out, and `components/MaterialGrid.tsx` renders live data from `GET /api/materials` (merged tenant + shared-default materials) once signed in. Signed-out users still get the full offline experience from `constants.ts` — auth is additive, not a gate.
-- Database seeding: `server/prisma/seed.ts` (run via `npm run prisma:seed`, or automatically through `npx prisma migrate reset`/`db seed` since it's wired into `package.json`'s `prisma.seed`) upserts the same 22 materials as `constants.ts` (same IDs, `tenantId: null`) into the database, so a brand-new tenant's live catalog is never empty — it matches the offline default catalog from day one.
-- Catalog admin UI: a signed-in tenant can add (`components/AddMaterialForm.tsx`), edit in place (`components/EditMaterialModal.tsx`), bulk-import via pasted JSON with per-item success/failure reporting (`components/BulkImportModal.tsx`), and delete their own materials — never the shared defaults. All four flows verified end-to-end (create → edit → reload-persists → bulk import with one deliberately-invalid entry → delete).
-- Vendor storefront + hotspots: a signed-in tenant builds a showroom (`components/ShowcaseEditorModal.tsx`) — add a room image by URL, click on it to drop labeled "hotspots" (a zone name + which material categories apply there, e.g. a floor hotspot allowing carpet/tile/wood). That showroom is published, with no login required, at `/store/<tenant-slug>` (`components/StorefrontPage.tsx`, added via `react-router-dom`): visitors click a hotspot, see only the materials relevant to that zone (`components/HotspotMaterialPicker.tsx`), pick one, and see it rendered on the photo by the same renderer as the main studio, using the vendor's saved, reviewed surface. The public API (`GET /api/public/tenants/:slug/...`) deliberately returns only that tenant's own materials — never the shared platform defaults — so each vendor's storefront shows just their own catalog. Verified end-to-end including the empty-state ("no materials for this zone yet") and the actual render swap after picking a material.
-- No billing, no multi-user tenant invites yet.
+- **Rendering (plan phases 0–2 done, 3 scaffolded, 4 in progress):**
+  - Surface analysis is local (SegFormer, SAM 2.1, MoGe-2). It produces a composite confidence, plain-language review reasons, and a review step (`auto`/`confirm`/`correct`).
+  - Each surface gets its own planes, rendered by a WebGL2 linear-light renderer with physical material profiles, backed by an analysis cache.
+  - Segmentation faults are measured stage by stage. The opt-in evidence run covers the curated rooms with regression limits, and staff get a Pipeline stages view.
+  - The Area Editor offers Protect object (restored on top) and Include area (re-cut, only the clicked region), with Apply/Discard, undo and a material preview. Preview, studio accept and showcase save share one rule, so the preview is what customers see.
+  - Every analysis job can be cancelled and has a hard time limit.
+  - Tests: Vitest unit tests, plus Playwright golden-image, studio, Area Editor, showcase, storefront-consistency and cancellation suites (see `CLAUDE.md` Commands).
+  - Studio Lighting's MatSwap call is a stub until a GPU host exists.
+- **Catalog:** the material schema is generalized (tile/sheet/carpet/wallpaper/paint plus the luxury finishes, `tenantId`, a physical profile). Signed-out users get the offline catalog in `constants.ts`. A signed-in tenant sees **only its own materials**: `GET /api/materials` and the public endpoint both exclude the shared `tenantId: null` defaults, which `server/prisma/seed.ts` mirrors from `constants.ts`.
+- **Backend (`server/`):** Node/Express/Prisma/MySQL, with tenant registration, JWT auth and tenant-scoped CRUD. S3-compatible object storage holds uploaded images and saved surface masks.
+- **Platform:** a landing page (`/`), platform-admin approval of new vendors (`/admin`), and category-scoped vendors.
+- **Catalog admin:** add, edit, bulk-import (JSON) and delete a tenant's own materials.
+- **Vendor showroom:**
+  - Built in `ShowcaseEditorModal`: add a room photo, place hotspots (including moving one by clicking the photo while editing it, which re-detects the surface there), detect and adjust each surface, and save.
+  - Published with no login at `/store/<slug>`, where customers render a vendor's material on the saved, reviewed surface through the same renderer.
+  - Replacing a showroom photo flags its surfaces, and the storefront won't render them until the vendor detects them again.
+- **Not yet:** billing, multi-user tenant invites.
 
 ## Roadmap
 
-- Billing/subscription (Stripe or equivalent) per tenant.
-- Multi-user tenant invites (currently registration always creates a brand-new tenant; there's no "join an existing tenant" flow).
-- Storefront/hotspot follow-ups: editing an existing hotspot's position (currently only label/categories are editable in place — repositioning means deleting and re-adding).
-- Rendering (plan phase 4): the 60-photo validation set and quality dashboard, cancellation, GPU-worker queue, privacy/retention controls for customer photos. Known weak spot: where the class map mislabels part of an object as wall (e.g. the lower half of a curtain), the vendor or user removes it with one click of the Area Editor's Cut out object tool.
+1. **Rendering phase 4:** the 60-photo validation set and a quality dashboard (the evidence run in `tests/e2e/pipeline-evidence.spec.ts` is the start), and privacy/retention controls for customer photos.
+2. **Multi-user tenant invites:** registration always creates a new tenant today, and there's no "join an existing tenant" flow.
+3. **Billing:** Stripe or equivalent, per tenant.
+4. **Rendering phase 3, once a GPU host exists:** benchmark SAM 3.1 and MoGe-3 against the lighter pipeline, MatSwap Studio Lighting, and a GPU-worker queue.
+5. **Demo data:** the "Monolithic Island Kitchen" preset shows an outside view of a house; it needs a real, licensed kitchen photo.
