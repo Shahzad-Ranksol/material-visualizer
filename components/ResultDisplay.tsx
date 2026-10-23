@@ -18,6 +18,9 @@ import { ViewMode, Material, RenderDebugView } from '../types';
 import { RemoteHotspot } from '../services/apiClient';
 import { HotspotImage } from './HotspotImage';
 import { HotspotMaterialPicker } from './HotspotMaterialPicker';
+import { LightingComparison } from './LightingComparison';
+import { Sun } from 'lucide-react';
+import type { RenderLayerInput } from '../services/renderer/materialRenderer';
 
 interface ResultDisplayProps {
   uploadedImageUrl: string | null;
@@ -26,6 +29,8 @@ interface ResultDisplayProps {
   isDetectionLoading: boolean;
   selectedMaterial: Material | null;
   selectedItemsCount: number;
+  comparisonLayers?: RenderLayerInput[];
+  comparisonRoomKey?: string;
   // Vendor hotspots on the current photo: shown as clickable pins that open a material list
   hotspots?: RemoteHotspot[];
   hotspotMaterials?: Material[];
@@ -59,6 +64,8 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
   isDetectionLoading,
   selectedMaterial,
   selectedItemsCount,
+  comparisonLayers = [],
+  comparisonRoomKey = 'room',
   hotspots = [],
   hotspotMaterials = [],
   hotspotSelections = {},
@@ -74,7 +81,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
 }) => {
   const [sliderPosition, setSliderPosition] = useState<number>(50);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('slider');
+  const [viewMode, setViewMode] = useState<ViewMode | 'lighting'>('slider');
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [loadingStep, setLoadingStep] = useState<number>(0);
 
@@ -254,6 +261,25 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
                 <span className="hidden md:inline">Side by Side</span>
               </button>
             </>
+          )}
+
+          {processedImageUrl && comparisonLayers.length > 0 && (
+            <button
+              type="button"
+              id="btn-view-lighting"
+              data-testid="btn-view-lighting"
+              aria-label="Lighting comparison"
+              onClick={() => setViewMode('lighting')}
+              title="Compare the applied material under four local lighting estimates"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                viewMode === 'lighting'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Lighting</span>
+            </button>
           )}
 
           <button
@@ -556,6 +582,15 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {viewMode === 'lighting' && processedImageUrl && uploadedImageUrl && comparisonLayers.length > 0 && (
+          <LightingComparison
+            roomUrl={uploadedImageUrl}
+            renderUrl={processedImageUrl}
+            roomKey={comparisonRoomKey}
+            layers={comparisonLayers}
+          />
         )}
 
         {/* VIEW MODE: Single Image (Render or Original) */}

@@ -125,6 +125,7 @@ const App: React.FC = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(MATERIALS[0]);
   const [customDirective, setCustomDirective] = useState<string>('');
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+  const [comparisonLayers, setComparisonLayers] = useState<RenderLayerInput[]>([]);
 
   // Status & Feedback
   const [applicationLoading, setApplicationLoading] = useState<boolean>(false);
@@ -482,6 +483,7 @@ const App: React.FC = () => {
       const url = await renderMaterial(imageUrl, layers, { mode: renderMode, debug });
       if (request !== renderRequest.current) return;
       lastRender.current = { imageUrl, layers };
+      setComparisonLayers(layers);
       setProcessedImageUrl(url);
     } catch (err) {
       if (request !== renderRequest.current) return;
@@ -548,6 +550,7 @@ const App: React.FC = () => {
     setSelectedRoomType(room.roomType);
     setUploadedImageFile(null);
     setUploadedImageUrl(room.fullImage);
+    setComparisonLayers([]);
     setProcessedImageUrl(null);
     setErrorMessage(null);
   }, []);
@@ -633,6 +636,7 @@ const App: React.FC = () => {
     }
     setUploadedImageFile(file);
     setSelectedCuratedRoomId(null);
+    setComparisonLayers([]);
     setProcessedImageUrl(null);
     setErrorMessage(null);
     const reader = new FileReader();
@@ -867,6 +871,8 @@ const App: React.FC = () => {
             <ResultDisplay
               uploadedImageUrl={uploadedImageUrl}
               processedImageUrl={processedImageUrl}
+              comparisonLayers={debugView === 'none' ? comparisonLayers : []}
+              comparisonRoomKey={`${selectedCuratedRoomId ?? 'upload'}:${uploadedImageFile ? `${uploadedImageFile.name}:${uploadedImageFile.size}:${uploadedImageFile.lastModified}` : 'room'}:${renderMode}`}
               isLoading={applicationLoading}
               isDetectionLoading={analyzing}
               selectedMaterial={selectedMaterial}
