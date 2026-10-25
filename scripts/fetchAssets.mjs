@@ -5,6 +5,7 @@
 import { mkdir, writeFile, stat, readFile, copyFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(await readFile(join(root, 'scripts/assets.manifest.json'), 'utf8'));
@@ -36,6 +37,12 @@ if (!only || only === 'textures') {
     for (const [name, url] of Object.entries(maps)) {
       if (!url) continue;
       log(await download(url, join(root, 'public/textures', name)), `textures/${name}`);
+    }
+    // The studio's swatch chip: a flat 256 px crop from the middle of the scan (needs ffmpeg)
+    const chip = join(root, 'public/textures', `${id}_chip.jpg`);
+    if (!(await exists(chip))) {
+      execFileSync('ffmpeg', ['-loglevel', 'error', '-i', join(root, 'public/textures', `${id}.jpg`), '-vf', 'crop=iw/3:iw/3,scale=256:256', '-q:v', '3', chip]);
+      log(true, `textures/${id}_chip.jpg`);
     }
   }
 }

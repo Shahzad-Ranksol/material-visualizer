@@ -1,0 +1,14 @@
+# Only what the static studio build needs is uploaded to Vercel (anchored to the project root:
+# services/validation/ is code the build config imports)
+/.env
+/.env.*
+/server/
+/vision-service/
+/validation/
+/tests/
+/test-results/
+/playwright-report/
+/public/models/
+/public/textures/
+/dist/
+/node_modules/

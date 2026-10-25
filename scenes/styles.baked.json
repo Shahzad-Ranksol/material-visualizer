@@ -1,0 +1,2258 @@
+{
+  "fencing": {
+    "fence--horizontal-slat": {
+      "rect": {
+        "x": 55,
+        "y": 540,
+        "w": 1545,
+        "h": 465
+      },
+      "patch": "/scenes/fencing/styles/fence--horizontal-slat/patch.webp?v=mvo48men",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the fence style inside the masked area with a contemporary horizontal slatted timber fence, 90 mm slats with 10 mm gaps, square posts. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T17:42:51.503Z",
+      "items": {
+        "front-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/front-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.410428702862077,
+                  0.0923267612833346,
+                  -0.9072067289311092
+                ],
+                "origin": [
+                  1.4027417826079884,
+                  -0.08034398075754279,
+                  5.46296012885103
+                ],
+                "axisU": [
+                  0.9110982456123251,
+                  6.938893903907228e-18,
+                  0.41218926094955877
+                ],
+                "axisV": [
+                  -0.038056099499244024,
+                  0.9957287628420353,
+                  0.08411875022831408
+                ],
+                "residual": 0.02798569552562121,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/front-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8923095990031099,
+                  0.06759517479394779,
+                  -0.4463344842956732
+                ],
+                "origin": [
+                  -0.2611349721727929,
+                  -0.16033418734044447,
+                  9.021217285646069
+                ],
+                "axisU": [
+                  0.4473576670624745,
+                  0,
+                  -0.8943551407133636
+                ],
+                "axisV": [
+                  0.06045409206438557,
+                  0.9977128306003564,
+                  0.030239219700500655
+                ],
+                "residual": 0.022593287997760843,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/front-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.4106849086513155,
+                  0.09802582944749172,
+                  -0.9064926048055727
+                ],
+                "origin": [
+                  1.3950142633837848,
+                  -0.08358510720252332,
+                  5.452663856841598
+                ],
+                "axisU": [
+                  0.9108795182232086,
+                  6.938893903907228e-18,
+                  0.41267239219683155
+                ],
+                "axisV": [
+                  -0.040452553535175025,
+                  0.9951838708304768,
+                  0.08928972030056168
+                ],
+                "residual": 0.028865000429169622,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--horizontal-slat/front-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:44:10.728Z"
+        },
+        "garden-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.36770968740253956,
+                  -0.07160383091916844,
+                  -0.9271798515865334
+                ],
+                "origin": [
+                  -8.003416197052175,
+                  -0.9890783631978425,
+                  15.754294180610124
+                ],
+                "axisU": [
+                  0.9295659065855987,
+                  3.4694469519536134e-18,
+                  0.3686559714879091
+                ],
+                "axisV": [
+                  0.02639717984976202,
+                  0.9974331513428352,
+                  -0.06656048000337875
+                ],
+                "residual": 0.06261757981794137,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8810254453651235,
+                  -0.04436173594312743,
+                  -0.4709842895504031
+                ],
+                "origin": [
+                  -4.446910655008265,
+                  -0.9817562676603075,
+                  17.874447193270402
+                ],
+                "axisU": [
+                  0.47144841467161647,
+                  -3.469446951953615e-18,
+                  -0.8818936400176721
+                ],
+                "axisV": [
+                  -0.03912233278838745,
+                  0.9990155336050146,
+                  -0.02091427008246829
+                ],
+                "residual": 0.03352655087482785,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.3627585729274215,
+                  -0.07772327243488733,
+                  -0.9286362639320483
+                ],
+                "origin": [
+                  -8.022401533196378,
+                  -0.9781422903512957,
+                  15.76525401585976
+                ],
+                "axisU": [
+                  0.9314539390530618,
+                  3.469446951953615e-18,
+                  0.3638592577117352
+                ],
+                "axisV": [
+                  0.02828033221508507,
+                  0.996974971060965,
+                  -0.07239564826557006
+                ],
+                "residual": 0.06589763366368555,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.part3.png",
+              "plane": {
+                "normal": [
+                  -0.8815813898642997,
+                  -0.04380923578677855,
+                  -0.4699946849749557
+                ],
+                "origin": [
+                  -4.360263461015031,
+                  -0.9784937229282843,
+                  17.724667228211306
+                ],
+                "axisU": [
+                  0.4704463536751356,
+                  3.469446951953614e-18,
+                  -0.8824285967225729
+                ],
+                "axisV": [
+                  -0.03865852245881532,
+                  0.9990399145478516,
+                  -0.020609895233184225
+                ],
+                "residual": 0.029820547226829027,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.part4.png",
+              "plane": {
+                "normal": [
+                  -0.8270875639919536,
+                  -0.37698522476563606,
+                  -0.41690322833753535
+                ],
+                "origin": [
+                  -3.7471517202655353,
+                  -0.8822084346915157,
+                  17.424893962038436
+                ],
+                "axisU": [
+                  0.450112884522105,
+                  -2.7755575615628907e-17,
+                  -0.8929716631490554
+                ],
+                "axisV": [
+                  -0.33663712314159056,
+                  0.9262192722613815,
+                  -0.1696859069414746
+                ],
+                "residual": 0.16943623484299192,
+                "intrinsics": {
+                  "fx": 0.9125355326195631,
+                  "fy": 1.1254604902307945,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--horizontal-slat/garden-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:44:23.774Z"
+        }
+      }
+    },
+    "fence--closeboard": {
+      "rect": {
+        "x": 55,
+        "y": 540,
+        "w": 1545,
+        "h": 465
+      },
+      "patch": "/scenes/fencing/styles/fence--closeboard/patch.webp?v=mvo4er4o",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the fence style inside the masked area with a traditional closeboard fence of overlapping vertical feather-edge boards with a top capping rail. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T17:47:37.560Z",
+      "items": {
+        "front-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/front-fence.part0.png",
+              "plane": {
+                "normal": [
+                  -0.8919269539509438,
+                  0.06291443574894495,
+                  -0.4477812887897202
+                ],
+                "origin": [
+                  -0.10355714862076026,
+                  0.016294022469448,
+                  8.462778524451391
+                ],
+                "axisU": [
+                  0.44867013818237256,
+                  3.469446951953614e-18,
+                  -0.8936974359946495
+                ],
+                "axisV": [
+                  0.05622646991588222,
+                  0.998018924557241,
+                  0.028227828581145135
+                ],
+                "residual": 0.02298146581649365,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/front-fence.part1.png",
+              "plane": {
+                "normal": [
+                  0.45985777911880077,
+                  0.07742403548208288,
+                  -0.8846108419602334
+                ],
+                "origin": [
+                  1.411614714853239,
+                  -0.0933793871507147,
+                  5.260829277422603
+                ],
+                "axisU": [
+                  0.8872742136705029,
+                  6.93889390390723e-18,
+                  0.4612423113238756
+                ],
+                "axisV": [
+                  -0.035711241077777664,
+                  0.9969982541256878,
+                  0.06869635020156219
+                ],
+                "residual": 0.0192038364242855,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/front-fence.part2.png",
+              "plane": {
+                "normal": [
+                  -0.8157858229244626,
+                  -0.393980141023109,
+                  -0.4234065889837672
+                ],
+                "origin": [
+                  -10.627040985362639,
+                  -2.815361025502715,
+                  31.971519082882633
+                ],
+                "axisU": [
+                  0.4606657146212079,
+                  -2.7755575615628914e-17,
+                  -0.887573714895012
+                ],
+                "axisV": [
+                  -0.3496864173627416,
+                  0.9191189523012846,
+                  -0.18149314321097482
+                ],
+                "residual": 0.17049845470822783,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/front-fence.part3.png",
+              "plane": {
+                "normal": [
+                  -0.8240364320624289,
+                  -0.37638828405452046,
+                  -0.4234333693278262
+                ],
+                "origin": [
+                  -3.5614387179680373,
+                  -0.8073387826217003,
+                  16.50625999395707
+                ],
+                "axisU": [
+                  0.4570434231045399,
+                  -2.775557561562892e-17,
+                  -0.8894443824078516
+                ],
+                "axisV": [
+                  -0.33477644485642394,
+                  0.9264620119716155,
+                  -0.17202578976072194
+                ],
+                "residual": 0.16348092672350467,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--closeboard/front-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:48:35.905Z"
+        },
+        "garden-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.4015147727434944,
+                  -0.02344895203400137,
+                  -0.9155523108579036
+                ],
+                "origin": [
+                  -7.53078280370849,
+                  -1.0447761265524815,
+                  14.522311792066624
+                ],
+                "axisU": [
+                  0.9158041244613747,
+                  1.734723475976807e-18,
+                  0.40162520540864344
+                ],
+                "axisV": [
+                  0.009417690177273228,
+                  0.9997250355215214,
+                  -0.021474646987035398
+                ],
+                "residual": 0.06424449086082126,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8327744851918711,
+                  -0.22551183819778853,
+                  -0.5055997108840831
+                ],
+                "origin": [
+                  -11.57534514985973,
+                  -2.8636518329253264,
+                  29.87629397091151
+                ],
+                "axisU": [
+                  0.5189681074034059,
+                  0,
+                  -0.8547936028645319
+                ],
+                "axisV": [
+                  -0.19276607666169102,
+                  0.9742404276320371,
+                  -0.11703345186656941
+                ],
+                "residual": 0.10826665536867991,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.002696578264306913,
+                  -0.9873628074778507,
+                  -0.1584531945879323
+                ],
+                "origin": [
+                  -12.55597304067588,
+                  -3.2562868700852468,
+                  31.302233957018423
+                ],
+                "axisU": [
+                  0.9998552229434453,
+                  0,
+                  0.017015673736680708
+                ],
+                "axisV": [
+                  0.016800643391776192,
+                  0.15847613829676985,
+                  -0.9872198599968325
+                ],
+                "residual": 0.12989746377988512,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part3.png",
+              "plane": {
+                "normal": [
+                  0.40027454714639293,
+                  -0.0281209191236028,
+                  -0.9159637005986612
+                ],
+                "origin": [
+                  -7.48639073477459,
+                  -0.9326157880631195,
+                  14.546582588036294
+                ],
+                "axisU": [
+                  0.9163260812147619,
+                  0,
+                  0.4004329068465749
+                ],
+                "axisV": [
+                  0.011260541387861705,
+                  0.9996045287550691,
+                  -0.025767931620688207
+                ],
+                "residual": 0.06478440302533871,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part4.png",
+              "plane": {
+                "normal": [
+                  -0.8525496087259092,
+                  -0.1456104430336689,
+                  -0.5019529495289747
+                ],
+                "origin": [
+                  -11.009750712860601,
+                  -2.70344576516905,
+                  28.89669467958324
+                ],
+                "axisU": [
+                  0.507360395103163,
+                  0,
+                  -0.8617339667674486
+                ],
+                "axisV": [
+                  -0.1254774646781691,
+                  0.9893420029896327,
+                  -0.07387697190870884
+                ],
+                "residual": 0.08020179814526578,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part5.png",
+              "plane": {
+                "normal": [
+                  0.45970665335141486,
+                  0.07706996841315893,
+                  -0.8847203020351895
+                ],
+                "origin": [
+                  1.4112990839216781,
+                  -0.09340101233676013,
+                  5.261439702420734
+                ],
+                "axisU": [
+                  0.887359587445021,
+                  -6.938893903907228e-18,
+                  0.46107804390298446
+                ],
+                "axisV": [
+                  -0.03553527027960411,
+                  0.9970256867146376,
+                  0.0683887753755015
+                ],
+                "residual": 0.019325071264482085,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--closeboard/garden-fence.part6.png",
+              "plane": {
+                "normal": [
+                  -0.8239832179843504,
+                  -0.3758611493862718,
+                  -0.4240047792916786
+                ],
+                "origin": [
+                  -3.6062988115070214,
+                  -0.810234018071866,
+                  16.578598879713006
+                ],
+                "axisU": [
+                  0.45755450923609853,
+                  0,
+                  -0.8891815737394209
+                ],
+                "axisV": [
+                  -0.3342088083187926,
+                  0.9266759932047611,
+                  -0.17197696374835145
+                ],
+                "residual": 0.16597872047035192,
+                "intrinsics": {
+                  "fx": 0.904095205508857,
+                  "fy": 1.1150507534609237,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--closeboard/garden-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:48:50.535Z"
+        }
+      }
+    },
+    "fence--picket": {
+      "rect": {
+        "x": 55,
+        "y": 540,
+        "w": 1545,
+        "h": 465
+      },
+      "patch": "/scenes/fencing/styles/fence--picket/patch.webp?v=mvo4gjrx",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the fence style inside the masked area with a classic picket fence with pointed vertical pickets and even gaps showing the garden behind. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T17:49:01.341Z",
+      "items": {
+        "front-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/front-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.35971443576421097,
+                  0.08659483395395098,
+                  -0.9290354457367722
+                ],
+                "origin": [
+                  1.3874696225124648,
+                  -0.07412124918448948,
+                  5.510902060587213
+                ],
+                "axisU": [
+                  0.9325384217419078,
+                  -3.4694469519536134e-18,
+                  0.36107075757406787
+                ],
+                "axisV": [
+                  -0.0312668622977537,
+                  0.9962436121413716,
+                  0.08075300978642004
+                ],
+                "residual": 0.03145286075987001,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/front-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8888260794954103,
+                  0.010396025492989626,
+                  -0.4581267543625536
+                ],
+                "origin": [
+                  -0.7420814425275354,
+                  -0.09905268064382777,
+                  9.94317606563354
+                ],
+                "axisU": [
+                  0.4581515129313352,
+                  -8.673617379884035e-19,
+                  -0.8888741143709431
+                ],
+                "axisV": [
+                  0.009240757953058901,
+                  0.9999459598668066,
+                  0.004762954808085927
+                ],
+                "residual": 0.02897855545290477,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/front-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.37544547424449526,
+                  0.07290971843004646,
+                  -0.9239723312024972
+                ],
+                "origin": [
+                  1.3932495026078793,
+                  -0.07752497908409306,
+                  5.495140977741263
+                ],
+                "axisU": [
+                  0.9264380044400786,
+                  3.469446951953615e-18,
+                  0.37644737205761586
+                ],
+                "axisV": [
+                  -0.0274466719004517,
+                  0.9973385448073544,
+                  0.06754633404662023
+                ],
+                "residual": 0.0325506434978164,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/front-fence.part3.png",
+              "plane": {
+                "normal": [
+                  -0.887931693787881,
+                  0.012510392216907097,
+                  -0.4598051731478931
+                ],
+                "origin": [
+                  -0.25803291595014777,
+                  -0.09900885290480121,
+                  8.983092029451916
+                ],
+                "axisU": [
+                  0.4598411594060227,
+                  0,
+                  -0.8880011870015292
+                ],
+                "axisV": [
+                  0.011109243138468193,
+                  0.9999217419811308,
+                  0.005752793261646642
+                ],
+                "residual": 0.031303232404043736,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/front-fence.part4.png",
+              "plane": {
+                "normal": [
+                  0.36769428872050847,
+                  0.07898022983104606,
+                  -0.926586765142992
+                ],
+                "origin": [
+                  1.388817321391869,
+                  -0.07539830114270507,
+                  5.506713985771356
+                ],
+                "axisU": [
+                  0.9294903232528492,
+                  -3.469446951953616e-18,
+                  0.36884649785420776
+                ],
+                "axisV": [
+                  -0.02913158117290176,
+                  0.996876182530125,
+                  0.07341135935624332
+                ],
+                "residual": 0.03294610153060393,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--picket/front-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:50:13.465Z"
+        },
+        "garden-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/garden-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.30212769314297344,
+                  -0.23357978993622888,
+                  -0.924207411120173
+                ],
+                "origin": [
+                  -7.927323385378553,
+                  -1.0185910167140229,
+                  16.491040382500653
+                ],
+                "axisU": [
+                  0.9505005003037502,
+                  0,
+                  0.3107230260574849
+                ],
+                "axisV": [
+                  0.0725786191548567,
+                  0.97233763772331,
+                  -0.22201770719523042
+                ],
+                "residual": 0.08829089975703956,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/garden-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.9064204526121734,
+                  -0.0720763354022977,
+                  -0.4161814087165813
+                ],
+                "origin": [
+                  -3.9893513593565064,
+                  -0.9163506199985231,
+                  17.628053227104232
+                ],
+                "axisU": [
+                  0.41726666981793264,
+                  0,
+                  -0.9087840922128052
+                ],
+                "axisV": [
+                  -0.06550182703860279,
+                  0.9973991186455778,
+                  -0.030075052445997123
+                ],
+                "residual": 0.050691261652848235,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/garden-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.32023091678492943,
+                  -0.18720113353142875,
+                  -0.9286591923518722
+                ],
+                "origin": [
+                  -7.873477172678913,
+                  -0.9945755398350595,
+                  16.410488311721693
+                ],
+                "axisU": [
+                  0.9453718493482953,
+                  0,
+                  0.3259939669070336
+                ],
+                "axisV": [
+                  0.06102644012940375,
+                  0.9823216049769791,
+                  -0.17697468180670395
+                ],
+                "residual": 0.0790241800666841,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/garden-fence.part3.png",
+              "plane": {
+                "normal": [
+                  -0.9077891539975682,
+                  -0.06348662566806595,
+                  -0.41459413918392796
+                ],
+                "origin": [
+                  -3.9270571534757996,
+                  -0.9145352021588028,
+                  17.496545748922824
+                ],
+                "axisU": [
+                  0.4154321949503811,
+                  0,
+                  -0.909624148425441
+                ],
+                "axisV": [
+                  -0.05774896780971923,
+                  0.9979826894096323,
+                  -0.026374388251277834
+                ],
+                "residual": 0.04795085436286687,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--picket/garden-fence.part4.png",
+              "plane": {
+                "normal": [
+                  -0.7976100431951061,
+                  -0.4495967754485202,
+                  -0.4020957081350081
+                ],
+                "origin": [
+                  -3.9819137545536036,
+                  -0.935852120143562,
+                  18.187528824272796
+                ],
+                "axisU": [
+                  0.4501583866629432,
+                  0,
+                  -0.8929487258051361
+                ],
+                "axisV": [
+                  -0.40146686776285395,
+                  0.8932316270185986,
+                  -0.20238975908476736
+                ],
+                "residual": 0.17814857915803112,
+                "intrinsics": {
+                  "fx": 0.9541687774761433,
+                  "fy": 1.1768081588872434,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--picket/garden-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:50:26.565Z"
+        }
+      }
+    },
+    "fence--lattice-top": {
+      "rect": {
+        "x": 55,
+        "y": 540,
+        "w": 1545,
+        "h": 465
+      },
+      "patch": "/scenes/fencing/styles/fence--lattice-top/patch.webp?v=mvo4ilfg",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the fence style inside the masked area with a solid vertical-board fence topped with a 30 cm diagonal lattice trellis panel. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T17:50:36.796Z",
+      "items": {
+        "front-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/front-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.43594820169368825,
+                  0.02672640002360317,
+                  -0.8995748245598125
+                ],
+                "origin": [
+                  1.5065974992760123,
+                  -0.09490466430788957,
+                  6.12292928921032
+                ],
+                "axisU": [
+                  0.8998962801366605,
+                  0,
+                  0.43610398415538604
+                ],
+                "axisV": [
+                  -0.011655489532423945,
+                  0.9996427859699576,
+                  0.024050987962684844
+                ],
+                "residual": 0.026670739071201068,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/front-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8881084809515893,
+                  0.06096055223677648,
+                  -0.4555734157442108
+                ],
+                "origin": [
+                  -0.11094694313007758,
+                  -0.15104681152651422,
+                  9.503771887138551
+                ],
+                "axisU": [
+                  0.4564222808274945,
+                  -3.469446951953616e-18,
+                  -0.8897632840054865
+                ],
+                "axisV": [
+                  0.05424046115298223,
+                  0.9981401760629551,
+                  0.027823754292413128
+                ],
+                "residual": 0.03501720661851654,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/front-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.4362388673331784,
+                  0.025440914979485946,
+                  -0.8994711837923839
+                ],
+                "origin": [
+                  1.506208016612421,
+                  -0.09604596349294581,
+                  6.123688378103843
+                ],
+                "axisU": [
+                  0.8997624121052101,
+                  0,
+                  0.4363801115571312
+                ],
+                "axisV": [
+                  -0.011101909316863567,
+                  0.9996763275405727,
+                  0.022890779028105844
+                ],
+                "residual": 0.026282774629530586,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--lattice-top/front-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:51:44.110Z"
+        },
+        "garden-fence": {
+          "parts": [
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part0.png",
+              "plane": {
+                "normal": [
+                  0.38986501005578644,
+                  -0.1881610739317016,
+                  -0.901443666676443
+                ],
+                "origin": [
+                  -7.860708989840098,
+                  -0.986452695538948,
+                  16.402505590631
+                ],
+                "axisU": [
+                  0.9178379197513662,
+                  0,
+                  0.39695535399649784
+                ],
+                "axisV": [
+                  0.0746915457109198,
+                  0.9821381828728931,
+                  -0.17270136867565597
+                ],
+                "residual": 0.06771296187544985,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part1.png",
+              "plane": {
+                "normal": [
+                  -0.8672079077087002,
+                  -0.046668287018289525,
+                  -0.4957544914514411
+                ],
+                "origin": [
+                  -4.282887791041305,
+                  -0.9635722186364771,
+                  18.292341200863635
+                ],
+                "axisU": [
+                  0.49629523393115993,
+                  0,
+                  -0.8681538117045938
+                ],
+                "axisV": [
+                  -0.04051525126065206,
+                  0.9989104419249898,
+                  -0.02316124842290851
+                ],
+                "residual": 0.03372272890285526,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part2.png",
+              "plane": {
+                "normal": [
+                  0.3913334912118337,
+                  -0.20152337654349917,
+                  -0.8979122603921081
+                ],
+                "origin": [
+                  -7.864833053518906,
+                  -0.9836419403751624,
+                  16.412658597092932
+                ],
+                "axisU": [
+                  0.9167199573066943,
+                  0,
+                  0.3995303741589771
+                ],
+                "axisV": [
+                  0.08051471003220469,
+                  0.9794837051766137,
+                  -0.1847405011412575
+                ],
+                "residual": 0.0700324479128704,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part3.png",
+              "plane": {
+                "normal": [
+                  -0.8666847411602493,
+                  -0.05311558687082958,
+                  -0.4960204571097437
+                ],
+                "origin": [
+                  -4.044550458896326,
+                  -0.9071033134189987,
+                  17.879198599244187
+                ],
+                "axisU": [
+                  0.49672164385305945,
+                  0,
+                  -0.8679099080710592
+                ],
+                "axisV": [
+                  -0.04609954411820206,
+                  0.9985883708672795,
+                  -0.026383661624698452
+                ],
+                "residual": 0.03466376882237261,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part4.png",
+              "plane": {
+                "normal": [
+                  0.4357755030653522,
+                  0.02454500638813278,
+                  -0.8997206530860264
+                ],
+                "origin": [
+                  1.5055622202482897,
+                  -0.09612409895666707,
+                  6.1250981996153095
+                ],
+                "axisU": [
+                  0.899991797261846,
+                  0,
+                  0.43590683048260737
+                ],
+                "axisV": [
+                  -0.010699335938826311,
+                  0.999698725947676,
+                  0.02209030441305911
+                ],
+                "residual": 0.026114937277876612,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/fencing/styles/fence--lattice-top/garden-fence.part5.png",
+              "plane": {
+                "normal": [
+                  -0.816745063363354,
+                  -0.40056245236317967,
+                  -0.415303772229902
+                ],
+                "origin": [
+                  -3.812179444006366,
+                  -0.846428746797958,
+                  18.413212881302314
+                ],
+                "axisU": [
+                  0.4532550638746493,
+                  0,
+                  -0.8913808653274916
+                ],
+                "axisV": [
+                  -0.3570537054051932,
+                  0.9162694591422305,
+                  -0.18155695993165918
+                ],
+                "residual": 0.18735146619849713,
+                "intrinsics": {
+                  "fx": 0.9522839112558611,
+                  "fy": 1.1744834905488952,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/fencing/styles/fence--lattice-top/garden-fence.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T17:51:57.271Z"
+        }
+      }
+    }
+  },
+  "kitchen": {
+    "kitchen-doors--slab": {
+      "rect": {
+        "x": 0,
+        "y": 115,
+        "w": 1344,
+        "h": 730
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-doors--slab/patch.webp?v=mvo5h6bc",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the door style inside the masked area with flat slab cabinet doors and drawer fronts with no frame or panel, thin shadow gaps between doors, keep the same handles. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:17:30.168Z",
+      "items": {
+        "wall-cabinets": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--slab/wall-cabinets.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 12.5,
+                      "yPct": 14.691943127962084
+                    },
+                    {
+                      "xPct": 86.5625,
+                      "yPct": 14.691943127962084
+                    },
+                    {
+                      "xPct": 86.5625,
+                      "yPct": 44.07582938388626
+                    },
+                    {
+                      "xPct": 12.5,
+                      "yPct": 44.07582938388626
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/wall-cabinets.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:18:31.561Z"
+        },
+        "tall-units": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--slab/tall-units.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 0.3125,
+                      "yPct": 13.744075829383887
+                    },
+                    {
+                      "xPct": 99.6875,
+                      "yPct": 13.744075829383887
+                    },
+                    {
+                      "xPct": 99.6875,
+                      "yPct": 79.14691943127961
+                    },
+                    {
+                      "xPct": 0.3125,
+                      "yPct": 79.14691943127961
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/tall-units.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:18:32.191Z"
+        },
+        "base-cabinets": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--slab/base-cabinets.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 11.5625,
+                      "yPct": 56.39810426540285
+                    },
+                    {
+                      "xPct": 87.5,
+                      "yPct": 56.39810426540285
+                    },
+                    {
+                      "xPct": 87.5,
+                      "yPct": 60.18957345971564
+                    },
+                    {
+                      "xPct": 11.5625,
+                      "yPct": 60.18957345971564
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/base-cabinets.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:18:35.329Z"
+        },
+        "island": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--slab/island.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 18.4375,
+                      "yPct": 62.55924170616114
+                    },
+                    {
+                      "xPct": 80.625,
+                      "yPct": 62.55924170616114
+                    },
+                    {
+                      "xPct": 80.625,
+                      "yPct": 94.3127962085308
+                    },
+                    {
+                      "xPct": 18.4375,
+                      "yPct": 94.3127962085308
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/island.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:18:36.006Z"
+        }
+      }
+    },
+    "kitchen-doors--fluted": {
+      "rect": {
+        "x": 0,
+        "y": 115,
+        "w": 1344,
+        "h": 730
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-doors--fluted/patch.webp?v=mvo5isev",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the door style inside the masked area with cabinet doors with fine vertical fluted reeding across the whole front, drawer fronts plain, keep the same handles. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:18:45.463Z",
+      "items": {
+        "wall-cabinets": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--fluted/wall-cabinets.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 12.5,
+                      "yPct": 14.691943127962084
+                    },
+                    {
+                      "xPct": 86.5625,
+                      "yPct": 14.691943127962084
+                    },
+                    {
+                      "xPct": 86.5625,
+                      "yPct": 44.07582938388626
+                    },
+                    {
+                      "xPct": 12.5,
+                      "yPct": 44.07582938388626
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--fluted/wall-cabinets.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:19:30.604Z"
+        },
+        "tall-units": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--fluted/tall-units.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 0.3125,
+                      "yPct": 13.744075829383887
+                    },
+                    {
+                      "xPct": 99.6875,
+                      "yPct": 13.744075829383887
+                    },
+                    {
+                      "xPct": 99.6875,
+                      "yPct": 79.14691943127961
+                    },
+                    {
+                      "xPct": 0.3125,
+                      "yPct": 79.14691943127961
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--fluted/tall-units.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:19:31.222Z"
+        },
+        "base-cabinets": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--fluted/base-cabinets.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 10.625,
+                      "yPct": 55.92417061611374
+                    },
+                    {
+                      "xPct": 88.4375,
+                      "yPct": 55.92417061611374
+                    },
+                    {
+                      "xPct": 88.4375,
+                      "yPct": 59.71563981042654
+                    },
+                    {
+                      "xPct": 10.625,
+                      "yPct": 59.71563981042654
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--fluted/base-cabinets.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:19:34.477Z"
+        },
+        "island": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-doors--fluted/island.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 18.75,
+                      "yPct": 63.507109004739334
+                    },
+                    {
+                      "xPct": 80.3125,
+                      "yPct": 63.507109004739334
+                    },
+                    {
+                      "xPct": 80.3125,
+                      "yPct": 94.7867298578199
+                    },
+                    {
+                      "xPct": 18.75,
+                      "yPct": 94.7867298578199
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-doors--fluted/island.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:19:35.092Z"
+        }
+      }
+    },
+    "kitchen-worktop--thick-stone": {
+      "rect": {
+        "x": 126,
+        "y": 482,
+        "w": 1069,
+        "h": 84
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-worktop--thick-stone/patch.webp?v=mvo5k07z",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the worktop inside the masked area with a 40 mm thick stone worktop with a square edge in place of the timber worktop. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:19:42.239Z",
+      "items": {
+        "worktop": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-worktop--thick-stone/worktop.part0.png",
+              "plane": {
+                "normal": [
+                  0.0181389988613452,
+                  -0.9998048316108149,
+                  0.00782786100911557
+                ],
+                "origin": [
+                  -0.8731189704237378,
+                  0.2930324960496751,
+                  4.944318985444626
+                ],
+                "axisU": [
+                  0.999835464743093,
+                  0.01813955462416405,
+                  2.7105054312137617e-20
+                ],
+                "axisV": [
+                  0.00014199391236521577,
+                  -0.007826573049993402,
+                  -0.9999693618266621
+                ],
+                "residual": 0.02019342760047894,
+                "intrinsics": {
+                  "fx": 0.8859139618967916,
+                  "fy": 1.365784024590887,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-worktop--thick-stone/worktop.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:20:45.902Z"
+        }
+      }
+    },
+    "kitchen-splashback--herringbone-tile": {
+      "rect": {
+        "x": 171,
+        "y": 316,
+        "w": 985,
+        "h": 181
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-splashback--herringbone-tile/patch.webp?v=mvo5lj06",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the splashback inside the masked area with a herringbone pattern of small rectangular tiles with thin grout lines. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:20:53.238Z",
+      "items": {
+        "splashback": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-splashback--herringbone-tile/splashback.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 54.502369668246445
+                    },
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 54.502369668246445
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-splashback--herringbone-tile/splashback.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:21:37.605Z"
+        }
+      }
+    },
+    "kitchen-splashback--zellige": {
+      "rect": {
+        "x": 171,
+        "y": 316,
+        "w": 985,
+        "h": 181
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-splashback--zellige/patch.webp?v=mvo5mmso",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the splashback inside the masked area with handmade square zellige tiles with uneven glaze and soft edges. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:21:44.808Z",
+      "items": {
+        "splashback": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-splashback--zellige/splashback.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 54.502369668246445
+                    },
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 54.502369668246445
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-splashback--zellige/splashback.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:22:39.378Z"
+        }
+      }
+    },
+    "kitchen-splashback--full-slab": {
+      "rect": {
+        "x": 171,
+        "y": 316,
+        "w": 985,
+        "h": 181
+      },
+      "patch": "/scenes/kitchen/styles/kitchen-splashback--full-slab/patch.webp?v=mvo5nyt9",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the splashback inside the masked area with a single seamless stone slab splashback with no grout lines. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:22:47.037Z",
+      "items": {
+        "splashback": {
+          "parts": [
+            {
+              "mask": "/scenes/kitchen/styles/kitchen-splashback--full-slab/splashback.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 43.60189573459716
+                    },
+                    {
+                      "xPct": 85,
+                      "yPct": 54.502369668246445
+                    },
+                    {
+                      "xPct": 13.750000000000002,
+                      "yPct": 54.502369668246445
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/kitchen/styles/kitchen-splashback--full-slab/splashback.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:23:34.244Z"
+        }
+      }
+    }
+  },
+  "media-wall": {
+    "media-panel--wide-slats": {
+      "rect": {
+        "x": 498,
+        "y": 42,
+        "w": 399,
+        "h": 1107
+      },
+      "patch": "/scenes/media-wall/styles/media-panel--wide-slats/patch.webp?v=mvo5p5uu",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the feature wall inside the masked area with wide 60 mm vertical timber slats with deep shadow gaps. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:23:42.822Z",
+      "items": {
+        "feature-panel": {
+          "parts": [
+            {
+              "mask": "/scenes/media-wall/styles/media-panel--wide-slats/feature-panel.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 3.90625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 3.90625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 89.453125
+                    },
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 89.453125
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/media-wall/styles/media-panel--wide-slats/feature-panel.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:24:55.897Z"
+        }
+      }
+    },
+    "media-panel--stone-slab": {
+      "rect": {
+        "x": 498,
+        "y": 42,
+        "w": 399,
+        "h": 1107
+      },
+      "patch": "/scenes/media-wall/styles/media-panel--stone-slab/patch.webp?v=mvo5qxp3",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the feature wall inside the masked area with one large book-matched stone slab panel with a flush edge. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:25:05.559Z",
+      "items": {
+        "feature-panel": {
+          "parts": [
+            {
+              "mask": "/scenes/media-wall/styles/media-panel--stone-slab/feature-panel.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 3.90625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 3.90625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 89.453125
+                    },
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 89.453125
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/media-wall/styles/media-panel--stone-slab/feature-panel.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:26:25.031Z"
+        }
+      }
+    },
+    "media-panel--panelled": {
+      "rect": {
+        "x": 498,
+        "y": 42,
+        "w": 399,
+        "h": 1107
+      },
+      "patch": "/scenes/media-wall/styles/media-panel--panelled/patch.webp?v=mvo5stya",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the feature wall inside the masked area with a flat wall with a grid of shallow rectangular wall panelling mouldings. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:26:34.018Z",
+      "items": {
+        "feature-panel": {
+          "parts": [
+            {
+              "mask": "/scenes/media-wall/styles/media-panel--panelled/feature-panel.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 3.515625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 3.515625
+                    },
+                    {
+                      "xPct": 55.3125,
+                      "yPct": 89.453125
+                    },
+                    {
+                      "xPct": 31.874999999999996,
+                      "yPct": 89.453125
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/media-wall/styles/media-panel--panelled/feature-panel.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:27:28.772Z"
+        }
+      }
+    }
+  },
+  "wardrobe": {
+    "wardrobe-doors--slab": {
+      "rect": {
+        "x": 289,
+        "y": 70,
+        "w": 1005,
+        "h": 819
+      },
+      "patch": "/scenes/wardrobe/styles/wardrobe-doors--slab/patch.webp?v=mvo5u8v6",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the door style inside the masked area with flat slab wardrobe doors with no frame or panel, keep the two mirrors and the bar handles. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:27:40.002Z",
+      "items": {
+        "doors": {
+          "parts": [
+            {
+              "mask": "/scenes/wardrobe/styles/wardrobe-doors--slab/doors.part0.png",
+              "plane": {
+                "normal": [
+                  0.01551275509237348,
+                  0.018325868739584483,
+                  -0.9997117169286271
+                ],
+                "origin": [
+                  -0.4125018255225058,
+                  -0.8103804080537746,
+                  2.976722399512573
+                ],
+                "axisU": [
+                  0.9998796295477246,
+                  0,
+                  0.01551536063084309
+                ],
+                "axisV": [
+                  -0.0002843324623681472,
+                  0.9998320671667515,
+                  0.01832366284647596
+                ],
+                "residual": 0.013857924702104339,
+                "intrinsics": {
+                  "fx": 0.7223898875832452,
+                  "fy": 1.069137033623203,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/wardrobe/styles/wardrobe-doors--slab/doors.part1.png",
+              "plane": {
+                "normal": [
+                  0.013592480914679034,
+                  -0.08336099050728502,
+                  -0.996426710663774
+                ],
+                "origin": [
+                  0.47399105803408625,
+                  -0.6394622201578243,
+                  3.1835000816663133
+                ],
+                "axisU": [
+                  0.9999069714738881,
+                  0,
+                  0.01363995593530355
+                ],
+                "axisV": [
+                  0.001137040237242625,
+                  0.99651941539623,
+                  -0.08335323555720288
+                ],
+                "residual": 0.019169367213279456,
+                "intrinsics": {
+                  "fx": 0.7223898875832452,
+                  "fy": 1.069137033623203,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/wardrobe/styles/wardrobe-doors--slab/doors.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:28:23.367Z"
+        }
+      }
+    },
+    "wardrobe-doors--shaker": {
+      "rect": {
+        "x": 289,
+        "y": 70,
+        "w": 1005,
+        "h": 819
+      },
+      "patch": "/scenes/wardrobe/styles/wardrobe-doors--shaker/patch.webp?v=mvo5vdjf",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the door style inside the masked area with shaker-style wardrobe doors with a recessed centre panel and simple frame, keep the two mirrors and the bar handles. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:28:32.715Z",
+      "items": {
+        "doors": {
+          "parts": [
+            {
+              "mask": "/scenes/wardrobe/styles/wardrobe-doors--shaker/doors.part0.png",
+              "plane": {
+                "normal": [
+                  0.013375122191519758,
+                  -0.14511071551002724,
+                  -0.9893250155285319
+                ],
+                "origin": [
+                  -1.3549158800833512,
+                  -0.6785092880871301,
+                  3.439658714358565
+                ],
+                "axisU": [
+                  0.9999086248693113,
+                  -2.168404344971009e-19,
+                  0.01351820668441981
+                ],
+                "axisV": [
+                  0.0019616366443885916,
+                  0.9894154234921587,
+                  -0.1450974559994332
+                ],
+                "residual": 0.016400195986277268,
+                "intrinsics": {
+                  "fx": 0.7235720030986234,
+                  "fy": 1.0708865645859624,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            },
+            {
+              "mask": "/scenes/wardrobe/styles/wardrobe-doors--shaker/doors.part1.png",
+              "plane": {
+                "normal": [
+                  0.014579003615570617,
+                  0.01430830024544766,
+                  -0.999791340829507
+                ],
+                "origin": [
+                  -1.3580511343779256,
+                  -0.7554131391472406,
+                  3.1790076770025406
+                ],
+                "axisU": [
+                  0.9998936989152344,
+                  -2.7105054312137617e-20,
+                  0.014580496205915183
+                ],
+                "axisV": [
+                  -0.00020862211744184482,
+                  0.9998976310323401,
+                  0.014306779257610414
+                ],
+                "residual": 0.015062699745889972,
+                "intrinsics": {
+                  "fx": 0.7235720030986234,
+                  "fy": 1.0708865645859624,
+                  "cx": 0.5,
+                  "cy": 0.5
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/wardrobe/styles/wardrobe-doors--shaker/doors.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:29:17.477Z"
+        }
+      }
+    }
+  },
+  "cabinet": {
+    "sideboard-fronts--fluted": {
+      "rect": {
+        "x": 334,
+        "y": 322,
+        "w": 768,
+        "h": 442
+      },
+      "patch": "/scenes/cabinet/styles/sideboard-fronts--fluted/patch.webp?v=mvo5wjbv",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the front style inside the masked area with fine vertical fluted reeding across all sideboard doors and drawer fronts, keep the open niche. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:29:26.875Z",
+      "items": {
+        "sideboard": {
+          "parts": [
+            {
+              "mask": "/scenes/cabinet/styles/sideboard-fronts--fluted/sideboard.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 22.1875,
+                      "yPct": 30.985915492957744
+                    },
+                    {
+                      "xPct": 67.8125,
+                      "yPct": 30.985915492957744
+                    },
+                    {
+                      "xPct": 67.8125,
+                      "yPct": 70.89201877934272
+                    },
+                    {
+                      "xPct": 22.1875,
+                      "yPct": 70.89201877934272
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/cabinet/styles/sideboard-fronts--fluted/sideboard.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:30:16.243Z"
+        }
+      }
+    },
+    "sideboard-fronts--cane": {
+      "rect": {
+        "x": 334,
+        "y": 322,
+        "w": 768,
+        "h": 442
+      },
+      "patch": "/scenes/cabinet/styles/sideboard-fronts--cane/patch.webp?v=mvo5xsok",
+      "provider": "gemini",
+      "prompt": "Edit this photo: replace only the front style inside the masked area with sideboard doors with woven rattan cane panels set in a slim frame, keep the open niche. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
+      "createdAt": "2026-10-25T18:30:25.652Z",
+      "items": {
+        "sideboard": {
+          "parts": [
+            {
+              "mask": "/scenes/cabinet/styles/sideboard-fronts--cane/sideboard.part0.png",
+              "plane": {
+                "homographyFallback": {
+                  "corners": [
+                    {
+                      "xPct": 21.875,
+                      "yPct": 30.985915492957744
+                    },
+                    {
+                      "xPct": 67.8125,
+                      "yPct": 30.985915492957744
+                    },
+                    {
+                      "xPct": 67.8125,
+                      "yPct": 71.36150234741784
+                    },
+                    {
+                      "xPct": 21.875,
+                      "yPct": 71.36150234741784
+                    }
+                  ],
+                  "heightMm": 2700
+                }
+              }
+            }
+          ],
+          "occluder": "/scenes/cabinet/styles/sideboard-fronts--cane/sideboard.occluder.png",
+          "confidence": 1,
+          "edited": false,
+          "bakedAt": "2026-10-25T18:31:15.733Z"
+        }
+      }
+    }
+  }
+}

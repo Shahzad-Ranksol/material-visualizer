@@ -3,6 +3,7 @@ import { autoFitPlane, planeKindFor, Mat3 } from '../planeGeometry';
 import { hexToLinear } from './colorSpace';
 import { recoverLighting } from './lightingRecovery';
 import { canvas2d, loadImage, prepareAlbedo } from './materialPreprocess';
+import { meanLinear, recolorSurface } from './recolor';
 import { buildSurfaceMapping, defaultIntrinsics, SurfaceMapping } from './surfaceMapping';
 import { createTexture, deleteTexture, drawPass, getMaterialGL, UniformValue } from './webglContext';
 import { MIN_RENDER_PIXELS } from '../areaMaskOps';
@@ -217,6 +218,13 @@ export const renderMaterial = async (
           out[p + 1] = out[p + 1] * (1 - a - o) + 191 * a + 211 * o;
           out[p + 2] = out[p + 2] * (1 - a - o) + 36 * a + 238 * o;
         }
+        continue;
+      }
+
+      if (layer.surface.recolor) {
+        const albedo = await prepareAlbedo(layer.material);
+        const px = albedo.canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, albedo.canvas.width, albedo.canvas.height).data;
+        recolorSurface(original.data, out, mask.values, occluder, meanLinear(px));
         continue;
       }
 

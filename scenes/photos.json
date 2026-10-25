@@ -1,0 +1,36 @@
+[
+  {
+    "id": "kitchen",
+    "file": "photo.png",
+    "source": "client",
+    "credit": "Client render"
+  },
+  {
+    "id": "fencing",
+    "url": "https://images.unsplash.com/photo-1691821331552-ab4f12500a24?w=1600&q=85&fm=jpg&fit=max",
+    "source": "unsplash",
+    "unsplashId": "JLdl9Bq8eGU",
+    "credit": "Jacob Walsh (https://unsplash.com/@jacobwalsh)"
+  },
+  {
+    "id": "media-wall",
+    "url": "https://images.unsplash.com/photo-1667510436110-79d3dabc2008?w=1600&q=85&fm=jpg&fit=max",
+    "source": "unsplash",
+    "unsplashId": "j1nfRWfkWt0",
+    "credit": "mahmoud azmy (https://unsplash.com/@mahmoud_azmy)"
+  },
+  {
+    "id": "cabinet",
+    "url": "https://images.unsplash.com/photo-1604062528260-81f48c656cd7?w=1600&q=85&fm=jpg&fit=max",
+    "source": "unsplash",
+    "unsplashId": "PpRA48VFpmk",
+    "credit": "Pickawood (https://unsplash.com/@pickawood)"
+  },
+  {
+    "id": "wardrobe",
+    "url": "https://images.unsplash.com/photo-1722349674028-a148f4364e43?w=1600&q=85&fm=jpg&fit=max",
+    "source": "unsplash",
+    "unsplashId": "6Y3avYzs6os",
+    "credit": "Lisa Anna (https://unsplash.com/@lisaanna195)"
+  }
+]

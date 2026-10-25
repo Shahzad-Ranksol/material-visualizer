@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Material Visualizer</title>
-    <meta name="description" content="An AI-powered interior design tool that allows users to upload a room image, detect items, and apply various materials and textures to selected elements using Gemini API for visual enhancements.">
+    <title>Finish Studio</title>
+    <meta name="description" content="Try real finishes on kitchens, fencing, media walls, cabinets and wardrobes.">
     <meta property="og:title" content="Material Visualizer">
-    <meta property="og:description" content="An AI-powered interior design tool that allows users to upload a room image, detect items, and apply various materials and textures to selected elements using Gemini API for visual enhancements.">
+    <meta property="og:description" content="Try real finishes on kitchens, fencing, media walls, cabinets and wardrobes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@500;600;700&family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -19,8 +19,13 @@
               sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
               serif: ['"Playfair Display"', 'Georgia', 'serif'],
               display: ['"Cinzel"', 'serif'],
+              grotesk: ['"Familjen Grotesk"', 'system-ui', 'sans-serif'],
             },
             colors: {
+              // The preset-scene studio: plaster ground, spruce ink, brass hardware for selection
+              plaster: '#e3e6e2',
+              spruce: { DEFAULT: '#1e2b29', soft: '#5e6a67' },
+              brass: { DEFAULT: '#a9824a', light: '#d9c39c' },
               atelier: {
                 950: '#0b0c10',
                 900: '#12141c',
@@ -44,12 +49,13 @@
   "imports": {
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/"
   }
 }
 </script>
 <style>
+  /* Design-style reveal: a soft light passes across the changed area */
+  @keyframes style-sweep { from { left: -50%; opacity: 1; } to { left: 110%; opacity: 0.6; } }
   body {
     background-color: #0b0c10;
     color: #e2e8f0;

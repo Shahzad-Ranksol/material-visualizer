@@ -24,7 +24,20 @@
     "fabric_pattern_05": {
       "colorKey": "col_01"
     },
-    "painted_plaster_wall": {}
+    "painted_plaster_wall": {},
+    "oak_veneer_01": {},
+    "smoked_walnut_veneer": {},
+    "american_walnut_veneer": {},
+    "ash_veneer": {},
+    "washed_grey_oak_veneer": {},
+    "white_maple_veneer": {},
+    "teak_veneer": {},
+    "japanese_cedar_planks": {},
+    "wood_planks_grey": {},
+    "black_painted_planks": {},
+    "stained_pine": {},
+    "blue_painted_planks": {},
+    "brushed_concrete": {}
   },
   "models": {
     "Xenova/segformer-b2-finetuned-ade-512-512": [

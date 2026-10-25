@@ -13,10 +13,12 @@
     "validation:score": "VALIDATION=1 playwright test tests/e2e/validation-score.spec.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "scenes:fetch": "node scripts/fetchScenes.mjs",
+    "scenes:bake": "BAKE=1 playwright test tests/e2e/scene-bake.spec.ts",
+    "materials:build": "node scripts/buildStudioTextures.mjs"
   },
   "dependencies": {
-    "@google/genai": "^1.32.0",
     "@huggingface/transformers": "^4.3.0",
     "lucide-react": "^1.47.0",
     "react": "^19.2.1",

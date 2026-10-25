@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/((?!scenes/|materials/|finishes/|assets/).*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/(scenes|materials|finishes)/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+    }
+  ]
+}

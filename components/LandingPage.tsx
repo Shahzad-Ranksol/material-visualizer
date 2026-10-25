@@ -1,61 +1,56 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { SCENES } from '../scenes/scenes';
+import { STUDIO_MATERIALS } from '../scenes/materials';
+import { Ambient } from './studio/Ambient';
 
+/** Front door: the five scenes, each opening the studio on that scene. */
 export const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
-
+  const [first, ...rest] = SCENES;
+  const finishes = (id: string) => STUDIO_MATERIALS.filter((m) => m.collection === id).length;
   return (
-    <div className="min-h-screen bg-[#0b0c10] text-slate-100 font-sans flex flex-col">
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="max-w-lg w-full text-center space-y-8">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 p-[1px] shadow-lg shadow-amber-500/10">
-              <div className="w-full h-full rounded-[15px] bg-[#12141c] flex items-center justify-center text-amber-300 font-serif font-bold text-xl tracking-wider">
-                MV
-              </div>
-            </div>
-            <div>
-              <h1 className="text-2xl font-serif font-semibold tracking-wide text-white">
-                Material Visualizer
-              </h1>
-              <p className="text-[11px] text-slate-400 tracking-wider uppercase font-sans mt-1">
-                Architectural Studio &bull; API-Free Rendering
-              </p>
-            </div>
-          </div>
+    <div className="relative min-h-screen font-grotesk text-[#f4efe6]">
+      <Ambient src={first.photo} />
+      <header className="mx-auto flex max-w-[1440px] items-center justify-between px-4 pt-6 sm:px-8">
+        <span className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#e6c88f] to-[#a9824a] text-xs font-black text-[#1c1915]">F</span>
+          Finish Studio
+        </span>
+        <Link to="/studio" className="rounded-full bg-gradient-to-b from-[#e6c88f] to-[#c49a5c] px-5 py-2 text-sm font-semibold text-[#1c1915] shadow-[0_8px_24px_-8px_rgba(217,183,122,0.7)] hover:brightness-105">
+          Open the studio
+        </Link>
+      </header>
 
-          <p className="text-sm text-slate-400 leading-relaxed">
-            A generic showroom platform for tile, carpet, sheet, wallpaper, paint, and other material vendors.
-            Build a catalog, place interactive hotspots on a room photo, and publish a public showroom —
-            no rendering API costs, ever.
-          </p>
+      <main className="mx-auto max-w-[1440px] px-4 pb-16 sm:px-8">
+        <h1 className="mt-12 max-w-4xl text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-7xl lg:text-8xl">Try the finish before it's fitted.</h1>
+        <p className="mt-6 max-w-xl text-lg text-[#a39e94]">
+          Pick a scene, click the cabinets, worktop or fence, and see real veneers, lacquers, stone and timber on them in seconds.
+        </p>
 
-          <div className="flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/studio')}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 text-xs font-semibold uppercase tracking-wider hover:brightness-110 active:scale-[0.99] transition-all shadow-xl shadow-amber-500/20"
-            >
-              <Sparkles className="w-4 h-4" />
-              Vendor Sign In / Sign Up
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/admin')}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              Admin Login
-            </button>
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
+          <SceneTile scene={first} finishes={finishes(first.id)} large />
+          <div className="grid gap-4 sm:grid-cols-2">
+            {rest.map((s) => (
+              <SceneTile key={s.id} scene={s} finishes={finishes(s.id)} />
+            ))}
           </div>
         </div>
       </main>
-
-      <footer className="border-t border-white/[0.06] py-5 px-6 text-center text-slate-600 text-[10px] font-sans">
-        &copy; {new Date().getFullYear()} Material Visualizer
-      </footer>
     </div>
   );
 };
+
+const SceneTile: React.FC<{ scene: (typeof SCENES)[number]; finishes: number; large?: boolean }> = ({ scene, finishes, large }) => (
+  <Link
+    to={`/studio?scene=${scene.id}`}
+    className={`group relative block overflow-hidden rounded-[22px] bg-black/30 shadow-[0_30px_70px_-25px_rgba(0,0,0,0.9)] ring-1 ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d9b77a] ${large ? 'aspect-[4/3] lg:aspect-auto lg:h-full' : 'aspect-[4/3]'}`}
+  >
+    <img src={large ? scene.photo : scene.thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5 pt-16 text-white">
+      <span className={`block font-semibold tracking-tight ${large ? 'text-4xl' : 'text-2xl'}`}>{scene.title}</span>
+      <span className="mt-1 block text-sm text-white/80">
+        {scene.items.length} items to re-finish, {finishes} finishes
+      </span>
+    </div>
+  </Link>
+);

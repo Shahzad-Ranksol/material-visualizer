@@ -118,6 +118,9 @@ export interface RenderableSurface {
   occluderMask?: MaskSource | null;
   plane?: SurfaceGeometry | null;
   calibration?: SurfaceCalibration | null;
+  // Recolour the surface instead of texturing it: for an AI-designed item whose own structure
+  // (slats, panels, grain) is the design (services/renderer/recolor.ts)
+  recolor?: boolean;
 }
 
 export type RenderMode = 'exact' | 'studio';

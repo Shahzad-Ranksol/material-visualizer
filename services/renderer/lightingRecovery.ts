@@ -26,6 +26,11 @@ const NEUTRAL_CHROMA = 0.22;
 const NORMAL_EXPOSURE_LUMINANCE = 0.45;
 // Fine shading kept from the original surface (1 = all of it)
 const DETAIL_STRENGTH = 0.85;
+// Fine variation weaker than this (relative brightness) is the old surface's own texture — wood
+// grain, a paint's mottling — not light, and is dropped: carried over it prints through the new
+// finish like paint brushed over wood. Groove and corner shadows, handles and cast shadows are
+// stronger and stay (less this amount, so they fade in smoothly)
+const DETAIL_TEXTURE_THRESHOLD = 0.2;
 
 export const recoverLighting = (
   room: Uint8ClampedArray,
@@ -168,9 +173,16 @@ export const recoverLighting = (
       }
       const lowLum = luminance(low[0], low[1], low[2]);
       const pixLum = luminance(lin[i * 3], lin[i * 3 + 1], lin[i * 3 + 2]);
-      const detail = 1 + (Math.min(1.2, Math.max(0.2, lowLum > 1e-5 ? pixLum / lowLum : 1)) - 1) * DETAIL_STRENGTH;
+      const raw = Math.min(1.2, Math.max(0.2, lowLum > 1e-5 ? pixLum / lowLum : 1)) - 1;
+      const shading = Math.sign(raw) * Math.max(0, Math.abs(raw) - DETAIL_TEXTURE_THRESHOLD);
+      const detail = 1 + shading * DETAIL_STRENGTH;
+      // Coloured old paint (a teal sideboard) says nothing about the light's colour, and dividing
+      // by its near-empty channels amplifies noise into coloured blotches: only how bright the
+      // light is carries over. Neutral paint keeps the per-channel ratio (the light's tint).
+      const lumRatio = avgLum > 1e-5 ? lowLum / avgLum : 1;
       for (let c = 0; c < 3; c++) {
-        const illum = (surfaceAverage[c] > 1e-5 ? low[c] / surfaceAverage[c] : 1) * lightTint[c] * exposure;
+        const ratio = neutral ? (surfaceAverage[c] > 1e-5 ? low[c] / surfaceAverage[c] : 1) : lumRatio;
+        const illum = ratio * lightTint[c] * exposure;
         texture[o + c] = Math.round(Math.min(1, Math.max(0, illum * 0.5)) * 255);
       }
       texture[o + 3] = Math.round(Math.min(1, detail * 0.5) * 255);
