@@ -36,11 +36,11 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, renderin
   const [shown, setShown] = useState<string | null>(renderUrl);
   const [incoming, setIncoming] = useState<string | null>(null);
   useEffect(() => {
-    if (renderUrl === shown) return;
+    // No look: the bare photo, and drop any look still on its way in
     if (!renderUrl) {
       setShown(null);
       setIncoming(null);
-    } else setIncoming(renderUrl);
+    } else if (renderUrl !== shown) setIncoming(renderUrl);
   }, [renderUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setSplit(50), [scene.id, compare]);

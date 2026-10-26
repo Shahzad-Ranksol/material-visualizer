@@ -153,6 +153,8 @@ describe('design styles catalogue', () => {
         const group = STYLE_GROUPS.find((g) => key.startsWith(`${g.id}--`) && g.sceneId === sceneId);
         expect(group, `${sceneId}/${key}`).toBeDefined();
         expect(fs.existsSync(file(bake.patch)), bake.patch).toBe(true);
+        // A style is only shown once every item of its group is baked on the new design
+        expect(Object.keys(bake.items).sort(), `${sceneId}/${key} items`).toEqual([...group!.itemIds].sort());
         for (const [itemId, item] of Object.entries(bake.items)) {
           expect(group!.itemIds).toContain(itemId);
           for (const p of item.parts) expect(fs.existsSync(file(p.mask)), p.mask).toBe(true);

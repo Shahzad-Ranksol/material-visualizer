@@ -113,3 +113,28 @@ test('swap a design style, finish it, and share it', async ({ page }) => {
   // No model and no image AI from the customer studio
   expect(requests.filter((u) => u.includes('/models/') || u.includes('generativelanguage.googleapis.com') || u.includes('api.openai.com'))).toEqual([]);
 });
+
+test('a selection across style groups offers each group its styles', async ({ page }) => {
+  await page.goto('/studio?scene=kitchen');
+  await page.locator('[data-testid=item-chip][data-item=island]').click();
+  await page.locator('[data-testid=item-chip][data-item=worktop]').click();
+  for (const style of ['slab', 'fluted', 'thick-stone']) await expect(page.locator(`[data-testid=style-card][data-style=${style}]`)).toBeVisible();
+  await page.locator('[data-testid=style-card][data-style=thick-stone]').click();
+  await page.locator('[data-testid=style-card][data-style=slab]').click();
+  await expect.poll(() => decodeURIComponent(page.url())).toMatch(/styles=.*kitchen-doors:slab/);
+  expect(decodeURIComponent(page.url())).toContain('kitchen-worktop:thick-stone');
+});
+
+test('switching scene shows the new scene, never the previous picture', async ({ page }) => {
+  test.setTimeout(120_000);
+  const pictures = () => page.locator('main img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src));
+  for (const from of ['fencing', 'fencing&styles=fence:closeboard&look=front-fence:fen-charcoal']) {
+    await page.goto(`/studio?scene=${from}`);
+    await page.waitForTimeout(1500);
+    await page.locator('[data-testid=scene-tab]', { hasText: 'Wardrobe' }).click();
+    await expect(page.locator('h1')).toHaveText('Wardrobe');
+    // Past the 0.5 s fade-in, so a late look from the old scene would have landed
+    await page.waitForTimeout(1500);
+    expect(await pictures()).toEqual([expect.stringContaining('/scenes/wardrobe/photo')]);
+  }
+});

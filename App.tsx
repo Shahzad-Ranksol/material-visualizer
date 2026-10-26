@@ -39,9 +39,9 @@ const App: React.FC = () => {
   const photoUrl = useComposedScene(scene, state.styles);
   const masks = useSceneMasks(scene, state.styles);
   const { url: renderUrl, rendering, error } = useLookRender(scene, state.assignments, state.styles, photoUrl);
-  // The style group of the selection, when every selected item belongs to the same one
-  const selectedGroups = [...new Set(state.selected.map((id) => groupOfItem(scene.id, id)?.id))];
-  const styleGroup = selectedGroups.length === 1 && selectedGroups[0] ? STYLE_GROUPS.find((g) => g.id === selectedGroups[0]) : undefined;
+  // The style groups the selection touches, in catalogue order (doors + worktop shows both)
+  const selectedGroupIds = new Set(state.selected.map((id) => groupOfItem(scene.id, id)?.id));
+  const styleGroups = STYLE_GROUPS.filter((g) => selectedGroupIds.has(g.id));
   // The last style change, for the reveal sweep over that group's area
   const [sweep, setSweep] = useState<{ rect: { x: number; y: number; w: number; h: number }; token: number } | null>(null);
   // …played once the new design is actually on screen (composing it takes a moment)
@@ -180,21 +180,23 @@ const App: React.FC = () => {
         </div>
 
         <aside className="flex flex-col gap-6 rounded-3xl bg-[#1c1915]/70 p-5 ring-1 ring-white/10 backdrop-blur-xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-          {styleGroup && BAKED[scene.id] && (
-            <StylePicker
-              scene={scene}
-              group={styleGroup}
-              width={BAKED[scene.id]!.width}
-              height={BAKED[scene.id]!.height}
-              activeId={state.styles[styleGroup.id] ?? ORIGINAL}
-              onPick={(optionId) => {
-                setCompare(false);
-                const bake = styleBake(scene.id, styleGroup.id, optionId) ?? styleBake(scene.id, styleGroup.id, state.styles[styleGroup.id] ?? ORIGINAL);
-                if (bake) pendingSweep.current = bake.rect;
-                dispatch({ type: 'style', groupId: styleGroup.id, optionId });
-              }}
-            />
-          )}
+          {BAKED[scene.id] &&
+            styleGroups.map((styleGroup) => (
+              <StylePicker
+                key={styleGroup.id}
+                scene={scene}
+                group={styleGroup}
+                width={BAKED[scene.id]!.width}
+                height={BAKED[scene.id]!.height}
+                activeId={state.styles[styleGroup.id] ?? ORIGINAL}
+                onPick={(optionId) => {
+                  setCompare(false);
+                  const bake = styleBake(scene.id, styleGroup.id, optionId) ?? styleBake(scene.id, styleGroup.id, state.styles[styleGroup.id] ?? ORIGINAL);
+                  if (bake) pendingSweep.current = bake.rect;
+                  dispatch({ type: 'style', groupId: styleGroup.id, optionId });
+                }}
+              />
+            ))}
           <FinishPanel
             selectedLabels={selectedItems.map((i) => i.label)}
             materials={materials}

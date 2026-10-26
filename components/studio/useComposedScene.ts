@@ -22,18 +22,12 @@ export const useComposedScene = (scene: Scene, styles: Record<string, string>) =
     .filter((s) => s.bake)
     .sort((a, b) => a.groupId.localeCompare(b.groupId));
   const key = `${scene.id}|${chosen.map((c) => `${c.groupId}:${c.optionId}`).join(',')}`;
-  const [url, setUrl] = useState<string>(scene.photo);
+  // The composition and the combination it is for: until the current one is ready (a scene
+  // switch, a new style) this returns the current scene's own photo, never the previous one
+  const [composed, setComposed] = useState<{ key: string; url: string } | null>(null);
 
   useEffect(() => {
-    if (!chosen.length) {
-      setUrl(scene.photo);
-      return;
-    }
-    const hit = cache.current.get(key);
-    if (hit) {
-      setUrl(hit);
-      return;
-    }
+    if (!chosen.length || cache.current.has(key)) return;
     let cancelled = false;
     (async () => {
       const photo = await loadImage(scene.photo);
@@ -46,8 +40,8 @@ export const useComposedScene = (scene: Scene, styles: Record<string, string>) =
       const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode'))), 'image/png'));
       const out = URL.createObjectURL(blob);
       cache.current.set(key, out);
-      if (!cancelled) setUrl(out);
-    })().catch(() => !cancelled && setUrl(scene.photo));
+      if (!cancelled) setComposed({ key, url: out });
+    })().catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -55,5 +49,6 @@ export const useComposedScene = (scene: Scene, styles: Record<string, string>) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  return url;
+  if (!chosen.length) return scene.photo;
+  return cache.current.get(key) ?? (composed?.key === key ? composed.url : scene.photo);
 };

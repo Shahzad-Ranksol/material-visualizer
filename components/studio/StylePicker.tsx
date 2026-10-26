@@ -1,5 +1,4 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
 import { optionsFor, ORIGINAL, StyleGroup } from '../../scenes/styles';
 import { styleBake } from '../../scenes/stylesBaked';
 import { Scene, StyleBake } from '../../scenes/types';
@@ -61,11 +60,6 @@ export const StylePicker: React.FC<Props> = ({ scene, group, width, height, acti
             backgroundPosition: patchLayer ? `${patchLayer.pos}, ${photoLayer.pos}` : photoLayer.pos,
           }}
         >
-          {bake && (
-            <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold text-[#e6c88f] backdrop-blur-sm">
-              <Sparkles className="h-2.5 w-2.5" /> AI design
-            </span>
-          )}
         </span>
         <span className={`mt-1.5 block text-[13px] font-semibold leading-snug ${active ? 'text-[#e6c88f]' : 'text-[#f4efe6]'}`}>{label}</span>
       </button>

@@ -1345,10 +1345,10 @@
         "w": 1344,
         "h": 730
       },
-      "patch": "/scenes/kitchen/styles/kitchen-doors--slab/patch.webp?v=mvo5h6bc",
+      "patch": "/scenes/kitchen/styles/kitchen-doors--slab/patch.webp?v=mvoufuqs",
       "provider": "gemini",
       "prompt": "Edit this photo: replace only the door style inside the masked area with flat slab cabinet doors and drawer fronts with no frame or panel, thin shadow gaps between doors, keep the same handles. Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour. Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction. Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are. Photorealistic, like a professional interior or architectural photograph.",
-      "createdAt": "2026-10-25T18:17:30.168Z",
+      "createdAt": "2026-10-26T05:56:18.916Z",
       "items": {
         "wall-cabinets": {
           "parts": [
@@ -1382,7 +1382,7 @@
           "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/wall-cabinets.occluder.png",
           "confidence": 1,
           "edited": false,
-          "bakedAt": "2026-10-25T18:18:31.561Z"
+          "bakedAt": "2026-10-26T05:57:44.068Z"
         },
         "tall-units": {
           "parts": [
@@ -1416,7 +1416,7 @@
           "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/tall-units.occluder.png",
           "confidence": 1,
           "edited": false,
-          "bakedAt": "2026-10-25T18:18:32.191Z"
+          "bakedAt": "2026-10-26T05:57:44.942Z"
         },
         "base-cabinets": {
           "parts": [
@@ -1450,7 +1450,7 @@
           "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/base-cabinets.occluder.png",
           "confidence": 1,
           "edited": false,
-          "bakedAt": "2026-10-25T18:18:35.329Z"
+          "bakedAt": "2026-10-26T05:57:49.583Z"
         },
         "island": {
           "parts": [
@@ -1484,7 +1484,7 @@
           "occluder": "/scenes/kitchen/styles/kitchen-doors--slab/island.occluder.png",
           "confidence": 1,
           "edited": false,
-          "bakedAt": "2026-10-25T18:18:36.006Z"
+          "bakedAt": "2026-10-26T05:57:50.570Z"
         }
       }
     },
