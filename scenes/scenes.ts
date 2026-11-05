@@ -55,6 +55,23 @@ const PENDANTS = [dome(488, 230, 63.5, 66, 6), dome(843, 230, 63.5, 66, 6)];
 
 const C = px(1600, 1067); // sideboard photo
 const F = px(1600, 1280); // fencing photo
+// The fence's cedar in sun and shade (hue 15–35°): the garden through the gaps is yellow-green
+// (hue 43°+) or grey, the tree's trunk and leaves green or near-black, the sign blue. Sunlit
+// garden glimpsed through a gap can be pale cream, so the brightest pixels must be more saturated;
+// the weathered bottom rails are greyer but redder (hue ≤ 30°)
+export const CEDAR = {
+  // The street run's gaps are 2–3 px and broken up: refill only the smallest dropped specks
+  maxHole: 4,
+  hueMin: 8,
+  hueMax: 40,
+  minSat: 0.21,
+  minValue: 0.1,
+  maxValue: 0.9,
+  also: [
+    { hueMin: 8, hueMax: 40, minSat: 0.3, minValue: 0.9 },
+    { hueMin: 8, hueMax: 30, minSat: 0.13, minValue: 0.3, maxValue: 0.9 },
+  ],
+};
 const M = px(1600, 1280); // media wall render
 const MEDIA_TV = [M(316, 371), M(863, 371), M(863, 686), M(316, 686)];
 const MEDIA_UNIT = [M(128, 853), M(1028, 853), M(1028, 970), M(128, 970)];
@@ -218,7 +235,8 @@ export const SCENES: Scene[] = [
             { points: [F(1182, 633), F(1228, 633), F(1228, 1000), F(1182, 1000)], solid: true },
             [F(1228, 652), F(1600, 617), F(1600, 940), F(1228, 995)],
           ],
-          intersectCut: true,
+          // The boards by their cedar colour: the garden through the gaps, the sign and the bin go
+          keepColour: CEDAR,
           protect: [F(1167, 695)],
         },
       },
@@ -232,11 +250,18 @@ export const SCENES: Scene[] = [
           anchors: [p(0.2, 0.49), p(0.36, 0.52), p(0.47, 0.55)],
           // The back run and the side run with its arched gate
           outline: [
-            [F(60, 553), F(452, 553), F(452, 692), F(60, 705)],
+            // (its capping edge falls from 555 at the corner to 575 at the left end, the shed wall
+            // above it is the same cedar colour; two post caps stand a few px proud of it)
+            [F(60, 575), F(452, 555), F(452, 692), F(60, 705)],
+            { points: [F(175, 561), F(188, 561), F(188, 572), F(175, 572)], solid: true, snap: false },
+            { points: [F(280, 556), F(292, 556), F(292, 566), F(280, 566)], solid: true, snap: false },
             [F(452, 562), F(500, 560), F(560, 543), F(600, 548), F(630, 560), F(890, 610), F(890, 852), F(452, 692)],
           ],
-          // Solid boards, so no cut intersection: the tree before them is kept by its leaves' colour
-          // The young tree before the side run, by its green leaves
+          // The boards by their cedar colour: the young tree before the side run (trunk, leaves in
+          // sun and shade), the hedge above it, the grey air-conditioning unit and the plant at the
+          // left end go
+          keepColour: CEDAR,
+          // …and its sunlit green leaves are its occluder (the renderer restores them exactly)
           protectColour: [{ region: [[F(600, 540), F(890, 540), F(890, 860), F(600, 860)]], hueMin: 55, hueMax: 170, minSat: 0.2 }],
         },
       },
@@ -344,9 +369,9 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'wall',
           anchors: [p(0.15, 0.25), p(0.55, 0.08)],
-          // The side wall down to its skirting, and the back wall above the sideboard
+          // The side wall down to its skirting (above the door casing's plinth block), and the back wall above the sideboard
           outline: [
-            [C(152, 0), C(400, 0), C(400, 326), C(350, 326), C(350, 706), C(160, 852), C(152, 852)],
+            [C(152, 0), C(400, 0), C(400, 326), C(350, 326), C(350, 706), C(160, 852), C(160, 824), C(152, 824)],
             [C(400, 0), C(1052, 0), C(1052, 328), C(400, 328)],
           ],
           // Everything standing on the sideboard
@@ -397,7 +422,9 @@ export const SCENES: Scene[] = [
           label: 'floor',
           anchors: [p(0.5, 0.9)],
           // From the door's foot and the skirtings to the wardrobe's plinth; the planter stands on it
-          outline: [[W(0, 1067), W(0, 1045), W(212, 935), W(250, 925), W(300, 882), W(1283, 882), W(1283, 808), W(1478, 808), W(1600, 925), W(1600, 1067)]],
+          // (the door's foot runs from (31, 1067) to its frame; the right wall's skirting meets the floor
+          // from behind the planter to (1600, 935))
+          outline: [[W(31, 1067), W(212, 931), W(250, 925), W(300, 882), W(1283, 882), W(1283, 808), W(1325, 806), W(1600, 935), W(1600, 1067)]],
           protect: [W(1410, 860), W(1380, 830)],
         },
       },

@@ -1,0 +1,123 @@
+{
+  "cabinet": {
+    "reflection": "/scenes/cabinet/reflection.png",
+    "shading": "/scenes/cabinet/shading.png",
+    "shadingScale": 0.5,
+    "size": [
+      1600,
+      1067
+    ],
+    "styles": {
+      "sideboard-fronts--cane": {
+        "reflection": "/scenes/cabinet/styles/sideboard-fronts--cane/reflection.png",
+        "shading": "/scenes/cabinet/styles/sideboard-fronts--cane/shading.png"
+      },
+      "sideboard-fronts--fluted": {
+        "reflection": "/scenes/cabinet/styles/sideboard-fronts--fluted/reflection.png",
+        "shading": "/scenes/cabinet/styles/sideboard-fronts--fluted/shading.png"
+      }
+    }
+  },
+  "fencing": {
+    "reflection": "/scenes/fencing/reflection.png",
+    "shading": "/scenes/fencing/shading.png",
+    "shadingScale": 0.2064,
+    "size": [
+      1600,
+      1280
+    ],
+    "styles": {
+      "fence--closeboard": {
+        "reflection": "/scenes/fencing/styles/fence--closeboard/reflection.png",
+        "shading": "/scenes/fencing/styles/fence--closeboard/shading.png"
+      },
+      "fence--horizontal-slat": {
+        "reflection": "/scenes/fencing/styles/fence--horizontal-slat/reflection.png",
+        "shading": "/scenes/fencing/styles/fence--horizontal-slat/shading.png"
+      },
+      "fence--lattice-top": {
+        "reflection": "/scenes/fencing/styles/fence--lattice-top/reflection.png",
+        "shading": "/scenes/fencing/styles/fence--lattice-top/shading.png"
+      },
+      "fence--picket": {
+        "reflection": "/scenes/fencing/styles/fence--picket/reflection.png",
+        "shading": "/scenes/fencing/styles/fence--picket/shading.png"
+      }
+    }
+  },
+  "kitchen": {
+    "reflection": "/scenes/kitchen/reflection.png",
+    "shading": "/scenes/kitchen/shading.png",
+    "shadingScale": 0.5,
+    "size": [
+      1344,
+      885
+    ],
+    "styles": {
+      "kitchen-doors--fluted": {
+        "reflection": "/scenes/kitchen/styles/kitchen-doors--fluted/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-doors--fluted/shading.png"
+      },
+      "kitchen-doors--slab": {
+        "reflection": "/scenes/kitchen/styles/kitchen-doors--slab/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-doors--slab/shading.png"
+      },
+      "kitchen-splashback--full-slab": {
+        "reflection": "/scenes/kitchen/styles/kitchen-splashback--full-slab/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-splashback--full-slab/shading.png"
+      },
+      "kitchen-splashback--herringbone-tile": {
+        "reflection": "/scenes/kitchen/styles/kitchen-splashback--herringbone-tile/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-splashback--herringbone-tile/shading.png"
+      },
+      "kitchen-splashback--zellige": {
+        "reflection": "/scenes/kitchen/styles/kitchen-splashback--zellige/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-splashback--zellige/shading.png"
+      },
+      "kitchen-worktop--thick-stone": {
+        "reflection": "/scenes/kitchen/styles/kitchen-worktop--thick-stone/reflection.png",
+        "shading": "/scenes/kitchen/styles/kitchen-worktop--thick-stone/shading.png"
+      }
+    }
+  },
+  "media-wall": {
+    "reflection": "/scenes/media-wall/reflection.png",
+    "shading": "/scenes/media-wall/shading.png",
+    "size": [
+      1600,
+      1280
+    ],
+    "styles": {
+      "media-panel--panelled": {
+        "reflection": "/scenes/media-wall/styles/media-panel--panelled/reflection.png",
+        "shading": "/scenes/media-wall/styles/media-panel--panelled/shading.png"
+      },
+      "media-panel--stone-slab": {
+        "reflection": "/scenes/media-wall/styles/media-panel--stone-slab/reflection.png",
+        "shading": "/scenes/media-wall/styles/media-panel--stone-slab/shading.png"
+      },
+      "media-panel--wide-slats": {
+        "reflection": "/scenes/media-wall/styles/media-panel--wide-slats/reflection.png",
+        "shading": "/scenes/media-wall/styles/media-panel--wide-slats/shading.png"
+      }
+    }
+  },
+  "wardrobe": {
+    "reflection": "/scenes/wardrobe/reflection.png",
+    "shading": "/scenes/wardrobe/shading.png",
+    "size": [
+      1600,
+      1067
+    ],
+    "styles": {
+      "wardrobe-doors--shaker": {
+        "reflection": "/scenes/wardrobe/styles/wardrobe-doors--shaker/reflection.png",
+        "shading": "/scenes/wardrobe/styles/wardrobe-doors--shaker/shading.png"
+      },
+      "wardrobe-doors--slab": {
+        "reflection": "/scenes/wardrobe/styles/wardrobe-doors--slab/reflection.png",
+        "shading": "/scenes/wardrobe/styles/wardrobe-doors--slab/shading.png"
+      }
+    }
+  }
+}

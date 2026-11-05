@@ -36,9 +36,13 @@ const App: React.FC = () => {
   const [compare, setCompare] = useState(false);
   const scene = sceneById(state.sceneId)!;
   const baked = BAKED[scene.id]?.items ?? {};
-  const photoUrl = useComposedScene(scene, state.styles);
-  const masks = useSceneMasks(scene, state.styles);
-  const { url: renderUrl, rendering, error } = useLookRender(scene, state.assignments, state.styles, photoUrl);
+  // The picture and the styles really drawn in it: masks follow those, never a style still loading
+  const { url: photoUrl, drawn, error: styleError, bakedLight } = useComposedScene(scene, state.styles);
+  // `?light=recovered` renders without the baked light (the older estimate), for comparison
+  const light = new URLSearchParams(window.location.search).get('light') === 'recovered' ? undefined : bakedLight;
+  const masks = useSceneMasks(scene, drawn);
+  const { url: renderUrl, rendering, error: renderError } = useLookRender(scene, state.assignments, drawn, photoUrl, light);
+  const error = renderError ?? styleError;
   // The style groups the selection touches, in catalogue order (doors + worktop shows both)
   const selectedGroupIds = new Set(state.selected.map((id) => groupOfItem(scene.id, id)?.id));
   const styleGroups = STYLE_GROUPS.filter((g) => selectedGroupIds.has(g.id));

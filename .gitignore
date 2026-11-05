@@ -42,3 +42,6 @@ validation/results/
 
 # The style lab's latest unpicked AI candidates (scenes/styles.baked.json and the patches are committed)
 scenes/.candidates/
+
+# The offline light bake (npm run scenes:intrinsic:setup)
+scripts/intrinsic/.venv/

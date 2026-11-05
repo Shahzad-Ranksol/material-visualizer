@@ -215,9 +215,12 @@ export const acceptCandidate = async (
       // What stands in front (knobs, lamps, vases) was never in the AI's region, so it is still the
       // photo's own pixels: keep the original item's exact occluder rather than re-detecting it on
       // the new design (colour rules for brass misfire on a wood-toned style's grooves). Styles
-      // that open gaps (a picket fence) re-detect: their `protectColour` override adds the garden
+      // with their own recipe (a fence keyed by its new colour) keep what they re-detect too
       const base = baked[scene.id]?.items[itemId]?.occluder;
-      if (base && !option.recipeOverrides?.[itemId]) area.occluder = await loadMaskAsAlpha(base);
+      if (base) {
+        const kept = await loadMaskAsAlpha(base);
+        area.occluder = option.recipeOverrides?.[itemId] && area.occluder ? unionMasks([area.occluder, kept]) : kept;
+      }
       await saveBakedItem(scene.id, itemId, area, { edited: false, analysisVersion: ANALYSIS_VERSION, styleKey: key });
     }
   } finally {

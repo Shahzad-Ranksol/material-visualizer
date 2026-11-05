@@ -128,6 +128,8 @@ export type RenderDebugView = 'none' | 'mask' | 'uv' | 'lighting';
 export interface RenderSettings {
   mode?: RenderMode;
   debug?: RenderDebugView;
+  // The photo's baked light (shading + reflection PNGs the photo's size), when it has one
+  bakedLight?: { shading: string; reflection: string; shadingScale: number };
 }
 
 export interface DetectedItem {

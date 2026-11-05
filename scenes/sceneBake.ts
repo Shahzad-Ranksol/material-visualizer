@@ -3,7 +3,7 @@ import { cutObject, cutSurface, JobOptions } from '../services/roomAnalysis';
 import { alphaMaskToCanvas, alphaMaskToPngBlob, applyEditsToParts, canvasToAlphaMask, clearOccluderUnder, unionMasks } from '../services/maskCanvas';
 import { clearOccluderAlpha, dilateDisc } from '../services/areaMaskOps';
 import { autoFitPlane, planeKindFor } from '../services/planeGeometry';
-import { applyRecipeClip, colourMask, keepInside, partitionParts, polygonItemMask } from './recipeMask';
+import { applyRecipeClip, colourMask, keepByColour, keepInside, partitionParts, polygonItemMask } from './recipeMask';
 import { gradientImage, snapPolygon } from './edgeSnap';
 import { BakeRecipe, Outline, PctPoint, Scene, SceneItem } from './types';
 
@@ -125,6 +125,12 @@ const bakeOutline = async (scene: Scene, item: SceneItem, options: JobOptions): 
     ctx.globalCompositeOperation = 'destination-in';
     ctx.drawImage(unionMasks(planes.cuts), 0, 0, w, h);
     ctx.globalCompositeOperation = 'source-over';
+  }
+  // Only the item's own material: the gaps between boards and what stands before them go
+  if (recipe.keepColour) {
+    const kept = alphaMaskToCanvas(keepByColour(canvasToAlphaMask(area), rgba, recipe.keepColour));
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(kept, 0, 0);
   }
   // Solid outlines (a fence post) are taken whole, whatever the cut
   for (const o of outlines) {

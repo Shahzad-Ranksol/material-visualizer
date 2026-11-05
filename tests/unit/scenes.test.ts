@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { emptyMask } from '../../services/areaMaskOps';
-import { applyRecipeClip, hitTest, polygonItemMask } from '../../scenes/recipeMask';
+import { applyRecipeClip, hitTest, keepByColour, polygonItemMask } from '../../scenes/recipeMask';
+import { lookLayers } from '../../scenes/lookLayers';
 import { SCENES } from '../../scenes/scenes';
 import { materialsFor, STUDIO_MATERIALS } from '../../scenes/materials';
 import { BAKED } from '../../scenes/baked';
@@ -161,5 +162,61 @@ describe('design styles catalogue', () => {
         }
       }
     }
+  });
+});
+
+describe('keepByColour', () => {
+  // A 9×1 strip: brown board, board, a 1 px green gap, board ×2, a 3 px pale-garden gap, board
+  const px = (rgb: number[][]) => new Uint8ClampedArray(rgb.flatMap((c) => [...c, 255]));
+  const BOARD = [160, 100, 60];
+  const GREEN = [60, 140, 50];
+  const strip = px([BOARD, BOARD, GREEN, BOARD, BOARD, GREEN, GREEN, GREEN, BOARD]);
+  const full = () => {
+    const m = emptyMask(9, 1);
+    m.alpha.fill(255);
+    return m;
+  };
+  const range = { hueMin: 8, hueMax: 40, minSat: 0.2 };
+
+  it('keeps the item’s own colour and drops the rest', () => {
+    const out = keepByColour(full(), strip, { ...range, maxHole: 0, minPiece: 1 });
+    expect([...out.alpha]).toEqual([255, 255, 0, 255, 255, 0, 0, 0, 255]);
+  });
+
+  it('refills holes up to maxHole and drops kept specks below minPiece', () => {
+    const out = keepByColour(full(), strip, { ...range, maxHole: 1, minPiece: 2 });
+    // the 1 px gap is refilled; the 3 px gap stays open; the lone board at the end is a speck
+    expect([...out.alpha]).toEqual([255, 255, 255, 255, 255, 0, 0, 0, 0]);
+  });
+
+  it('never adds outside the mask and keeps soft alpha', () => {
+    const m = full();
+    m.alpha[0] = 0;
+    m.alpha[1] = 128;
+    const out = keepByColour(m, strip, { ...range, maxHole: 0, minPiece: 1 });
+    expect(out.alpha[0]).toBe(0);
+    expect(out.alpha[1]).toBe(128);
+  });
+
+  it('accepts further colour ranges (`also`)', () => {
+    const out = keepByColour(full(), strip, { ...range, maxHole: 0, minPiece: 1, also: [{ hueMin: 100, hueMax: 130 }] });
+    expect([...out.alpha].every((a) => a === 255)).toBe(true);
+  });
+});
+
+describe('look layers', () => {
+  const fencing = SCENES.find((s) => s.id === 'fencing')!;
+  const kitchen = SCENES.find((s) => s.id === 'kitchen')!;
+
+  it('fences are recoloured, other items textured', () => {
+    expect(lookLayers(fencing, { 'front-fence': 'fen-charcoal' }, {}).every((l) => l.surface.recolor)).toBe(true);
+    expect(lookLayers(kitchen, { island: 'kit-navy-lacquer' }, {}).every((l) => !l.surface.recolor)).toBe(true);
+  });
+
+  it('uses the masks of the styles drawn in the picture, not of a style still loading', () => {
+    const base = lookLayers(fencing, { 'front-fence': 'fen-charcoal' }, {});
+    expect(base.map((l) => l.surface.mask)).toEqual(BAKED.fencing!.items['front-fence'].parts.map((p) => p.mask));
+    const styled = lookLayers(fencing, { 'front-fence': 'fen-charcoal' }, { fence: 'picket' });
+    expect(styled.every((l) => String(l.surface.mask).includes('/styles/fence--picket/'))).toBe(true);
   });
 });

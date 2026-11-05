@@ -1,0 +1,7 @@
+torch==2.2.2  # last release with Intel-Mac wheels
+diffusers==0.33.1  # newer releases need torch > 2.2
+transformers==4.46.3
+accelerate
+safetensors
+pillow
+numpy<2

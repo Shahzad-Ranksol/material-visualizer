@@ -1,35 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderMaterial } from '../../services/renderer/materialRenderer';
-import { bakedItemFor, isStyled } from '../../scenes/stylesBaked';
-import { materialById } from '../../scenes/materials';
+import { lookLayers } from '../../scenes/lookLayers';
 import { lookKey } from '../../scenes/studioState';
 import { Scene } from '../../scenes/types';
+import type { IntrinsicSources } from '../../services/renderer/intrinsics';
 
 // Looks already rendered this session; switching back to one is instant
 const CACHE_LIMIT = 24;
 
 /**
- * Renders the scene — `photoUrl`, the photo with any design styles drawn in — with every assigned
- * item's finish as layers in one renderMaterial() call. The baked masks and planes (the chosen
- * style's own, where it has them) are all it needs; no model runs. Null url = the photo unfinished.
+ * Renders the scene — `photoUrl`, the photo with the design styles `drawnStyles` drawn in — with
+ * every assigned item's finish as layers in one renderMaterial() call. The baked masks and planes
+ * (the drawn style's own, where it has them) are all it needs; no model runs. Null url = the photo
+ * unfinished.
  */
-export const useLookRender = (scene: Scene, assignments: Record<string, string>, styles: Record<string, string>, photoUrl: string) => {
+export const useLookRender = (
+  scene: Scene,
+  assignments: Record<string, string>,
+  drawnStyles: Record<string, string>,
+  photoUrl: string,
+  // The picture's baked light (from useComposedScene), when it has one
+  bakedLight?: IntrinsicSources
+) => {
+  const styles = drawnStyles;
   const cache = useRef(new Map<string, string>());
   const [url, setUrl] = useState<string | null>(null);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const key = `${lookKey({ sceneId: scene.id, assignments, styles })}|${photoUrl}`;
+  const key = `${lookKey({ sceneId: scene.id, assignments, styles })}|${photoUrl}|${bakedLight?.shading ?? ''}`;
 
   useEffect(() => {
     setError(null);
-    const layers = Object.entries(assignments).flatMap(([itemId, materialId]) => {
-      const item = scene.items.find((i) => i.id === itemId);
-      const material = materialById(materialId);
-      const b = bakedItemFor(scene.id, itemId, styles);
-      if (!item || !material || !b) return [];
-      const recolor = isStyled(scene.id, itemId, styles);
-      return b.parts.map((p) => ({ surface: { kind: item.kind, mask: p.mask, occluderMask: b.occluder, plane: p.plane, recolor }, material }));
-    });
+    const layers = lookLayers(scene, assignments, styles);
     if (!layers.length) {
       // Nothing finished: the photo, with any design styles drawn in
       setUrl(photoUrl === scene.photo ? null : photoUrl);
@@ -47,7 +49,7 @@ export const useLookRender = (scene: Scene, assignments: Record<string, string>,
     }
     let cancelled = false;
     setRendering(true);
-    renderMaterial(photoUrl, layers)
+    renderMaterial(photoUrl, layers, { bakedLight })
       .then((out) => {
         cache.current.set(key, out);
         if (cache.current.size > CACHE_LIMIT) {

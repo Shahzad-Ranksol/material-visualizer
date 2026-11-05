@@ -2,8 +2,9 @@ import { Material, RenderSettings, RenderableSurface, MaskSource, RepeatMode } f
 import { autoFitPlane, planeKindFor, Mat3 } from '../planeGeometry';
 import { hexToLinear } from './colorSpace';
 import { recoverLighting } from './lightingRecovery';
+import { Intrinsics, loadIntrinsics } from './intrinsics';
 import { canvas2d, loadImage, prepareAlbedo } from './materialPreprocess';
-import { meanLinear, recolorSurface } from './recolor';
+import { meanLinear, recolorReference, RecolorReference, recolorSurface } from './recolor';
 import { buildSurfaceMapping, defaultIntrinsics, SurfaceMapping } from './surfaceMapping';
 import { createTexture, deleteTexture, drawPass, getMaterialGL, UniformValue } from './webglContext';
 import { MIN_RENDER_PIXELS } from '../areaMaskOps';
@@ -69,6 +70,9 @@ const loadMask = async (source: MaskSource, w: number, h: number) => {
   }
   return { canvas, values, covered };
 };
+
+// Layers recoloured together: one item's parts share its finish and its occluder
+const recolorGroupKey = (layer: RenderLayerInput) => `${layer.material.id}|${String(layer.surface.occluderMask ?? '')}`;
 
 /** Where a layer paints, 0–1: its mask with the occluders in front of it restored (mask × (1 − occluder)). */
 export const layerAlpha = (mask: number, occluder: number) => mask * (1 - occluder);
@@ -198,6 +202,11 @@ export const renderMaterial = async (
 
   const m = getMaterialGL();
   const roomTex = createTexture(m, roomCanvas, { srgb: true, repeat: false });
+  const references = new Map<string, RecolorReference | null>();
+  // The photo's baked light: shading replaces the recovered lighting, its reflections are added back
+  const baked: Intrinsics | null = settings.bakedLight ? await loadIntrinsics(settings.bakedLight, w, h) : null;
+  const shadingTex = baked ? createTexture(m, baked.shadingImage, { srgb: true, repeat: false }) : null;
+  const reflectionTex = baked ? createTexture(m, baked.reflectionImage, { srgb: true, repeat: false }) : null;
   try {
     for (const layer of layers) {
       const mask = await loadMask(layer.surface.mask, w, h);
@@ -224,7 +233,14 @@ export const renderMaterial = async (
       if (layer.surface.recolor) {
         const albedo = await prepareAlbedo(layer.material);
         const px = albedo.canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, albedo.canvas.width, albedo.canvas.height).data;
-        recolorSurface(original.data, out, mask.values, occluder, meanLinear(px));
+        // One reference for all of the item's parts (same finish, same occluder), so a run in
+        // the sun stays brighter than one in the shade rather than each averaging to the swatch
+        const group = recolorGroupKey(layer);
+        if (!references.has(group)) {
+          const masks = await Promise.all(layers.filter((l) => l.surface.recolor && recolorGroupKey(l) === group).map(async (l) => (await loadMask(l.surface.mask, w, h)).values));
+          references.set(group, recolorReference(original.data, masks, occluder, baked));
+        }
+        recolorSurface(original.data, out, mask.values, occluder, meanLinear(px), references.get(group), baked);
         continue;
       }
 
@@ -247,7 +263,15 @@ export const renderMaterial = async (
         m,
         w,
         h,
-        { uAlbedo: albedoTex, uLight: lightTex, uRoom: roomTex, uNormalMap: normalTex, uRoughnessMap: roughnessTex },
+        {
+          uAlbedo: albedoTex,
+          uLight: lightTex,
+          uRoom: roomTex,
+          uNormalMap: normalTex,
+          uRoughnessMap: roughnessTex,
+          uShading: shadingTex ?? placeholderTexture(m),
+          uReflection: reflectionTex ?? placeholderTexture(m),
+        },
         {
           uImageSize: { type: 'vec2', value: [w, h] },
           ...geometryUniforms(mapping, w, h),
@@ -264,6 +288,8 @@ export const renderMaterial = async (
           uHasNormalMap: { type: 'int', value: albedo.normal ? 1 : 0 },
           uHasRoughnessMap: { type: 'int', value: albedo.roughness ? 1 : 0 },
           uOrientation: { type: 'float', value: (material.orientationDeg * Math.PI) / 180 },
+          uBakedLight: { type: 'int', value: baked ? 1 : 0 },
+          uShadingScale: { type: 'float', value: baked?.shadingScale ?? 1 },
         }
       );
       deleteTexture(m, lightTex);
@@ -280,6 +306,8 @@ export const renderMaterial = async (
     }
   } finally {
     deleteTexture(m, roomTex);
+    if (shadingTex) deleteTexture(m, shadingTex);
+    if (reflectionTex) deleteTexture(m, reflectionTex);
   }
 
   let result = new ImageData(out, w, h);

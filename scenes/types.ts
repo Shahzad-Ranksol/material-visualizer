@@ -1,4 +1,5 @@
 import { Material, SurfaceGeometry, SurfaceKind } from '../types';
+import type { KeepColour } from './recipeMask';
 
 // The studio's preset scenes. Customers never upload a photo: each scene is a fixed photo (or
 // render) whose items were cut out once, offline, in /dev/scenes and saved as masks + planes
@@ -54,6 +55,9 @@ export interface BakeRecipe {
   intersectCut?: boolean;
   protect?: PctPoint[];
   // …and/or the pixels of one colour range inside a region (green leaves before beige wood)
+  // Keep only the pixels of the item's own material inside the outline (fence boards, not the
+  // garden through their gaps nor a tree before them); `solid` outlines are exempt
+  keepColour?: KeepColour;
   protectColour?: Array<{ region: PctPoint[][]; hueMin?: number; hueMax?: number; minSat?: number; maxSat?: number; minValue?: number; maxValue?: number; blobs?: { minArea: number; maxArea: number; maxAspect: number } }>;
 }
 

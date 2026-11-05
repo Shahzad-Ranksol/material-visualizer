@@ -39,6 +39,13 @@ uniform float uMetallic;
 uniform float uNormalStrength;
 uniform vec3 uLightDir;      // camera space, towards the dominant light
 uniform int uDebug;          // 0 none, 1 layout grid, 2 recovered lighting
+// The scene's baked light (scripts/intrinsic/bake.py): when set, illumination is the photo's own
+// diffuse shading and its reflections are added back, instead of the light recovered from the
+// surface's average colour
+uniform int uBakedLight;
+uniform sampler2D uShading;    // SRGB8_ALPHA8: linear shading x uShadingScale
+uniform sampler2D uReflection; // SRGB8_ALPHA8: linear residual (reflections, highlights)
+uniform float uShadingScale;
 
 const float PI = 3.14159265;
 const vec3 LUM = vec3(0.2126, 0.7152, 0.0722);
@@ -176,6 +183,14 @@ void main() {
   vec4 lt = texture(uLight, vUv);
   vec3 illum = lt.rgb * 2.0;
   float detail = lt.a * 2.0;
+  vec3 reflection = vec3(0.0);
+  if (uBakedLight == 1) {
+    illum = texture(uShading, vUv).rgb / uShadingScale;
+    detail = 1.0;
+    // The photo's own reflections (a window in a glossy door) stay on a glossy finish and fade
+    // on a matte one
+    reflection = texture(uReflection, vUv).rgb * mix(0.25, 1.0, clamp(1.0 - roughness, 0.0, 1.0));
+  }
 
   if (uDebug == 2) {
     outColor = vec4(linearToSrgb(illum * detail * 0.5), 1.0);
@@ -204,7 +219,7 @@ void main() {
   vec3 diffuse = albedo * (1.0 - uMetallic) * illum * detail;
   // Metals mostly reflect their surroundings; approximate that with the recovered light
   vec3 metalAmbient = F0 * illum * detail * uMetallic * 0.8;
-  vec3 color = diffuse + metalAmbient + spec * lightLevel * detail * SPECULAR_STRENGTH;
+  vec3 color = diffuse + metalAmbient + spec * lightLevel * detail * SPECULAR_STRENGTH + reflection;
 
   if (jointed && uJointMm > 0.0) {
     // Recessed joints take the joint colour and sit in shadow

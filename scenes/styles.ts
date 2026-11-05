@@ -1,3 +1,4 @@
+import { CEDAR } from './scenes';
 import { BakeRecipe, SceneCategory } from './types';
 
 // Design styles: whole-item redesigns (another fence type, another door style) generated once,
@@ -19,6 +20,9 @@ export interface StyleOption {
   // What the AI is asked for. Every prompt also gets the shared instructions in
   // `generationPrompt`: same camera, same light, only inside the masked area, neutral finish
   prompt: string;
+  // The new material, in place of the shared "light, neutral, unfinished" one — where the finish
+  // must be told apart from what shows through the design (pickets before a beige shed wall)
+  material?: string;
   // Per-item recipe changes for baking this style (a picket fence's gaps)
   recipeOverrides?: Record<string, Partial<BakeRecipe>>;
 }
@@ -36,17 +40,55 @@ export const STYLE_GROUPS: StyleGroup[] = [
   { id: 'sideboard-fronts', sceneId: 'cabinet', label: 'Front style', itemIds: ['sideboard'] },
 ];
 
-// A fence with gaps (slats, pickets, lattice) shows the garden through them: on the new design the
-// green seen through the gaps — and the tree before the garden run — is kept out by its colour
-const FENCE_AREA = [[{ xPct: 0, yPct: 0.3 }, { xPct: 1, yPct: 0.3 }, { xPct: 1, yPct: 0.85 }, { xPct: 0, yPct: 0.85 }]];
-const gappy = { protectColour: [{ region: FENCE_AREA, hueMin: 65, hueMax: 170, minSat: 0.22 }] };
+// A redesigned fence is keyed by its new material's colour, which the prompt asks to be light and
+// neutral: pale wood in sun and shade (hue up to ~60°, never strongly saturated), off-white, and
+// in the shade by the lawn a pale grey with a green cast. Runs the AI left as they were keep the
+// original cedar. The garden through the gaps (saturated or dark green) and the tree before the
+// side run drop out; small knots and glare are refilled. Pale walls seen through gaps can't be
+// told from pale boards by colour — check those runs in the QA sheets
+export const PALE_TIMBER = {
+  hueMin: 8,
+  hueMax: 60,
+  minSat: 0.1,
+  maxSat: 0.62,
+  minValue: 0.2,
+  also: [
+    { hueMin: 60, hueMax: 68, maxSat: 0.32, minValue: 0.25 },
+    { hueMin: 60, hueMax: 100, maxSat: 0.2, minValue: 0.45 },
+    { maxSat: 0.1, minValue: 0.4 },
+    ...CEDAR.also,
+    { ...CEDAR, also: undefined },
+  ],
+};
+const pale = { keepColour: PALE_TIMBER, intersectCut: false };
+// The AI redraws the air-conditioning unit before the back run as a pale box, the colour of the
+// new boards: it is cut out by shape (photo px of the 1600 × 1280 fencing photo)
+const fpx = (x: number, y: number) => ({ xPct: x / 1600, yPct: y / 1280 });
+const AC_UNIT = { points: [fpx(68, 618), fpx(100, 612), fpx(115, 630), fpx(115, 742), fpx(68, 742)], snap: false };
+const fenceOverrides = { 'front-fence': pale, 'garden-fence': { ...pale, subtract: [AC_UNIT] } };
+
+// Picket's primed off-white, in sun and shade: unsaturated (the beige shed wall and the cedar gate
+// are saturation 0.3+, the lawn more), only a slight green cast in the shade by the lawn
+export const PRIMER_WHITE = { maxSat: 0.17, minValue: 0.3, also: [{ hueMin: 60, hueMax: 110, maxSat: 0.2, minValue: 0.4 }] };
+const primed = { keepColour: PRIMER_WHITE, intersectCut: false };
+const picketOverrides = { 'front-fence': primed, 'garden-fence': { ...primed, subtract: [AC_UNIT] } };
 
 export const STYLE_OPTIONS: StyleOption[] = [
   // Fencing
-  { id: 'horizontal-slat', groupId: 'fence', label: 'Horizontal slat', prompt: 'a contemporary horizontal slatted timber fence, 90 mm slats with 10 mm gaps, square posts', recipeOverrides: { 'front-fence': gappy, 'garden-fence': gappy } },
-  { id: 'closeboard', groupId: 'fence', label: 'Closeboard', prompt: 'a traditional closeboard fence of overlapping vertical feather-edge boards with a top capping rail' },
-  { id: 'picket', groupId: 'fence', label: 'Picket', prompt: 'a classic picket fence with pointed vertical pickets and even gaps showing the garden behind', recipeOverrides: { 'front-fence': gappy, 'garden-fence': gappy } },
-  { id: 'lattice-top', groupId: 'fence', label: 'Lattice top', prompt: 'a solid vertical-board fence topped with a 30 cm diagonal lattice trellis panel', recipeOverrides: { 'front-fence': gappy, 'garden-fence': gappy } },
+  { id: 'horizontal-slat', groupId: 'fence', label: 'Horizontal slat', prompt: 'a contemporary horizontal slatted timber fence, 90 mm slats with 10 mm gaps, square posts', recipeOverrides: fenceOverrides },
+  { id: 'closeboard', groupId: 'fence', label: 'Closeboard', prompt: 'a traditional closeboard fence of overlapping vertical feather-edge boards with a top capping rail', recipeOverrides: fenceOverrides },
+  {
+    id: 'picket',
+    groupId: 'fence',
+    label: 'Picket',
+    prompt: 'a classic picket fence with pointed vertical pickets and even gaps showing the garden behind',
+    // The back run's gaps show the shed's beige wall: pale wood pickets match it exactly, so the
+    // pickets are primed a cool off-white that the bake can tell from it by colour
+    material:
+      'Paint every picket, rail and post in a flat, cool off-white primer (neutral grey-white, no beige or yellow, no wood colour) — clearly whiter and greyer than the warm beige shed wall seen through the gaps.',
+    recipeOverrides: picketOverrides,
+  },
+  { id: 'lattice-top', groupId: 'fence', label: 'Lattice top', prompt: 'a solid vertical-board fence topped with a 30 cm diagonal lattice trellis panel', recipeOverrides: fenceOverrides },
 
   // Kitchen
   { id: 'slab', groupId: 'kitchen-doors', label: 'Slab', prompt: 'flat slab cabinet doors and drawer fronts with no frame or panel, thin shadow gaps between doors, keep the same handles' },
@@ -77,7 +119,7 @@ export const STYLE_OPTIONS: StyleOption[] = [
 export const generationPrompt = (option: StyleOption, group: StyleGroup): string =>
   [
     `Edit this photo: replace only the ${group.label.toLowerCase()} inside the masked area with ${option.prompt}.`,
-    'Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour.',
+    option.material ?? 'Make it a light, neutral, unfinished material (pale natural wood or matt off-white) — no strong colour.',
     'Keep the exact camera, perspective, scale and lighting of the photo; keep every shadow direction.',
     'Change nothing outside the masked area. Objects in front of the area (plants, lamps, vases, knobs on other items) must stay exactly as they are.',
     'Photorealistic, like a professional interior or architectural photograph.',

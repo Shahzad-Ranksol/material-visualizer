@@ -84,28 +84,30 @@ export interface ColourRange {
  * wood, a chrome ring in front of dark slats — which colour separates more cleanly than any
  * model. `rgba` is the photo's pixels.
  */
-export const colourMask = (rgba: Uint8ClampedArray, w: number, h: number, region: PctPoint[][], range: ColourRange): AlphaMask => {
+/** Whether the pixel at byte offset `o` of `rgba` falls in the colour range. */
+export const inColourRange = (rgba: ArrayLike<number>, o: number, range: ColourRange): boolean => {
   const { hueMin = 0, hueMax = 360, minSat = 0, maxSat = 1, minValue = 0, maxValue = 1 } = range;
+  const r = rgba[o] / 255;
+  const g = rgba[o + 1] / 255;
+  const b = rgba[o + 2] / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const sat = max > 0 ? (max - min) / max : 0;
+  if (sat < minSat || sat > maxSat || max < minValue || max > maxValue) return false;
+  if (hueMin > 0 || hueMax < 360) {
+    if (max === min) return false;
+    let hue = max === r ? ((g - b) / (max - min)) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
+    hue = (hue * 60 + 360) % 360;
+    if (hue < hueMin || hue > hueMax) return false;
+  }
+  return true;
+};
+
+export const colourMask = (rgba: Uint8ClampedArray, w: number, h: number, region: PctPoint[][], range: ColourRange): AlphaMask => {
   let inside = emptyMask(w, h);
   for (const poly of region) inside = fillPolygon(inside, toPx(poly, w, h), 'add');
   const out = emptyMask(w, h);
-  for (let i = 0; i < w * h; i++) {
-    if (!inside.alpha[i]) continue;
-    const r = rgba[i * 4] / 255;
-    const g = rgba[i * 4 + 1] / 255;
-    const b = rgba[i * 4 + 2] / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const sat = max > 0 ? (max - min) / max : 0;
-    if (sat < minSat || sat > maxSat || max < minValue || max > maxValue) continue;
-    if (hueMin > 0 || hueMax < 360) {
-      if (max === min) continue;
-      let hue = max === r ? ((g - b) / (max - min)) % 6 : max === g ? (b - r) / (max - min) + 2 : (r - g) / (max - min) + 4;
-      hue = (hue * 60 + 360) % 360;
-      if (hue < hueMin || hue > hueMax) continue;
-    }
-    out.alpha[i] = 255;
-  }
+  for (let i = 0; i < w * h; i++) if (inside.alpha[i] && inColourRange(rgba, i * 4, range)) out.alpha[i] = 255;
   // Knobs: close their specular gaps first (a small knob is a ring of saturated pixels), then
   // open away the 1–2 px groove shadows, then keep the compact pieces
   return range.blobs ? keepBlobs(openMask(closeMask(out, 1), 1), range.blobs) : out;
@@ -160,5 +162,62 @@ export const keepBlobs = (mask: AlphaMask, { minArea, maxArea, maxAspect }: { mi
     const bh = y1 - y0 + 1;
     if (piece.length >= minArea && piece.length <= maxArea && Math.max(bw, bh) / Math.min(bw, bh) <= maxAspect) for (const i of piece) out.alpha[i] = 255;
   }
+  return out;
+};
+
+/** What `keepByColour` keeps: the item's own material's colour range, plus clean-up sizes (px). */
+export interface KeepColour extends ColourRange {
+  // Further colour ranges that also count as the material (pale wood also reads as off-white)
+  also?: ColourRange[];
+  // Kept pieces smaller than this go (a brown fleck of the garden seen through a gap)
+  minPiece?: number;
+  // Dropped holes up to this size come back (a knot, a nail head, a speck of glare on a board)
+  maxHole?: number;
+}
+
+/** Calls `visit` with each 4-connected piece of the pixels where `on` holds. */
+const forEachPiece = (w: number, h: number, on: (i: number) => boolean, visit: (piece: number[]) => void) => {
+  const seen = new Uint8Array(w * h);
+  const stack: number[] = [];
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || !on(start)) continue;
+    const piece: number[] = [];
+    seen[start] = 1;
+    stack.push(start);
+    while (stack.length) {
+      const i = stack.pop()!;
+      piece.push(i);
+      const x = i % w;
+      for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, i >= w ? i - w : -1, i + w < w * h ? i + w : -1]) {
+        if (j >= 0 && !seen[j] && on(j)) {
+          seen[j] = 1;
+          stack.push(j);
+        }
+      }
+    }
+    visit(piece);
+  }
+};
+
+/**
+ * The mask kept only where the photo shows the item's own material: fence boards stay, the
+ * garden seen through the gaps between them, a tree's trunk and leaves in front, go. Colour
+ * separates these exactly where a model's cut blurs them. Small dropped holes on the item (a
+ * knot) are refilled and small kept specks off it removed. Soft alpha is kept where kept.
+ */
+export const keepByColour = (mask: AlphaMask, rgba: ArrayLike<number>, range: KeepColour): AlphaMask => {
+  const { width: w, height: h } = mask;
+  const { minPiece = 12, maxHole = 12 } = range;
+  const keep = new Uint8Array(w * h);
+  const ranges = [range, ...(range.also ?? [])];
+  for (let i = 0; i < w * h; i++) if (mask.alpha[i] && ranges.some((r) => inColourRange(rgba, i * 4, r))) keep[i] = 1;
+  forEachPiece(w, h, (i) => mask.alpha[i] > 0 && !keep[i], (piece) => {
+    if (piece.length <= maxHole) for (const i of piece) keep[i] = 1;
+  });
+  forEachPiece(w, h, (i) => keep[i] === 1, (piece) => {
+    if (piece.length < minPiece) for (const i of piece) keep[i] = 0;
+  });
+  const out = emptyMask(w, h);
+  for (let i = 0; i < w * h; i++) if (keep[i]) out.alpha[i] = mask.alpha[i];
   return out;
 };
