@@ -19,6 +19,11 @@ const ISLAND_TOP = [K(300, 524), K(1020, 524), K(1097, 548), K(1097, 560), K(231
 // the floor beside it
 const ISLAND_BODY = [K(242.5, 560), K(1089, 560), K(1089, 838.5), K(242.5, 838.5)];
 const ISLAND_SHAPE = { points: ISLAND_BODY, snap: false };
+// Its two feet stand 2 px lower than the plinth between them (to y 840, photo px)
+const ISLAND_FEET = [
+  { points: [K(243.5, 838), K(276, 838), K(276, 840.5), K(243.5, 840.5)], snap: false },
+  { points: [K(1058, 838), K(1089, 838), K(1089, 840.5), K(1058, 840.5)], snap: false },
+];
 
 // A pendant's white dome as an exact shape: a half-ellipse over its rim (photo px)
 const dome = (cx: number, rimY: number, rx: number, ry: number, rimDepth: number): PctPoint[] => {
@@ -46,6 +51,10 @@ const brass = (region: PctPoint[][], minArea = 22) => ({
   hueMax: 60,
   minSat: 0.38,
   blobs: { minArea, maxArea: 700, maxAspect: 3, core: { minSat: 0.55, minShare: 0.1 } },
+  // Each knob is then only its own brass (sat 0.15 above the paint around it, highlights inside it
+  // filled), not grown: the cream paint in its shadow and a grown ring stayed cream around a
+  // painted knob
+  trim: 0.15,
 });
 
 // Wardrobe handles: a box around each aluminium bar (photo px, a pixel of margin), searched by colour
@@ -196,7 +205,7 @@ export const SCENES: Scene[] = [
         label: 'Island',
         kind: 'cabinet',
         role: 'front',
-        recipe: { label: 'cabinet', anchors: [], outline: [ISLAND_SHAPE], protectColour: [brass([ISLAND_BODY])] },
+        recipe: { label: 'cabinet', anchors: [], outline: [ISLAND_SHAPE, ...ISLAND_FEET], protectColour: [brass([ISLAND_BODY])] },
       },
       {
         id: 'worktop',
@@ -240,7 +249,7 @@ export const SCENES: Scene[] = [
           label: 'floor',
           anchors: [p(0.08, 0.92), p(0.92, 0.92)],
           outline: [[K(0, 700), K(1344, 700), K(1344, 885), K(0, 885)]],
-          subtract: [ISLAND_SHAPE],
+          subtract: [ISLAND_SHAPE, ...ISLAND_FEET],
         },
       },
     ],

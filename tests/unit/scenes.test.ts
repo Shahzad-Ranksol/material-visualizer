@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { emptyMask } from '../../services/areaMaskOps';
-import { applyRecipeClip, hitTest, keepByColour, polygonItemMask } from '../../scenes/recipeMask';
+import { applyRecipeClip, hitTest, keepByColour, polygonItemMask, trimBySaturation } from '../../scenes/recipeMask';
 import { lookLayers } from '../../scenes/lookLayers';
 import { SCENES } from '../../scenes/scenes';
 import { materialsFor, STUDIO_MATERIALS } from '../../scenes/materials';
@@ -254,5 +254,30 @@ describe('look layers', () => {
     expect(base.map((l) => l.surface.mask)).toEqual(BAKED.fencing!.items['front-fence'].parts.map((p) => p.mask));
     const styled = lookLayers(fencing, { 'front-fence': 'fen-charcoal' }, { fence: 'picket' });
     expect(styled.every((l) => String(l.surface.mask).includes('/styles/fence--picket/'))).toBe(true);
+  });
+});
+
+describe('trimBySaturation', () => {
+  it('keeps a knob’s saturated ring and its highlight, drops the pale paint around it', () => {
+    const w = 17;
+    const h = 17;
+    const rgba = new Uint8ClampedArray(w * h * 4);
+    const mask = emptyMask(w, h);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        const d = Math.max(Math.abs(x - 8), Math.abs(y - 8));
+        // A knob on the island: a white highlight in a brass ring, on cream in shadow (sat ~0.35),
+        // a little warmer (sat 0.4) right beside the knob, where the colour rule took it
+        const [r, g, b] = d === 0 ? [250, 250, 245] : d <= 2 ? [180, 120, 40] : d === 3 ? [200, 160, 120] : [200, 165, 130];
+        rgba.set([r, g, b, 255], i * 4);
+        if (d <= 3) mask.alpha[i] = 255;
+      }
+    const out = trimBySaturation(mask, rgba, 0.15);
+    const at = (x: number, y: number) => out.alpha[y * w + x];
+    expect(at(8, 8)).toBe(255); // the highlight, enclosed
+    expect(at(6, 8)).toBe(255); // brass
+    expect(at(5, 8)).toBe(0); // the paint in its shadow
+    expect(at(0, 0)).toBe(0);
   });
 });

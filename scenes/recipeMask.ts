@@ -83,6 +83,10 @@ export interface ColourRange {
   // takes its own dark contact shadow, which is warm like the floor but too thin for the baked
   // light to shade
   spread?: { radius: number; range: ColourRange };
+  // Then each kept piece only where it is this much more saturated than the paint around it, with
+  // the holes it encloses (a knob's specular highlight) filled: a knob without the paint in its
+  // shadow (trimBySaturation). A trimmed mask is exact, so the bake does not grow it
+  trim?: number;
 }
 
 export interface BlobFilter {
@@ -134,11 +138,79 @@ export const colourMask = (rgba: Uint8ClampedArray, w: number, h: number, region
     const keep = core ? (piece: number[]) => piece.filter((i) => saturation(rgba, i * 4) >= core.minSat).length >= core.minShare * piece.length : undefined;
     kept = keepBlobs(openMask(closeMask(out, 1), 1), range.blobs, keep);
   }
+  if (range.trim !== undefined) kept = trimBySaturation(kept, rgba, range.trim);
   if (!range.spread) return kept;
   const near = dilateDisc(kept, range.spread.radius);
   const spread = range.spread.range;
   for (let i = 0; i < w * h; i++) if (near.alpha[i] >= 128 && inside.alpha[i] && inColourRange(rgba, i * 4, spread)) kept.alpha[i] = 255;
   return kept;
+};
+
+/**
+ * Each piece of the mask cut down to its pixels clearly more saturated than the paint around it
+ * (the median saturation of a ring 3–4 px outside the piece, + `margin`), plus the holes they
+ * enclose (a knob's specular highlight) and small gaps closed. Relative, because a sunlit knob on pale paint is less
+ * saturated than the shadowed paint around a knob on the island. Grows at most 1 px past `mask`.
+ */
+export const trimBySaturation = (mask: AlphaMask, rgba: ArrayLike<number>, margin: number): AlphaMask => {
+  const { width: w, height: h } = mask;
+  const binary = { ...mask, alpha: mask.alpha.map((a) => (a >= 128 ? 255 : 0)) };
+  const near = dilateDisc(binary, 2);
+  const far = dilateDisc(binary, 4);
+  const out = emptyMask(w, h);
+  const seen = new Uint8Array(w * h);
+  for (let start = 0; start < w * h; start++) {
+    if (seen[start] || binary.alpha[start] < 128) continue;
+    const piece: number[] = [];
+    const stack = [start];
+    seen[start] = 1;
+    let x0 = w, y0 = h, x1 = 0, y1 = 0;
+    while (stack.length) {
+      const i = stack.pop()!;
+      piece.push(i);
+      const x = i % w;
+      const y = (i - x) / w;
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1])
+        if (j >= 0 && !seen[j] && binary.alpha[j] >= 128) (seen[j] = 1), stack.push(j);
+    }
+    const ring: number[] = [];
+    for (let y = Math.max(0, y0 - 4); y <= Math.min(h - 1, y1 + 4); y++)
+      for (let x = Math.max(0, x0 - 4); x <= Math.min(w - 1, x1 + 4); x++) {
+        const i = y * w + x;
+        if (far.alpha[i] >= 128 && near.alpha[i] < 128) ring.push(saturation(rgba, i * 4));
+      }
+    ring.sort((a, b) => a - b);
+    const minSat = (ring.length ? ring[ring.length >> 1] : 0) + margin;
+    for (const i of piece) if (saturation(rgba, i * 4) >= minSat) out.alpha[i] = 255;
+  }
+  // A cup handle's open middle (a pale highlight): gaps up to ~4 px closed, never more than a
+  // pixel past the original pieces
+  const closed = closeMask(out, 2);
+  const envelope = dilateDisc(binary, 1);
+  for (let i = 0; i < w * h; i++) if (closed.alpha[i] >= 128 && envelope.alpha[i] >= 128) out.alpha[i] = 255;
+  // Holes: pixels not reachable from the border through unmasked pixels
+  const outside = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const push = (i: number) => {
+    if (!outside[i] && out.alpha[i] < 128) {
+      outside[i] = 1;
+      stack.push(i);
+    }
+  };
+  for (let x = 0; x < w; x++) push(x), push((h - 1) * w + x);
+  for (let y = 0; y < h; y++) push(y * w), push(y * w + w - 1);
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % w;
+    if (x > 0) push(i - 1);
+    if (x < w - 1) push(i + 1);
+    if (i >= w) push(i - w);
+    if (i < w * (h - 1)) push(i + w);
+  }
+  for (let i = 0; i < w * h; i++) if (!outside[i] && binary.alpha[i] >= 128) out.alpha[i] = 255;
+  // A groove's saturated sliver beside a knob, left on its own by the trim
+  return keepBlobs(out, { minArea: 8, maxArea: Infinity, maxAspect: Infinity });
 };
 
 const invert = (m: AlphaMask): AlphaMask => ({ ...m, alpha: m.alpha.map((a) => 255 - a) });

@@ -154,7 +154,10 @@ const bakeOutline = async (scene: Scene, item: SceneItem, options: JobOptions): 
     const obj = await cutObject(scene.photo, workerPoint(click), options);
     if (obj) objects.push(alphaMaskToCanvas(dilateDisc(canvasToAlphaMask(obj.mask), 1)));
   }
-  for (const { region, ...range } of recipe.protectColour ?? []) objects.push(alphaMaskToCanvas(dilateDisc(colourMask(rgba, w, h, region, range), 1)));
+  for (const { region, ...range } of recipe.protectColour ?? []) {
+    const m = colourMask(rgba, w, h, region, range);
+    objects.push(alphaMaskToCanvas(range.trim !== undefined ? m : dilateDisc(m, 1)));
+  }
   // Exact shapes of objects in front (a pendant's dome), drawn as given
   if (recipe.protectShapes?.length) {
     const c = document.createElement('canvas');

@@ -58,7 +58,7 @@ export interface BakeRecipe {
   // Keep only the pixels of the item's own material inside the outline (fence boards, not the
   // garden through their gaps nor a tree before them); `solid` outlines are exempt
   keepColour?: KeepColour;
-  protectColour?: Array<{ region: PctPoint[][]; hueMin?: number; hueMax?: number; minSat?: number; maxSat?: number; minValue?: number; maxValue?: number; blobs?: { minArea: number; maxArea: number; maxAspect: number; core?: { minSat: number; minShare: number } }; spread?: { radius: number; range: ColourRange } }>;
+  protectColour?: Array<{ region: PctPoint[][]; hueMin?: number; hueMax?: number; minSat?: number; maxSat?: number; minValue?: number; maxValue?: number; blobs?: { minArea: number; maxArea: number; maxAspect: number; core?: { minSat: number; minShare: number } }; spread?: { radius: number; range: ColourRange }; trim?: number }>;
 }
 
 export interface SceneItem {
