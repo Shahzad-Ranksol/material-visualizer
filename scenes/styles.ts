@@ -46,19 +46,25 @@ export const STYLE_GROUPS: StyleGroup[] = [
 // original cedar. The garden through the gaps (saturated or dark green) and the tree before the
 // side run drop out; small knots and glare are refilled. Pale walls seen through gaps can't be
 // told from pale boards by colour — check those runs in the QA sheets
-export const PALE_TIMBER = {
-  hueMin: 8,
-  hueMax: 60,
-  minSat: 0.1,
-  maxSat: 0.62,
-  minValue: 0.2,
-  also: [
-    { hueMin: 60, hueMax: 68, maxSat: 0.32, minValue: 0.25 },
-    { hueMin: 60, hueMax: 100, maxSat: 0.2, minValue: 0.45 },
-    { maxSat: 0.1, minValue: 0.4 },
-    ...CEDAR.also,
-    { ...CEDAR, also: undefined },
-  ],
+const PALE_WOOD = { hueMin: 8, hueMax: 60, minSat: 0.1, maxSat: 0.62, minValue: 0.2 };
+const PALE_ALSO = [
+  { hueMin: 60, hueMax: 68, maxSat: 0.32, minValue: 0.25 },
+  { hueMin: 60, hueMax: 100, maxSat: 0.2, minValue: 0.45 },
+  // The boards' feet in the lawn's shade: greyer and greener still (hue to 115°, value from 0.38)
+  // — shaded lawn is darker or more saturated, sunlit lawn far more saturated
+  { hueMin: 60, hueMax: 115, maxSat: 0.17, minValue: 0.38 },
+  { maxSat: 0.1, minValue: 0.4 },
+];
+export const PALE_TIMBER = { ...PALE_WOOD, also: [...PALE_ALSO, ...CEDAR.also, { ...CEDAR, also: undefined }] };
+
+// Picket redraws every run, so nothing is left as cedar, and its gaps show the dark garden and
+// old fence: pale only (no cedar fallback), never darker than its own shaded feet (value 0.39+),
+// and only small specks refilled — a 12 px refill closed the dark gaps between the picket tips
+export const PALE_PICKET = {
+  ...PALE_WOOD,
+  minValue: 0.33,
+  maxHole: 6,
+  also: PALE_ALSO.map((r) => ({ ...r, minValue: Math.max(r.minValue, 0.33) })),
 };
 const pale = { keepColour: PALE_TIMBER, intersectCut: false };
 // The AI redraws the air-conditioning unit before the back run as a pale box, the colour of the
@@ -71,7 +77,11 @@ const fenceOverrides = { 'front-fence': pale, 'garden-fence': { ...pale, subtrac
 // are saturation 0.3+, the lawn more), only a slight green cast in the shade by the lawn
 export const PRIMER_WHITE = { maxSat: 0.17, minValue: 0.3, also: [{ hueMin: 60, hueMax: 110, maxSat: 0.2, minValue: 0.4 }] };
 const primed = { keepColour: PRIMER_WHITE, intersectCut: false };
-const picketOverrides = { 'front-fence': primed, 'garden-fence': { ...primed, subtract: [AC_UNIT] } };
+// The committed Picket design predates the primer prompt: its pickets are pale wood, so it is keyed
+// as pale wood until a primed design is generated and picked in /dev/styles (then use `primed`)
+void primed;
+const palePicket = { keepColour: PALE_PICKET, intersectCut: false };
+const picketOverrides = { 'front-fence': palePicket, 'garden-fence': { ...palePicket, subtract: [AC_UNIT] } };
 
 export const STYLE_OPTIONS: StyleOption[] = [
   // Fencing

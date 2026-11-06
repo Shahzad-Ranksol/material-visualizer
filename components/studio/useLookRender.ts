@@ -24,7 +24,10 @@ export const useLookRender = (
 ) => {
   const styles = drawnStyles;
   const cache = useRef(new Map<string, string>());
-  const [url, setUrl] = useState<string | null>(null);
+  // Tagged with its scene: for the render right after a scene switch the state still holds the old
+  // scene's look, which must never reach the screen
+  const [look, setLook] = useState<{ sceneId: string; url: string | null }>({ sceneId: scene.id, url: null });
+  const setUrl = (url: string | null) => setLook({ sceneId: scene.id, url });
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const key = `${lookKey({ sceneId: scene.id, assignments, styles })}|${photoUrl}|${bakedLight?.shading ?? ''}`;
@@ -68,5 +71,5 @@ export const useLookRender = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  return { url, rendering, error };
+  return { url: look.sceneId === scene.id ? look.url : null, rendering, error };
 };

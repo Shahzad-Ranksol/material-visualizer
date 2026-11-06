@@ -35,6 +35,16 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, renderin
   // The look on screen and the one fading in over it
   const [shown, setShown] = useState<string | null>(renderUrl);
   const [incoming, setIncoming] = useState<string | null>(null);
+  // The fade timer of the look coming in: cancelled when another look (or none) replaces it, so a
+  // fade armed for a picture that is gone never puts it back on screen
+  const fadeTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (fadeTimer.current !== null) window.clearTimeout(fadeTimer.current);
+    fadeTimer.current = null;
+  }, [incoming]);
+  useEffect(() => () => {
+    if (fadeTimer.current !== null) window.clearTimeout(fadeTimer.current);
+  }, []);
   useEffect(() => {
     // No look: the bare photo, and drop any look still on its way in
     if (!renderUrl) {
@@ -135,7 +145,7 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, renderin
               setIncoming(null);
             };
             // A timer, not transitionend: that event never comes if the browser skips the transition
-            window.setTimeout(done, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 520);
+            fadeTimer.current = window.setTimeout(done, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 520);
           }}
         />
       )}

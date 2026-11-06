@@ -128,8 +128,11 @@ test('a selection across style groups offers each group its styles', async ({ pa
 test('switching scene shows the new scene, never the previous picture', async ({ page }) => {
   test.setTimeout(120_000);
   const pictures = () => page.locator('main img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).src));
-  for (const from of ['fencing', 'fencing&styles=fence:closeboard&look=front-fence:fen-charcoal']) {
+  for (const from of ['fencing', 'fencing&styles=fence:closeboard&look=front-fence:fen-charcoal', 'fencing&look=front-fence:fen-cedar']) {
     await page.goto(`/studio?scene=${from}`);
+    // With a look, switch only once it is on screen: its cached picture loads at once, and a fade
+    // armed for it must not land on the new scene
+    if (from.includes('look=')) await page.getByTestId('look-image').waitFor({ timeout: 90_000 });
     await page.waitForTimeout(1500);
     await page.locator('[data-testid=scene-tab]', { hasText: 'Wardrobe' }).click();
     await expect(page.locator('h1')).toHaveText('Wardrobe');

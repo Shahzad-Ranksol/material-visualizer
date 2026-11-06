@@ -54,7 +54,8 @@ export const SCENE_QA: Record<string, ItemQa> = {
   ...styleEntries(
     'picket',
     fenceStyle(
-      { include: [[1275, 800], [1310, 800], [1050, 800]], exclude: [[1255, 800], [1290, 800], [1327, 800], [1062, 800]] },
+      // …down to the pickets' feet in the lawn's shade
+      { include: [[1275, 800], [1310, 800], [1050, 800], [1283, 978], [1283, 980]], exclude: [[1255, 800], [1290, 800], [1327, 800], [1062, 800], [1500, 636], [1500, 642], [1500, 646]] },
       {
         include: [[90, 605], [111, 605], [131, 605]],
         exclude: [...GARDEN_EXCLUDE, [99, 605], [120, 605], [140, 605]],
