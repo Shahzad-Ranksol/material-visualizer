@@ -83,4 +83,9 @@ export const SCENE_QA: Record<string, ItemQa> = {
   'wardrobe/floor': { include: [[1500, 950], [800, 1000]], exclude: [[110, 995], [150, 962], [1540, 895], [1500, 860]] },
   // The door casing's plinth block is not wall
   'cabinet/wall': { include: [[250, 500]], exclude: [[155, 840]] },
+  // The objects in the niche are not sideboard (the candle's right half and lid, the gnome's hat,
+  // the glasses' rims, the cable down to them); the niche around them is
+  'cabinet/sideboard': { include: [[700, 380], [790, 470], [450, 450]], exclude: [[764, 406], [760, 420], [760, 383], [665, 451], [718, 541], [716, 521], [760, 505], [785, 520]] },
+  // The parquet in the shadow under the sideboard is floor, its black frame is not
+  'cabinet/floor': { include: [[700, 772], [700, 780], [700, 788], [500, 785]], exclude: [[700, 759], [700, 761], [700, 799], [700, 801], [700, 803], [700, 804]] },
 };

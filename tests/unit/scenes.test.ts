@@ -107,6 +107,19 @@ describe('colourMask', () => {
     expect([...colourMask(rgba, 4, 1, region, { minValue: 0.7 }).alpha]).toEqual([0, 255, 0, 0]);
   });
 
+  it('spreads to nearby pixels of a looser range: a black bar takes its dark contact shadow', async () => {
+    const { colourMask } = await import('../../scenes/recipeMask');
+    // 1×12 column: lit floor, a dark warm contact shadow (rows 3–4), a neutral black bar (5–6),
+    // warm shadow again (7), then lit floor; and a lone dark warm pixel far from the bar (10)
+    const col: number[][] = [[150, 100, 60], [150, 100, 60], [150, 100, 60], [20, 12, 4], [18, 10, 3], [10, 10, 11], [9, 9, 10], [20, 12, 4], [150, 100, 60], [150, 100, 60], [20, 12, 4], [150, 100, 60]];
+    const rgba = new Uint8ClampedArray(col.flatMap((c) => [...c, 255]));
+    const region = [[{ xPct: 0, yPct: 0 }, { xPct: 1, yPct: 0 }, { xPct: 1, yPct: 1 }, { xPct: 0, yPct: 1 }]];
+    const bar = { maxValue: 0.13, maxSat: 0.5 };
+    expect([...colourMask(rgba, 1, 12, region, bar).alpha].map((a) => +(a > 0))).toEqual([0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]);
+    const spread = colourMask(rgba, 1, 12, region, { ...bar, spread: { radius: 2, range: { maxValue: 0.13 } } });
+    expect([...spread.alpha].map((a) => +(a > 0))).toEqual([0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0]);
+  });
+
   it('keeps only blobs with a saturated core: a brass knob, not cream paint in shadow', async () => {
     const { colourMask } = await import('../../scenes/recipeMask');
     // 30×12: a 6×6 knob at x 2–7 (rim at sat ~0.4, core at sat ~0.75) and a 6×6 patch of

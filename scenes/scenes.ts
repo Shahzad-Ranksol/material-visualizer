@@ -373,9 +373,18 @@ export const SCENES: Scene[] = [
             C(505, 290), C(625, 270), C(730, 295), C(820, 300), C(930, 250), C(910, 305), C(960, 305), C(1025, 305),
             // In the niche: glasses, candle, little elephant, gnome
             C(690, 400), C(745, 400), C(668, 412), C(660, 500), C(678, 530), C(730, 525), C(770, 522),
+            // …and the parts one click left out (SAM took the candle's label and left half only,
+            // not the gnome's hat or the glasses' rims): the candle's dark right half and its lid,
+            // the elephant's legs, the hat, both rims of the two glasses on the right
+            C(764, 406), C(760, 420), C(760, 383), C(665, 420), C(665, 451), C(718, 541), C(716, 521), C(760, 505), C(785, 520),
           ],
-          // The lamp's black cable down the back of the niche
-          protectColour: [{ region: [[C(712, 337), C(750, 337), C(750, 492), C(712, 492)]], maxValue: 0.12 }],
+          // The lamp's black cable down the back of the niche, and on down to the glasses
+          protectColour: [
+            { region: [[C(704, 337), C(752, 337), C(752, 535), C(704, 535)]], maxValue: 0.12 },
+            // The gold band near the gnome's hat tip, which no click takes: saturated gold against
+            // the niche's neutral grey
+            { region: [[C(650, 438), C(685, 438), C(685, 470), C(650, 470)]], hueMin: 20, hueMax: 60, minSat: 0.4 },
+          ],
         },
       },
       {
@@ -388,7 +397,13 @@ export const SCENES: Scene[] = [
           anchors: [p(0.6, 0.85)],
           // Below the skirting and the door's threshold, under the sideboard too (its black frame stays)
           outline: [[C(100, 1067), C(160, 990), C(352, 800), C(352, 756), C(1095, 756), C(1095, 740), C(1600, 735), C(1600, 1067)]],
-          protectColour: [{ region: [[C(345, 750), C(1100, 750), C(1100, 810), C(345, 810)]], maxValue: 0.13 }],
+          // The black frame is neutral; the parquet in the deep shadow under the cabinet is as dark but
+          // stays warm (hue 20–45°, sat 0.7+), so it is floor
+          // …with its dark contact shadows a few px either side (too thin for the half-res baked light,
+          // they would come out lit)
+          protectColour: [
+            { region: [[C(345, 750), C(1100, 750), C(1100, 810), C(345, 810)]], maxValue: 0.13, maxSat: 0.5, spread: { radius: 4, range: { maxValue: 0.1 } } },
+          ],
         },
       },
       {

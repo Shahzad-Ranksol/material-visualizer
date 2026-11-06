@@ -522,7 +522,7 @@
         "occluder": "/scenes/cabinet/sideboard.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:26:49.276Z"
+        "bakedAt": "2026-11-06T07:18:08.464Z"
       },
       "floor": {
         "parts": [
@@ -562,7 +562,7 @@
         "occluder": "/scenes/cabinet/floor.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:26:52.518Z"
+        "bakedAt": "2026-11-06T07:18:11.784Z"
       },
       "wall": {
         "parts": [
@@ -730,7 +730,7 @@
         "occluder": "/scenes/cabinet/wall.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:27:08.555Z"
+        "bakedAt": "2026-11-06T07:18:27.448Z"
       }
     }
   },

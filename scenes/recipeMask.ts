@@ -79,6 +79,10 @@ export interface ColourRange {
   // `core`: a piece is kept only if at least `minShare` of its pixels reach `minSat` — brass has a
   // saturated core, warm paint in shadow (an inside corner, a bracket's return) never does
   blobs?: BlobFilter;
+  // …and the pixels within `radius` px of those that fall in a looser `range`: a black frame bar
+  // takes its own dark contact shadow, which is warm like the floor but too thin for the baked
+  // light to shade
+  spread?: { radius: number; range: ColourRange };
 }
 
 export interface BlobFilter {
@@ -124,10 +128,17 @@ export const colourMask = (rgba: Uint8ClampedArray, w: number, h: number, region
   for (let i = 0; i < w * h; i++) if (inside.alpha[i] && inColourRange(rgba, i * 4, range)) out.alpha[i] = 255;
   // Knobs: close their specular gaps first (a small knob is a ring of saturated pixels), then
   // open away the 1–2 px groove shadows, then keep the compact pieces
-  if (!range.blobs) return out;
-  const { core } = range.blobs;
-  const keep = core ? (piece: number[]) => piece.filter((i) => saturation(rgba, i * 4) >= core.minSat).length >= core.minShare * piece.length : undefined;
-  return keepBlobs(openMask(closeMask(out, 1), 1), range.blobs, keep);
+  let kept = out;
+  if (range.blobs) {
+    const { core } = range.blobs;
+    const keep = core ? (piece: number[]) => piece.filter((i) => saturation(rgba, i * 4) >= core.minSat).length >= core.minShare * piece.length : undefined;
+    kept = keepBlobs(openMask(closeMask(out, 1), 1), range.blobs, keep);
+  }
+  if (!range.spread) return kept;
+  const near = dilateDisc(kept, range.spread.radius);
+  const spread = range.spread.range;
+  for (let i = 0; i < w * h; i++) if (near.alpha[i] >= 128 && inside.alpha[i] && inColourRange(rgba, i * 4, spread)) kept.alpha[i] = 255;
+  return kept;
 };
 
 const invert = (m: AlphaMask): AlphaMask => ({ ...m, alpha: m.alpha.map((a) => 255 - a) });
