@@ -5,11 +5,11 @@ import { BAKED } from './scenes/baked';
 import { materialById, materialsFor } from './scenes/materials';
 import { decodeLook, encodeLook, initialStudioState, studioReducer } from './scenes/studioState';
 import { SceneCanvas } from './components/studio/SceneCanvas';
-import { FinishPanel } from './components/studio/FinishPanel';
+import { FinishPopover } from './components/studio/FinishPopover';
 import { DesignSummary } from './components/studio/DesignSummary';
 import { useSceneMasks } from './components/studio/useSceneMasks';
 import { useLookRender } from './components/studio/useLookRender';
-import { Ambient } from './components/studio/Ambient';
+import { Box, maskBounds, unionBounds } from './components/studio/geometry';
 import { StylePicker } from './components/studio/StylePicker';
 import { useComposedScene } from './components/studio/useComposedScene';
 import { groupOfItem, ORIGINAL, STYLE_GROUPS } from './scenes/styles';
@@ -56,6 +56,8 @@ const App: React.FC = () => {
     setSweep({ rect: pendingSweep.current, token: Date.now() });
     pendingSweep.current = null;
   }, [shownUrl, rendering]);
+  // The finish just applied, rolled on over its items when its look arrives
+  const [paint, setPaint] = useState<{ itemIds: string[]; token: number } | null>(null);
 
   const query = encodeLook(state);
   useEffect(() => window.history.replaceState(null, '', `${window.location.pathname}?${query}`), [query]);
@@ -67,47 +69,72 @@ const App: React.FC = () => {
   const activeId = shared.size === 1 ? ([...shared][0] ?? null) : null;
   const finishedCount = Object.keys(state.assignments).length;
 
+  // The picture's box on screen, and the selected area in it, for the finish popover
+  const stage = useRef<HTMLDivElement>(null);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStageSize({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const anchor = useMemo((): Box | null => {
+    const picked = masks.filter((m) => state.selected.includes(m.id));
+    const box = unionBounds(picked.map((m) => maskBounds(m.mask)).filter((b): b is Box => !!b));
+    if (!box || !stageSize.w) return null;
+    const k = stageSize.w / picked[0].mask.width;
+    return { x: box.x * k, y: box.y * k, w: box.w * k, h: box.h * k };
+  }, [masks, state.selected.join(), stageSize.w]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const pickScene = (id: (typeof SCENES)[number]['id']) => {
     setCompare(false);
+    setPaint(null);
     dispatch({ type: 'scene', sceneId: id });
   };
+  const clearSelection = useMemo(() => () => dispatch({ type: 'clearSelection' }), []);
 
   return (
-    <div className="relative min-h-screen font-grotesk text-[#f4efe6]">
-      <Ambient src={renderUrl ?? photoUrl} />
-      <header className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-6 gap-y-3 px-4 pt-5 sm:px-8">
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-[#e6c88f] to-[#a9824a] text-xs font-black text-[#1c1915]">F</span>
-          Finish Studio
-        </Link>
-        <nav aria-label="Scenes" className="-mx-4 flex flex-1 gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-          {SCENES.map((s) => {
-            const active = s.id === scene.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                data-testid="scene-tab"
-                aria-current={active ? 'page' : undefined}
-                onClick={() => pickScene(s.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-4 text-sm font-medium backdrop-blur-md transition ${
-                  active ? 'bg-[#f4efe6] text-[#1c1915] shadow-[0_6px_20px_-6px_rgba(0,0,0,0.6)]' : 'bg-white/[0.07] text-[#f4efe6]/85 ring-1 ring-white/10 hover:bg-white/15'
-                }`}
-              >
-                <img src={s.thumbnail} alt="" className="h-7 w-7 rounded-full object-cover" />
-                {s.title}
-              </button>
-            );
-          })}
-        </nav>
+    <div className="min-h-screen bg-paper font-grotesk text-spruce">
+      <header className="border-b border-line">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-10 gap-y-3 px-4 py-4 sm:px-8">
+          <Link to="/" className="text-[13px] font-semibold uppercase tracking-[0.28em] text-spruce">
+            Finish<span className="text-brass">·</span>Studio
+          </Link>
+          <nav aria-label="Scenes" className="-mx-4 flex flex-1 gap-1 overflow-x-auto px-4 sm:mx-0 sm:gap-2 sm:px-0">
+            {SCENES.map((s) => {
+              const active = s.id === scene.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  data-testid="scene-tab"
+                  aria-current={active ? 'page' : undefined}
+                  onClick={() => pickScene(s.id)}
+                  className={`relative flex shrink-0 items-center gap-2 px-2 py-1.5 text-sm transition after:absolute after:inset-x-2 after:-bottom-[17px] after:h-0.5 after:rounded-full after:transition ${
+                    active ? 'font-semibold text-spruce after:bg-brass' : 'text-spruce-soft after:bg-transparent hover:text-spruce'
+                  }`}
+                >
+                  <img src={s.thumbnail} alt="" className={`h-6 w-6 rounded-full object-cover ring-1 transition ${active ? 'ring-brass' : 'ring-line'}`} />
+                  {s.title}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1500px] gap-6 px-4 pb-10 pt-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <main className="mx-auto grid max-w-[1440px] gap-8 px-4 pb-14 pt-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-semibold leading-none tracking-[-0.035em] sm:text-6xl">{scene.title}</h1>
-              <p className="mt-2 text-[#a39e94]">{scene.tagline}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brass">Finish studio</p>
+              <h1 className="mt-1 font-serif text-4xl leading-[1.05] text-spruce sm:text-5xl">{scene.title}</h1>
+              <p className="mt-2 text-sm text-spruce-soft">
+                {scene.tagline}
+                <span className="mx-2 text-line">|</span>
+                {finishedCount} of {scene.items.length} finished
+              </p>
             </div>
             <button
               type="button"
@@ -115,33 +142,70 @@ const App: React.FC = () => {
               onClick={() => setCompare((c) => !c)}
               disabled={!renderUrl}
               aria-pressed={compare}
-              className={`rounded-full px-4 py-2 text-sm font-medium backdrop-blur-md transition disabled:opacity-40 ${
-                compare ? 'bg-[#d9b77a] text-[#1c1915]' : 'bg-white/10 text-[#f4efe6] ring-1 ring-white/15 hover:bg-white/20'
+              className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-35 ${
+                compare ? 'bg-spruce text-paper' : 'border border-line bg-white text-spruce hover:border-spruce/40'
               }`}
             >
               {compare ? 'Back to editing' : 'Compare with original'}
             </button>
           </div>
 
-          <div className="relative">
+          <div ref={stage} className="relative">
             <SceneCanvas
               scene={scene}
               renderUrl={renderUrl}
               masks={masks}
+              selected={state.selected}
               rendering={rendering}
               compare={compare}
+              paint={paint}
               sweep={sweep && BAKED[scene.id] ? { ...sweep, width: BAKED[scene.id]!.width, height: BAKED[scene.id]!.height } : null}
               onSelect={(id, additive) => (id ? dispatch({ type: 'select', itemId: id, additive }) : dispatch({ type: 'clearSelection' }))}
             />
             {!state.selected.length && !finishedCount && !compare && (
-              <div className="pointer-events-none absolute left-4 top-4 rounded-full bg-black/45 px-4 py-2 text-sm text-[#f4efe6] backdrop-blur-md">
+              <div className="pointer-events-none absolute left-4 top-4 rounded-full bg-paper/95 px-4 py-2 text-[13px] text-spruce shadow-[0_6px_20px_-8px_rgba(30,43,41,0.4)]">
                 Click anything in the room to change its finish
               </div>
             )}
+            {selectedItems.length > 0 && !compare && (
+              <FinishPopover
+                key={scene.id}
+                labels={selectedItems.map((i) => i.label)}
+                materials={materials}
+                activeId={activeId}
+                anchor={anchor}
+                container={stageSize}
+                onClose={clearSelection}
+                onApply={(materialId) => {
+                  setCompare(false);
+                  setPaint({ itemIds: [...state.selected], token: Date.now() });
+                  dispatch({ type: 'apply', materialId });
+                }}
+              >
+                {BAKED[scene.id] &&
+                  styleGroups.map((styleGroup) => (
+                    <StylePicker
+                      key={styleGroup.id}
+                      scene={scene}
+                      group={styleGroup}
+                      width={BAKED[scene.id]!.width}
+                      height={BAKED[scene.id]!.height}
+                      activeId={state.styles[styleGroup.id] ?? ORIGINAL}
+                      onPick={(optionId) => {
+                        setCompare(false);
+                        setPaint(null);
+                        const bake = styleBake(scene.id, styleGroup.id, optionId) ?? styleBake(scene.id, styleGroup.id, state.styles[styleGroup.id] ?? ORIGINAL);
+                        if (bake) pendingSweep.current = bake.rect;
+                        dispatch({ type: 'style', groupId: styleGroup.id, optionId });
+                      }}
+                    />
+                  ))}
+              </FinishPopover>
+            )}
           </div>
-          {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+          {error && <p className="mt-3 text-sm text-[#9b3d33]">{error}</p>}
 
-          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-white/[0.05] p-2 ring-1 ring-white/10 backdrop-blur-md" role="group" aria-label="Items in this scene">
+          <div className="mt-5 flex flex-wrap items-center gap-2" role="group" aria-label="Items in this scene">
             {scene.items.map((item) => {
               const ready = !!baked[item.id];
               const on = state.selected.includes(item.id);
@@ -160,11 +224,11 @@ const App: React.FC = () => {
                     // Chips toggle, so several items can be picked without a modifier key
                     dispatch({ type: 'select', itemId: item.id, additive: true });
                   }}
-                  className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium transition disabled:opacity-40 ${
-                    on ? 'bg-[#d9b77a] text-[#1c1915] shadow-[0_0_20px_-4px_rgba(217,183,122,0.7)]' : 'bg-white/[0.06] text-[#f4efe6]/90 hover:bg-white/15'
+                  className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition disabled:opacity-40 ${
+                    on ? 'border-spruce bg-spruce text-paper' : 'border-line bg-white text-spruce hover:border-spruce/40'
                   }`}
                 >
-                  {finish && <img src={finish.thumbnail} alt="" className="h-4 w-4 rounded-full object-cover ring-1 ring-white/40" />}
+                  {finish && <img src={finish.thumbnail} alt="" className="h-4 w-4 rounded-full object-cover ring-1 ring-black/10" />}
                   {item.label}
                 </button>
               );
@@ -172,51 +236,28 @@ const App: React.FC = () => {
             <button
               type="button"
               onClick={() => dispatch({ type: 'selectAll', itemIds: scene.items.filter((i) => baked[i.id]).map((i) => i.id) })}
-              className="ml-auto px-3 text-sm text-[#a39e94] underline-offset-2 hover:text-[#f4efe6] hover:underline"
+              className="ml-auto px-2 text-[13px] text-spruce-soft underline-offset-4 hover:text-spruce hover:underline"
             >
               Select all
             </button>
           </div>
-          <p className="mt-4 text-xs text-[#a39e94]">
-            {scene.source === 'unsplash' ? `Photo by ${scene.credit.replace(/ \(.*\)$/, '')} on Unsplash · ` : ''}
-            {finishedCount} of {scene.items.length} items finished
-          </p>
+          {scene.source === 'unsplash' && <p className="mt-6 text-[11px] text-spruce-soft/80">Photo by {scene.credit.replace(/ \(.*\)$/, '')} on Unsplash</p>}
         </div>
 
-        <aside className="flex flex-col gap-6 rounded-3xl bg-[#1c1915]/70 p-5 ring-1 ring-white/10 backdrop-blur-xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:self-start lg:overflow-y-auto">
-          {BAKED[scene.id] &&
-            styleGroups.map((styleGroup) => (
-              <StylePicker
-                key={styleGroup.id}
-                scene={scene}
-                group={styleGroup}
-                width={BAKED[scene.id]!.width}
-                height={BAKED[scene.id]!.height}
-                activeId={state.styles[styleGroup.id] ?? ORIGINAL}
-                onPick={(optionId) => {
-                  setCompare(false);
-                  const bake = styleBake(scene.id, styleGroup.id, optionId) ?? styleBake(scene.id, styleGroup.id, state.styles[styleGroup.id] ?? ORIGINAL);
-                  if (bake) pendingSweep.current = bake.rect;
-                  dispatch({ type: 'style', groupId: styleGroup.id, optionId });
-                }}
-              />
-            ))}
-          <FinishPanel
-            selectedLabels={selectedItems.map((i) => i.label)}
-            materials={materials}
-            activeId={activeId}
-            onApply={(materialId) => {
-              setCompare(false);
-              dispatch({ type: 'apply', materialId });
-            }}
-          />
+        <aside className="rounded-xl border border-line bg-white p-6 shadow-[0_20px_50px_-30px_rgba(30,43,41,0.35)] lg:sticky lg:top-6 lg:self-start">
           <DesignSummary
             scene={scene}
             assignments={state.assignments}
             renderUrl={renderUrl}
             shareUrl={shareUrl}
-            onRemove={(itemId) => dispatch({ type: 'remove', itemId })}
-            onReset={() => dispatch({ type: 'reset' })}
+            onRemove={(itemId) => {
+              setPaint(null);
+              dispatch({ type: 'remove', itemId });
+            }}
+            onReset={() => {
+              setPaint(null);
+              dispatch({ type: 'reset' });
+            }}
             onSelect={(itemId) => dispatch({ type: 'select', itemId, additive: false })}
           />
         </aside>

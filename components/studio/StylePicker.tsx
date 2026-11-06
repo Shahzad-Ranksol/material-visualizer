@@ -47,11 +47,11 @@ export const StylePicker: React.FC<Props> = ({ scene, group, width, height, acti
         data-style={id}
         aria-pressed={active}
         onClick={() => onPick(id)}
-        className="group w-28 shrink-0 text-left focus:outline-none"
+        className="group w-24 shrink-0 text-left focus:outline-none"
       >
         <span
-          className={`relative block overflow-hidden rounded-xl bg-no-repeat shadow-[0_10px_24px_-10px_rgba(0,0,0,0.8)] transition duration-200 group-hover:-translate-y-0.5 group-focus-visible:ring-2 group-focus-visible:ring-[#f4efe6] ${
-            active ? 'ring-2 ring-[#d9b77a] ring-offset-2 ring-offset-[#1c1915]' : 'ring-1 ring-white/10'
+          className={`relative block overflow-hidden rounded-lg bg-no-repeat transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_10px_20px_-10px_rgba(30,43,41,0.55)] group-focus-visible:ring-2 group-focus-visible:ring-spruce ${
+            active ? 'ring-2 ring-brass ring-offset-2 ring-offset-white' : 'ring-1 ring-black/10'
           }`}
           style={{
             aspectRatio: `${Math.min(2, Math.max(0.75, frame.w / frame.h))}`,
@@ -61,14 +61,14 @@ export const StylePicker: React.FC<Props> = ({ scene, group, width, height, acti
           }}
         >
         </span>
-        <span className={`mt-1.5 block text-[13px] font-semibold leading-snug ${active ? 'text-[#e6c88f]' : 'text-[#f4efe6]'}`}>{label}</span>
+        <span className={`mt-1.5 block text-[12px] font-semibold leading-snug ${active ? 'text-brass' : 'text-spruce'}`}>{label}</span>
       </button>
     );
   };
   return (
     <div>
-      <h3 className="text-sm font-semibold text-[#f4efe6]">{group.label}</h3>
-      <div className="-mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-2">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{group.label}</h3>
+      <div className="-mx-1 mt-2.5 flex gap-3 overflow-x-auto px-1 pb-1.5 pt-0.5">
         {card(ORIGINAL, 'As designed', null)}
         {ready.map(({ option, bake }) => card(option.id, option.label, bake))}
       </div>

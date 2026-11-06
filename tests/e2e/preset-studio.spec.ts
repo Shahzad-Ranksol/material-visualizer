@@ -141,3 +141,60 @@ test('switching scene shows the new scene, never the previous picture', async ({
     expect(await pictures()).toEqual([expect.stringContaining('/scenes/wardrobe/photo')]);
   }
 });
+
+test('a selected area pops up only the finishes that fit it, beside it; Esc closes it', async ({ page }) => {
+  test.setTimeout(90_000);
+  const expected: Record<string, string[]> = {
+    worktop: ['kit-bianco-quartz', 'kit-crema-marble'],
+    island: ['kit-sage-lacquer', 'kit-navy-lacquer', 'kit-natural-oak'],
+    floor: ['room-oak-parquet', 'room-concrete'],
+  };
+  await page.goto('/studio?scene=kitchen');
+  await expect(page.getByTestId('finish-popover')).toHaveCount(0);
+  for (const [item, materials] of Object.entries(expected)) {
+    await page.locator(`[data-testid=item-chip][data-item=${item}]`).click();
+    const popover = page.getByTestId('finish-popover');
+    await expect(popover).toBeVisible();
+    await expect(popover).toHaveAttribute('data-side', /right|left|top|bottom/);
+    const offered = await popover.locator('[data-testid=finish-chip]').evaluateAll((els) => els.map((e) => e.getAttribute('data-material')));
+    expect(offered.sort()).toEqual([...materials].sort());
+    // Inside the picture's box
+    const pb = (await popover.boundingBox())!;
+    const cb = (await page.getByTestId('scene-canvas').boundingBox())!;
+    expect(pb.x).toBeGreaterThanOrEqual(cb.x - 1);
+    expect(pb.x + pb.width).toBeLessThanOrEqual(cb.x + cb.width + 1);
+    await page.keyboard.press('Escape');
+    await expect(popover).toHaveCount(0);
+    await expect(page.locator(`[data-testid=item-chip][data-item=${item}]`)).toHaveAttribute('aria-pressed', 'false');
+  }
+});
+
+test('a finish is rolled on over its area; with reduced motion it simply appears', async ({ page, browser }) => {
+  test.setTimeout(120_000);
+  await page.goto('/studio?scene=kitchen');
+  await page.locator('[data-testid=item-chip][data-item=island]').click();
+  await page.waitForTimeout(500); // masks
+  await page.locator('[data-testid=finish-chip][data-material=kit-sage-lacquer]').click();
+  // The roll draws on its canvas, partway through it is visible, then the look takes over
+  const rolling = page.locator('[data-testid=scene-canvas] canvas[aria-hidden]:not(.hidden)');
+  await expect(rolling).toHaveCount(1, { timeout: 60_000 });
+  await expect(page.getByTestId('look-image')).toBeVisible({ timeout: 10_000 });
+  await expect(rolling).toHaveCount(0);
+
+  const reduced = await browser.newContext({ reducedMotion: 'reduce', baseURL: test.info().project.use.baseURL });
+  const still = await reduced.newPage();
+  await still.goto('/studio?scene=kitchen');
+  await still.locator('[data-testid=item-chip][data-item=island]').click();
+  await still.waitForTimeout(500);
+  let rolled = false;
+  await still.exposeFunction('sawRoll', () => (rolled = true));
+  await still.evaluate(() => {
+    new MutationObserver(() => {
+      if (document.querySelector('[data-testid=scene-canvas] canvas[aria-hidden]:not(.hidden)')) (window as unknown as { sawRoll: () => void }).sawRoll();
+    }).observe(document.body, { subtree: true, attributes: true, childList: true });
+  });
+  await still.locator('[data-testid=finish-chip][data-material=kit-sage-lacquer]').click();
+  await expect(still.getByTestId('look-image')).toBeVisible({ timeout: 60_000 });
+  expect(rolled).toBe(false);
+  await reduced.close();
+});

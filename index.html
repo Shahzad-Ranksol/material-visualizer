@@ -22,7 +22,10 @@
               grotesk: ['"Familjen Grotesk"', 'system-ui', 'sans-serif'],
             },
             colors: {
-              // The preset-scene studio: plaster ground, spruce ink, brass hardware for selection
+              // The preset-scene studio: warm paper ground, hairline rules, spruce ink, brass for selection
+              paper: '#f6f3ec',
+              mist: '#eeeae1',
+              line: '#ddd7ca',
               plaster: '#e3e6e2',
               spruce: { DEFAULT: '#1e2b29', soft: '#5e6a67' },
               brass: { DEFAULT: '#a9824a', light: '#d9c39c' },
@@ -56,6 +59,11 @@
 <style>
   /* Design-style reveal: a soft light passes across the changed area */
   @keyframes style-sweep { from { left: -50%; opacity: 1; } to { left: 110%; opacity: 0.6; } }
+  /* A finish just rolled on: a wet sheen passes over the painted area, then dries off */
+  @keyframes wet-sheen { from { transform: translateX(-60%) skewX(-18deg); opacity: 0; } 25% { opacity: 1; } to { transform: translateX(160%) skewX(-18deg); opacity: 0; } }
+  /* The finish popover / bottom sheet entering */
+  @keyframes pop-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes sheet-in { from { transform: translateY(100%); } to { transform: none; } }
   body {
     background-color: #0b0c10;
     color: #e2e8f0;
