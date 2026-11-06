@@ -68,6 +68,16 @@ export const SCENE_QA: Record<string, ItemQa> = {
   ...styleEntries('closeboard', fenceStyle({ include: [[1000, 630], [1100, 640], [1000, 700]] }, { include: [[200, 620], [350, 650]] })),
   ...styleEntries('horizontal-slat', fenceStyle()),
   ...styleEntries('lattice-top', fenceStyle()),
+  // Kitchen: warm cream paint in shadow is painted (it used to pass for brass and stay cream), the
+  // brass knobs are not
+  'kitchen/island': { include: [[1050, 815], [1052, 825], [1048, 835], [1055, 805], [1087, 650], [1087, 810]], exclude: [[391, 590], [413, 590], [653, 590], [916, 590]] },
+  'kitchen/tall-units': { include: [[1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
+  'kitchen/wall-cabinets': { include: [[440, 145], [450, 145]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
+  'kitchen/canopy': { include: [[461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450]] },
+  'kitchen/splashback': { include: [[460, 450], [300, 430]], exclude: [[467, 450], [468, 450]] },
+  // The island's bevelled corner is the island's, not the floor's
+  'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760]] },
+  'kitchen/base-cabinets': { exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
   // The door's foot and the right wall's skirting are not floor
   'wardrobe/floor': { include: [[1500, 950], [800, 1000]], exclude: [[110, 995], [150, 962], [1540, 895], [1500, 860]] },
   // The door casing's plinth block is not wall

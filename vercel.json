@@ -4,8 +4,12 @@
   "rewrites": [{ "source": "/((?!scenes/|materials/|finishes/|assets/).*)", "destination": "/index.html" }],
   "headers": [
     {
-      "source": "/(scenes|materials|finishes)/(.*)",
+      "source": "/(materials|finishes)/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }]
+    },
+    {
+      "source": "/scenes/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     }
   ]
 }

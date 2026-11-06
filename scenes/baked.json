@@ -858,7 +858,7 @@
         "occluder": "/scenes/kitchen/wall-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:35.550Z"
+        "bakedAt": "2026-11-06T06:26:23.623Z"
       },
       "tall-units": {
         "parts": [
@@ -892,7 +892,7 @@
         "occluder": "/scenes/kitchen/tall-units.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:36.199Z"
+        "bakedAt": "2026-11-06T06:26:24.188Z"
       },
       "canopy": {
         "parts": [
@@ -926,7 +926,7 @@
         "occluder": "/scenes/kitchen/canopy.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:39.396Z"
+        "bakedAt": "2026-11-06T06:26:27.012Z"
       },
       "base-cabinets": {
         "parts": [
@@ -960,7 +960,7 @@
         "occluder": "/scenes/kitchen/base-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:42.799Z"
+        "bakedAt": "2026-11-06T06:26:29.986Z"
       },
       "island": {
         "parts": [
@@ -974,11 +974,11 @@
                     "yPct": 63.507109004739334
                   },
                   {
-                    "xPct": 80,
+                    "xPct": 80.3125,
                     "yPct": 63.507109004739334
                   },
                   {
-                    "xPct": 80,
+                    "xPct": 80.3125,
                     "yPct": 94.7867298578199
                   },
                   {
@@ -994,7 +994,7 @@
         "occluder": "/scenes/kitchen/island.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:43.439Z"
+        "bakedAt": "2026-11-06T06:26:30.532Z"
       },
       "worktop": {
         "parts": [
@@ -1034,7 +1034,7 @@
         "occluder": "/scenes/kitchen/worktop.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:48.616Z"
+        "bakedAt": "2026-11-06T06:26:35.006Z"
       },
       "splashback": {
         "parts": [
@@ -1068,7 +1068,7 @@
         "occluder": "/scenes/kitchen/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:51.179Z"
+        "bakedAt": "2026-11-06T06:26:37.218Z"
       },
       "floor": {
         "parts": [
@@ -1140,7 +1140,7 @@
         "occluder": null,
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-10-23T12:55:55.949Z"
+        "bakedAt": "2026-11-06T06:26:41.420Z"
       }
     }
   }

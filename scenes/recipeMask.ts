@@ -75,9 +75,23 @@ export interface ColourRange {
   // Brightness (max channel, 0–1) window
   minValue?: number;
   maxValue?: number;
-  // Keep only compact pieces (knobs and cup handles, not the long groove shadows of the same hue)
-  blobs?: { minArea: number; maxArea: number; maxAspect: number };
+  // Keep only compact pieces (knobs and cup handles, not the long groove shadows of the same hue).
+  // `core`: a piece is kept only if at least `minShare` of its pixels reach `minSat` — brass has a
+  // saturated core, warm paint in shadow (an inside corner, a bracket's return) never does
+  blobs?: BlobFilter;
 }
+
+export interface BlobFilter {
+  minArea: number;
+  maxArea: number;
+  maxAspect: number;
+  core?: { minSat: number; minShare: number };
+}
+
+const saturation = (rgba: ArrayLike<number>, o: number) => {
+  const max = Math.max(rgba[o], rgba[o + 1], rgba[o + 2]);
+  return max > 0 ? (max - Math.min(rgba[o], rgba[o + 1], rgba[o + 2])) / max : 0;
+};
 
 /**
  * Pixels inside the polygons whose colour falls in a range — green leaves in front of beige
@@ -110,7 +124,10 @@ export const colourMask = (rgba: Uint8ClampedArray, w: number, h: number, region
   for (let i = 0; i < w * h; i++) if (inside.alpha[i] && inColourRange(rgba, i * 4, range)) out.alpha[i] = 255;
   // Knobs: close their specular gaps first (a small knob is a ring of saturated pixels), then
   // open away the 1–2 px groove shadows, then keep the compact pieces
-  return range.blobs ? keepBlobs(openMask(closeMask(out, 1), 1), range.blobs) : out;
+  if (!range.blobs) return out;
+  const { core } = range.blobs;
+  const keep = core ? (piece: number[]) => piece.filter((i) => saturation(rgba, i * 4) >= core.minSat).length >= core.minShare * piece.length : undefined;
+  return keepBlobs(openMask(closeMask(out, 1), 1), range.blobs, keep);
 };
 
 const invert = (m: AlphaMask): AlphaMask => ({ ...m, alpha: m.alpha.map((a) => 255 - a) });
@@ -133,8 +150,8 @@ export const closeMask = (mask: AlphaMask, r: number): AlphaMask => {
   return invert(dilateDisc(invert(dilateDisc(binary, r)), r));
 };
 
-/** The mask's connected pieces whose area and bounding-box aspect fall in range. */
-export const keepBlobs = (mask: AlphaMask, { minArea, maxArea, maxAspect }: { minArea: number; maxArea: number; maxAspect: number }): AlphaMask => {
+/** The mask's connected pieces whose area and bounding-box aspect fall in range (and that `keep` accepts). */
+export const keepBlobs = (mask: AlphaMask, { minArea, maxArea, maxAspect }: BlobFilter, keep?: (piece: number[]) => boolean): AlphaMask => {
   const { width: w, height: h } = mask;
   const out = emptyMask(w, h);
   const seen = new Uint8Array(w * h);
@@ -160,7 +177,8 @@ export const keepBlobs = (mask: AlphaMask, { minArea, maxArea, maxAspect }: { mi
     }
     const bw = x1 - x0 + 1;
     const bh = y1 - y0 + 1;
-    if (piece.length >= minArea && piece.length <= maxArea && Math.max(bw, bh) / Math.min(bw, bh) <= maxAspect) for (const i of piece) out.alpha[i] = 255;
+    if (piece.length >= minArea && piece.length <= maxArea && Math.max(bw, bh) / Math.min(bw, bh) <= maxAspect && (!keep || keep(piece)))
+      for (const i of piece) out.alpha[i] = 255;
   }
   return out;
 };

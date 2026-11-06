@@ -106,6 +106,29 @@ describe('colourMask', () => {
     // By brightness alone: only the beige pixel is brighter than 0.7
     expect([...colourMask(rgba, 4, 1, region, { minValue: 0.7 }).alpha]).toEqual([0, 255, 0, 0]);
   });
+
+  it('keeps only blobs with a saturated core: a brass knob, not cream paint in shadow', async () => {
+    const { colourMask } = await import('../../scenes/recipeMask');
+    // 30×12: a 6×6 knob at x 2–7 (rim at sat ~0.4, core at sat ~0.75) and a 6×6 patch of
+    // shaded cream at x 18–23 (sat ~0.4 throughout); both are hue ~33°
+    const w = 30;
+    const h = 12;
+    const rgba = new Uint8ClampedArray(w * h * 4).fill(255);
+    const put = (x: number, y: number, [r, g, b]: number[]) => rgba.set([r, g, b, 255], (y * w + x) * 4);
+    for (let y = 3; y < 9; y++)
+      for (let x = 2; x < 8; x++) put(x, y, x > 2 && x < 7 && y > 3 && y < 8 ? [160, 115, 40] : [160, 132, 96]);
+    for (let y = 3; y < 9; y++) for (let x = 18; x < 24; x++) put(x, y, [160, 132, 96]);
+    const region = [[{ xPct: 0, yPct: 0 }, { xPct: 1, yPct: 0 }, { xPct: 1, yPct: 1 }, { xPct: 0, yPct: 1 }]];
+    const blobs = { minArea: 8, maxArea: 700, maxAspect: 3 };
+    const range = { hueMin: 15, hueMax: 60, minSat: 0.38 };
+    // Without a core test both survive
+    const loose = colourMask(rgba, w, h, region, { ...range, blobs });
+    expect(loose.alpha[5 * w + 20]).toBe(255);
+    const strict = colourMask(rgba, w, h, region, { ...range, blobs: { ...blobs, core: { minSat: 0.55, minShare: 0.1 } } });
+    expect(strict.alpha[5 * w + 5]).toBe(255);
+    expect(strict.alpha[5 * w + 2]).toBe(255); // the knob keeps its paler rim
+    expect(strict.alpha[5 * w + 20]).toBe(0);
+  });
 });
 
 describe('keepBlobs', () => {

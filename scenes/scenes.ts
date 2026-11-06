@@ -14,7 +14,11 @@ const K = px(1344, 885); // the client's kitchen render
 
 // The kitchen island: its oak top (seen from slightly above) and its painted body
 const ISLAND_TOP = [K(300, 524), K(1020, 524), K(1097, 548), K(1097, 560), K(231, 560), K(231, 548)];
-const ISLAND_BODY = [K(243, 560), K(1088, 560), K(1088, 840), K(243, 840)];
+// Traced exactly, not snapped: snapping pulled the right side onto the strong edge at x 1085 and
+// left the 3 px highlight on the island's bevelled corner (x 1086–1088) out of the island, and in
+// the floor beside it
+const ISLAND_BODY = [K(242.5, 560), K(1089, 560), K(1089, 838.5), K(242.5, 838.5)];
+const ISLAND_SHAPE = { points: ISLAND_BODY, snap: false };
 
 // A pendant's white dome as an exact shape: a half-ellipse over its rim (photo px)
 const dome = (cx: number, rimY: number, rx: number, ry: number, rimDepth: number): PctPoint[] => {
@@ -32,7 +36,17 @@ const dome = (cx: number, rimY: number, rx: number, ry: number, rimDepth: number
 // The brass knobs and cup handles, by colour: saturated gold against cream paint, compact pieces
 // only (the panel grooves' warm shadows share the hue but are long thin lines)
 // (minArea: the smallest knob in that item, in px — larger drops more groove-corner specks)
-const brass = (region: PctPoint[][], minArea = 22) => ({ region, hueMin: 15, hueMax: 60, minSat: 0.38, blobs: { minArea, maxArea: 700, maxAspect: 3 } });
+// Brass knobs and cup handles: warm and saturated. A blob must have a saturated core (≥ 10% of
+// its pixels at sat ≥ 0.55; the palest knob has 12%, the kitchen's knobs mostly 30–85%): warm
+// cream paint in shadow reaches sat 0.3–0.45 at an inside corner, a bracket or the island's foot,
+// and without the core test those patches were kept as "brass" and stayed unpainted
+const brass = (region: PctPoint[][], minArea = 22) => ({
+  region,
+  hueMin: 15,
+  hueMax: 60,
+  minSat: 0.38,
+  blobs: { minArea, maxArea: 700, maxAspect: 3, core: { minSat: 0.55, minShare: 0.1 } },
+});
 
 // Wardrobe handles: a box around each aluminium bar (photo px, a pixel of margin), searched by colour
 const box = (x0: number, y0: number, x1: number, y1: number): PctPoint[] => [W(x0 - 1, y0 - 1), W(x1 + 1, y0 - 1), W(x1 + 1, y1 + 1), W(x0 - 1, y1 + 1)];
@@ -124,8 +138,19 @@ export const SCENES: Scene[] = [
             { points: [K(0, 121), K(168, 121), K(168, 390), K(177, 390), K(177, 489), K(140, 489), K(140, 700), K(0, 700)], snap: false },
             { points: [K(1176, 121), K(1344, 121), K(1344, 700), K(1192, 700), K(1192, 489), K(1150, 489), K(1150, 390), K(1164, 390), K(1164, 121)], snap: false },
           ],
-          // The larders' knobs are the smallest in the scene
-          protectColour: [brass([[K(0, 121), K(180, 121), K(180, 700), K(0, 700)], [K(1150, 121), K(1344, 121), K(1344, 700), K(1150, 700)]], 8)],
+          // The larders' knobs are the smallest in the scene. The search stops short of the worktop
+          // ends beside them and of the floor (their knobs are at y 231 and 491): oak is warm and
+          // saturated, and a blob of shaded paint touching it (the bracket at the worktop's right
+          // end, the plinth's corner) would pass for brass
+          protectColour: [
+            brass(
+              [
+                [K(0, 121), K(180, 121), K(180, 487), K(140, 487), K(140, 600), K(0, 600)],
+                [K(1150, 121), K(1344, 121), K(1344, 600), K(1192, 600), K(1192, 487), K(1150, 487)],
+              ],
+              8
+            ),
+          ],
           protectShapes: [knob(1264.4, 231.3), knob(1279.4, 231.6), knob(1265.3, 490), knob(1280.9, 490.3)],
         },
       },
@@ -141,7 +166,10 @@ export const SCENES: Scene[] = [
           outline: [
             [K(459, 122), K(876, 122), K(876, 270), K(459, 270)],
             [K(467, 268), K(866, 268), K(866, 320), K(467, 320)],
-            [K(467, 320), K(538, 320), K(538, 492), K(467, 492)],
+            // The left pilaster as traced, its shaded side face (x 467–468) included: snapped, it
+            // pulled in to x 469 and left that face to nothing above the tiles and to the
+            // splashback below
+            { points: [K(467, 320), K(537.5, 320), K(537.5, 492), K(467, 492)], snap: false },
             [K(795, 320), K(866, 320), K(866, 492), K(795, 492)],
           ],
           protect: [K(488, 205), K(843, 205), K(768, 245), K(835, 425), K(852, 455)],
@@ -158,7 +186,7 @@ export const SCENES: Scene[] = [
           anchors: [],
           outline: [[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]],
           // The range cooker, and the island in front
-          subtract: [ISLAND_TOP, ISLAND_BODY, [K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
+          subtract: [ISLAND_TOP, ISLAND_SHAPE, [K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527), K(890, 505)],
           protectColour: [brass([[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]])],
         },
@@ -168,7 +196,7 @@ export const SCENES: Scene[] = [
         label: 'Island',
         kind: 'cabinet',
         role: 'front',
-        recipe: { label: 'cabinet', anchors: [], outline: [ISLAND_BODY], protectColour: [brass([ISLAND_BODY])] },
+        recipe: { label: 'cabinet', anchors: [], outline: [ISLAND_SHAPE], protectColour: [brass([ISLAND_BODY])] },
       },
       {
         id: 'worktop',
@@ -192,7 +220,9 @@ export const SCENES: Scene[] = [
           label: 'wall',
           anchors: [],
           outline: [
-            [K(177, 390), K(467, 390), K(467, 489), K(177, 489)],
+            // As traced: it meets the tall unit, the wall cabinets and the canopy's pilaster on
+            // traced lines, and snapping took the pilaster's side face
+            { points: [K(177, 390), K(467, 390), K(467, 489), K(177, 489)], snap: false },
             [K(538, 320), K(795, 320), K(795, 489), K(538, 489)],
             [K(867, 390), K(1150, 390), K(1150, 489), K(867, 489)],
           ],
@@ -210,7 +240,7 @@ export const SCENES: Scene[] = [
           label: 'floor',
           anchors: [p(0.08, 0.92), p(0.92, 0.92)],
           outline: [[K(0, 700), K(1344, 700), K(1344, 885), K(0, 885)]],
-          subtract: [ISLAND_BODY],
+          subtract: [ISLAND_SHAPE],
         },
       },
     ],
