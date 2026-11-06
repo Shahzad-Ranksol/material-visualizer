@@ -1,10 +1,11 @@
 import json from './styles.baked.json';
 import { BakedItem, StyleBake, StyleBakes } from './types';
 import { BAKED } from './baked';
+import { withAssetUrls } from './assetUrl';
 import { groupOfItem, ORIGINAL, styleKey } from './styles';
 
 // Written by /dev/styles (scripts/sceneBakeDevServer.ts); JSON can't carry the Vec3 tuples' type
-export const STYLE_BAKED = json as unknown as StyleBakes;
+export const STYLE_BAKED = withAssetUrls(json as unknown as StyleBakes);
 
 export const styleBake = (sceneId: string, groupId: string, optionId: string): StyleBake | undefined =>
   optionId === ORIGINAL ? undefined : STYLE_BAKED[sceneId as keyof StyleBakes]?.[styleKey(groupId, optionId)];

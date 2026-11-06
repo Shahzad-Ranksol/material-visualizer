@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { defineConfig, Plugin } from 'vite';
@@ -36,8 +37,26 @@ const devOnlyPublic = (): Plugin => ({
   },
 });
 
-export default defineConfig(() => {
+// Production only: a short content hash of every file under public/scenes/, which the scene data
+// appends to its URLs (scenes/assetUrl.ts), so a changed mask or photo is never served from a
+// browser's cache of the old one
+const sceneAssetHashes = () => {
+  const root = path.join(__dirname, 'public');
+  const out: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else out['/' + path.relative(root, full).split(path.sep).join('/')] = crypto.createHash('sha1').update(fs.readFileSync(full)).digest('hex').slice(0, 10);
+    }
+  };
+  walk(path.join(root, 'scenes'));
+  return out;
+};
+
+export default defineConfig(({ command }) => {
     return {
+      define: command === 'build' ? { __SCENE_ASSETS__: JSON.stringify(sceneAssetHashes()) } : {},
       server: {
         port: 3000,
         host: '0.0.0.0',

@@ -1,4 +1,5 @@
 import json from './intrinsics.json';
+import { withAssetUrls } from './assetUrl';
 import type { IntrinsicSources } from '../services/renderer/intrinsics';
 import { styleKey } from './styles';
 
@@ -11,7 +12,7 @@ interface SceneLight {
   size?: [number, number];
   styles?: Record<string, { shading: string; reflection: string }>;
 }
-const LIGHT = json as unknown as Record<string, SceneLight>;
+const LIGHT = withAssetUrls(json as unknown as Record<string, SceneLight>);
 
 export const sceneBakedLight = (sceneId: string): IntrinsicSources | undefined => {
   const s = LIGHT[sceneId];

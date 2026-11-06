@@ -1,5 +1,6 @@
 import { PctPoint, Scene, SceneCategory } from './types';
 import photos from './photos.json';
+import { assetUrl } from './assetUrl';
 
 // The five preset scenes and the items a customer can re-finish in each. Coordinates are
 // fractions of the photo. Each item's `recipe` is what /dev/scenes runs to bake it.
@@ -102,8 +103,8 @@ const MEDIA_UNIT = [M(128, 853), M(1028, 853), M(1028, 970), M(128, 970)];
 const files = (id: SceneCategory) => {
   const entry = photos.find((ph) => ph.id === id);
   return {
-    photo: `/scenes/${id}/${(entry as { file?: string } | undefined)?.file ?? 'photo.jpg'}`,
-    thumbnail: `/scenes/${id}/thumb.jpg`,
+    photo: assetUrl(`/scenes/${id}/${(entry as { file?: string } | undefined)?.file ?? 'photo.jpg'}`),
+    thumbnail: assetUrl(`/scenes/${id}/thumb.jpg`),
     credit: entry?.credit ?? '',
     source: (entry?.source ?? 'unsplash') as Scene['source'],
   };
