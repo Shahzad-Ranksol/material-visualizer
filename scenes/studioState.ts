@@ -18,6 +18,8 @@ export type StudioAction =
   | { type: 'selectAll'; itemIds: string[] }
   | { type: 'clearSelection' }
   | { type: 'apply'; materialId: string }
+  // A wizard step's finish, straight onto its items (no selection round-trip)
+  | { type: 'assign'; itemIds: string[]; materialId: string }
   | { type: 'remove'; itemId: string }
   // A design style for a group; its items keep their finishes
   | { type: 'style'; groupId: string; optionId: string }
@@ -49,6 +51,11 @@ export const studioReducer = (state: StudioState, action: StudioAction): StudioS
       for (const id of state.selected) assignments[id] = action.materialId;
       return { ...state, assignments };
     }
+    case 'assign': {
+      const assignments = { ...state.assignments };
+      for (const id of action.itemIds) assignments[id] = action.materialId;
+      return { ...state, assignments };
+    }
     case 'remove': {
       const { [action.itemId]: _, ...assignments } = state.assignments;
       return { ...state, assignments };
@@ -72,8 +79,8 @@ const pairs = (r: Record<string, string>) =>
 export const lookKey = (state: Pick<StudioState, 'sceneId' | 'assignments'> & { styles?: Record<string, string> }): string =>
   `${state.sceneId}|${pairs(state.styles ?? {})}|${pairs(state.assignments)}`;
 
-/** The look as URL query params (?scene=kitchen&look=island:kit-navy-lacquer,worktop:kit-bianco-quartz). */
-export const encodeLook = (state: Pick<StudioState, 'sceneId' | 'assignments'> & { styles?: Record<string, string> }): string => {
+/** The look as URL query params (?scene=kitchen&look=island:kit-navy-lacquer,worktop:kit-bianco-quartz&step=2). */
+export const encodeLook = (state: Pick<StudioState, 'sceneId' | 'assignments'> & { styles?: Record<string, string>; step?: number }): string => {
   const params = new URLSearchParams({ scene: state.sceneId });
   const styles = Object.entries(state.styles ?? {})
     .map(([group, option]) => `${group}:${option}`)
@@ -83,6 +90,7 @@ export const encodeLook = (state: Pick<StudioState, 'sceneId' | 'assignments'> &
     .map(([item, material]) => `${item}:${material}`)
     .join(',');
   if (look) params.set('look', look);
+  if (state.step !== undefined) params.set('step', String(state.step));
   return params.toString();
 };
 
@@ -93,7 +101,7 @@ export const decodeLook = (
   isItem: (sceneId: string, itemId: string) => boolean,
   isMaterial: (id: string) => boolean,
   isStyle: (sceneId: string, groupId: string, optionId: string) => boolean = () => false
-): { sceneId: SceneCategory; assignments: Record<string, string>; styles: Record<string, string> } | null => {
+): { sceneId: SceneCategory; assignments: Record<string, string>; styles: Record<string, string>; step?: number } | null => {
   const params = new URLSearchParams(search);
   const sceneId = params.get('scene');
   if (!sceneId || !isScene(sceneId)) return null;
@@ -107,5 +115,8 @@ export const decodeLook = (
     const [group, option] = pair.split(':');
     if (group && option && isStyle(sceneId, group, option)) styles[group] = option;
   }
-  return { sceneId: sceneId as SceneCategory, assignments, styles };
+  // The wizard step the link was on (a whole number from 0; anything else is ignored)
+  const rawStep = params.get('step');
+  const step = rawStep !== null && /^\d+$/.test(rawStep) ? Number(rawStep) : undefined;
+  return { sceneId: sceneId as SceneCategory, assignments, styles, ...(step !== undefined ? { step } : {}) };
 };

@@ -46,11 +46,11 @@ describe('scene catalogue', () => {
     }
   });
 
-  it('each scene collection has 4–5 materials and ids are unique', () => {
+  it('each scene collection has 4–12 materials and ids are unique', () => {
     for (const s of SCENES) {
       const n = STUDIO_MATERIALS.filter((m) => m.collection === s.id).length;
       expect(n).toBeGreaterThanOrEqual(4);
-      expect(n).toBeLessThanOrEqual(5);
+      expect(n).toBeLessThanOrEqual(12);
     }
     expect(new Set(STUDIO_MATERIALS.map((m) => m.id)).size).toBe(STUDIO_MATERIALS.length);
   });

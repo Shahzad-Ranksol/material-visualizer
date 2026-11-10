@@ -79,3 +79,18 @@ describe('design styles', () => {
     expect(lookKey(state)).not.toBe(lookKey({ ...state, styles: {} }));
   });
 });
+
+describe('wizard steps', () => {
+  it('assign puts a finish on every listed item, without touching the selection', () => {
+    const s = studioReducer(initialStudioState('kitchen', { floor: 'room-concrete' }), { type: 'assign', itemIds: ['island', 'base-cabinets'], materialId: 'kit-sage-lacquer' });
+    expect(s.assignments).toEqual({ floor: 'room-concrete', island: 'kit-sage-lacquer', 'base-cabinets': 'kit-sage-lacquer' });
+    expect(s.selected).toEqual([]);
+  });
+
+  it('round-trips the step through the share link and ignores a bad one', () => {
+    const state = { sceneId: 'kitchen' as const, assignments: {}, styles: {}, step: 3 };
+    expect(decodeLook(encodeLook(state), () => true, () => true, () => true)?.step).toBe(3);
+    expect(decodeLook('scene=kitchen&step=-1', () => true, () => true, () => true)?.step).toBeUndefined();
+    expect(decodeLook('scene=kitchen', () => true, () => true, () => true)).not.toHaveProperty('step');
+  });
+});

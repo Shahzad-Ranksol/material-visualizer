@@ -5,10 +5,10 @@ import type { ColourRange, KeepColour } from './recipeMask';
 // render) whose items were cut out once, offline, in /dev/scenes and saved as masks + planes
 // ("baked"), so the studio renders them instantly with no model in the browser.
 
-export type SceneCategory = 'kitchen' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe';
+export type SceneCategory = 'kitchen' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe' | 'bathroom';
 
 // What an item physically is — which materials make sense on it
-export type SurfaceRole = 'front' | 'worktop' | 'splashback' | 'panel' | 'fence' | 'wall' | 'floor';
+export type SurfaceRole = 'front' | 'worktop' | 'splashback' | 'panel' | 'fence' | 'wall' | 'floor' | 'vanity' | 'tile';
 
 export interface PctPoint {
   xPct: number;

@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:kitchen": "VITE_APP=kitchen vite",
+    "dev:bathroom": "VITE_APP=bathroom vite",
+    "dev:fencing": "VITE_APP=fencing vite",
     "build": "vite build",
+    "build:kitchen": "VITE_APP=kitchen vite build",
+    "build:bathroom": "VITE_APP=bathroom vite build",
+    "build:fencing": "VITE_APP=fencing vite build",
     "preview": "vite preview",
     "assets:fetch": "node scripts/fetchAssets.mjs",
     "validation:fetch": "node scripts/fetchValidation.mjs",
