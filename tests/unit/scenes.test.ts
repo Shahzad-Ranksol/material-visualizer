@@ -42,15 +42,15 @@ describe('scene catalogue', () => {
     for (const s of SCENES) {
       expect(fs.existsSync(path.join(root, 'public', s.photo)), s.photo).toBe(true);
       expect(new Set(s.items.map((i) => i.id)).size).toBe(s.items.length);
-      for (const item of s.items) expect(materialsFor(s.id, [item.role]).length, `${s.id}/${item.id}`).toBeGreaterThan(0);
+      for (const item of s.items) expect(materialsFor(s.collection ?? s.id, [item.role]).length, `${s.id}/${item.id}`).toBeGreaterThan(0);
     }
   });
 
-  it('each scene collection has 4–12 materials and ids are unique', () => {
+  it('each scene collection has 4–24 materials and ids are unique', () => {
     for (const s of SCENES) {
-      const n = STUDIO_MATERIALS.filter((m) => m.collection === s.id).length;
+      const n = STUDIO_MATERIALS.filter((m) => m.collection === (s.collection ?? s.id)).length;
       expect(n).toBeGreaterThanOrEqual(4);
-      expect(n).toBeLessThanOrEqual(12);
+      expect(n).toBeLessThanOrEqual(24);
     }
     expect(new Set(STUDIO_MATERIALS.map((m) => m.id)).size).toBe(STUDIO_MATERIALS.length);
   });
@@ -246,7 +246,9 @@ describe('look layers', () => {
 
   it('fences are recoloured, other items textured', () => {
     expect(lookLayers(fencing, { 'front-fence': 'fen-charcoal' }, {}).every((l) => l.surface.recolor)).toBe(true);
-    expect(lookLayers(kitchen, { island: 'kit-navy-lacquer' }, {}).every((l) => !l.surface.recolor)).toBe(true);
+    // Paint too: measured against the client's references, the textured render on the baked light
+    // matches as well as recolouring (tests/e2e/kitchenColour.spec.ts) and paints over oak cleanly
+    expect(lookLayers(kitchen, { island: 'kit-navy-lacquer', worktop: 'kit-crema-marble' }, {}).every((l) => !l.surface.recolor)).toBe(true);
   });
 
   it('uses the masks of the styles drawn in the picture, not of a style still loading', () => {

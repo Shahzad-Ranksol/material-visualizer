@@ -25,6 +25,9 @@ export interface StyleOption {
   material?: string;
   // Per-item recipe changes for baking this style (a picket fence's gaps)
   recipeOverrides?: Record<string, Partial<BakeRecipe>>;
+  // Its committed design was generated on an older photo of the scene and no longer fits (it
+  // shows what used to stand in front): not offered until it is generated again in /dev/styles
+  stale?: string;
 }
 
 /** The option every group starts with: the scene as photographed. */
@@ -103,10 +106,10 @@ export const STYLE_OPTIONS: StyleOption[] = [
   // Kitchen
   { id: 'slab', groupId: 'kitchen-doors', label: 'Slab', prompt: 'flat slab cabinet doors and drawer fronts with no frame or panel, thin shadow gaps between doors, keep the same handles' },
   { id: 'fluted', groupId: 'kitchen-doors', label: 'Fluted', prompt: 'cabinet doors with fine vertical fluted reeding across the whole front, drawer fronts plain, keep the same handles' },
-  { id: 'thick-stone', groupId: 'kitchen-worktop', label: 'Thick stone', prompt: 'a 40 mm thick stone worktop with a square edge in place of the timber worktop' },
-  { id: 'herringbone-tile', groupId: 'kitchen-splashback', label: 'Herringbone tile', prompt: 'a herringbone pattern of small rectangular tiles with thin grout lines' },
-  { id: 'zellige', groupId: 'kitchen-splashback', label: 'Zellige', prompt: 'handmade square zellige tiles with uneven glaze and soft edges' },
-  { id: 'full-slab', groupId: 'kitchen-splashback', label: 'Full-height slab', prompt: 'a single seamless stone slab splashback with no grout lines' },
+  { id: 'thick-stone', groupId: 'kitchen-worktop', label: 'Thick stone', prompt: 'a 40 mm thick stone worktop with a square edge in place of the timber worktop', stale: 'made on the photo with the vases: shows the old surface where they stood' },
+  { id: 'herringbone-tile', groupId: 'kitchen-splashback', label: 'Herringbone tile', prompt: 'a herringbone pattern of small rectangular tiles with thin grout lines', stale: 'made on the photo with the vases: shows the old surface where they stood' },
+  { id: 'zellige', groupId: 'kitchen-splashback', label: 'Zellige', prompt: 'handmade square zellige tiles with uneven glaze and soft edges', stale: 'made on the photo with the vases: shows the old surface where they stood' },
+  { id: 'full-slab', groupId: 'kitchen-splashback', label: 'Full-height slab', prompt: 'a single seamless stone slab splashback with no grout lines', stale: 'made on the photo with the vases: shows the old surface where they stood' },
 
   // Media wall
   { id: 'wide-slats', groupId: 'media-panel', label: 'Wide slats', prompt: 'wide 60 mm vertical timber slats with deep shadow gaps' },

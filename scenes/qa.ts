@@ -79,6 +79,15 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // The island's bevelled corner is the island's, not the floor's
   'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760], [250, 839], [1070, 839]] },
   'kitchen/base-cabinets': { exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
+  // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
+  // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop
+  'kitchen-modern/splashback': { include: [[700, 520], [200, 500], [1000, 560]], exclude: [[400, 520], [334, 610], [945, 620], [1300, 560]] },
+  'kitchen-modern/worktop': { include: [[200, 690], [1400, 680], [700, 645]], exclude: [[880, 641], [945, 620]] },
+  'kitchen-modern/base-cabinets': { include: [[880, 770], [430, 880], [1420, 900]] },
+  // Galley: the hob, toaster and tap are not worktop; the fluted glass is not wall cabinet
+  'kitchen-galley/worktop': { include: [[420, 1050], [1180, 900], [1200, 772]], exclude: [[680, 744], [533, 746], [1052, 712]] },
+  'kitchen-galley/wall-cabinets': { include: [[390, 300]], exclude: [[560, 330]] },
+  'kitchen-galley/base-cabinets': { include: [[650, 900]] },
   // The door's foot and the right wall's skirting are not floor
   'wardrobe/floor': { include: [[1500, 950], [800, 1000]], exclude: [[110, 995], [150, 962], [1540, 895], [1500, 860]] },
   // The door casing's plinth block is not wall

@@ -8,8 +8,30 @@ interface Props {
   onPick: (materialId: string | null) => void;
 }
 
-/** A step's finishes as swatches; the chosen one again takes it off ("as shown"). */
-export const FinishChoices: React.FC<Props> = ({ materials, activeId, onPick }) => (
+// Swatches are grouped by what they are, when a step offers more than one kind
+const KINDS: Array<{ label: string; has: (m: StudioMaterial) => boolean }> = [
+  { label: 'Paints', has: (m) => m.category === 'paint' },
+  { label: 'Woods', has: (m) => m.category === 'wood' },
+  { label: 'Stone & tiles', has: (m) => m.category !== 'paint' && m.category !== 'wood' },
+];
+
+/** A step's finishes as swatches, grouped Paints / Woods / Stone; the chosen one again takes it off. */
+export const FinishChoices: React.FC<Props> = (props) => {
+  const groups = KINDS.map((k) => ({ label: k.label, materials: props.materials.filter(k.has) })).filter((g) => g.materials.length);
+  if (groups.length < 2) return <Swatches {...props} />;
+  return (
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <div key={g.label}>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{g.label}</h3>
+          <Swatches {...props} materials={g.materials} />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
   <div className="grid grid-cols-4 gap-x-2.5 gap-y-3 sm:grid-cols-4">
     {materials.map((m) => {
       const active = m.id === activeId;

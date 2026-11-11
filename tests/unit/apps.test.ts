@@ -18,18 +18,18 @@ describe('apps', () => {
     expect(() => appFor('garage')).toThrow(/Unknown VITE_APP/);
   });
 
-  it('every step of an app whose scenes exist names real style groups and items', () => {
+  it('every step names style groups and items of the app’s own scenes, and every item has a step', () => {
     for (const app of Object.values(APPS)) {
-      for (const sceneId of app.sceneIds) {
-        const scene = SCENES.find((s) => s.id === sceneId);
-        if (!scene) continue; // not delivered yet (the bathroom)
-        for (const step of app.steps) {
-          if (step.style) expect(STYLE_GROUPS.some((g) => g.id === step.style && g.sceneId === sceneId), `${app.id}/${step.id}`).toBe(true);
-          for (const id of step.finish?.itemIds ?? []) expect(scene.items.some((i) => i.id === id), `${app.id}/${step.id}/${id}`).toBe(true);
-        }
-        // Every item can be reached from some step (a click on it jumps there)
+      const scenes = app.sceneIds.map((id) => SCENES.find((s) => s.id === id)).filter((s): s is (typeof SCENES)[number] => !!s);
+      if (!scenes.length) continue; // not delivered yet (the bathroom)
+      for (const step of app.steps) {
+        if (step.style) expect(STYLE_GROUPS.some((g) => g.id === step.style && app.sceneIds.includes(g.sceneId)), `${app.id}/${step.id}`).toBe(true);
+        for (const id of step.finish?.itemIds ?? []) expect(scenes.some((s) => s.items.some((i) => i.id === id)), `${app.id}/${step.id}/${id}`).toBe(true);
+      }
+      // Every item can be reached from some step (a click on it jumps there)
+      for (const scene of scenes) {
         const ws = wizardSteps(app, scene, () => true);
-        for (const item of scene.items) expect(stepOfItem(ws, item.id), `${app.id}/${item.id}`).toBeGreaterThanOrEqual(0);
+        for (const item of scene.items) expect(stepOfItem(ws, item.id), `${app.id}/${scene.id}/${item.id}`).toBeGreaterThanOrEqual(0);
       }
     }
   });
@@ -41,12 +41,22 @@ describe('apps', () => {
     expect(ws[0].kind === 'design' && ws[0].styleGroup?.id).toBe('fence');
   });
 
-  it('kitchen asks design and finish, ending on the summary', () => {
+  it('kitchen asks design and finish, ending on the summary; each layout has its own steps', () => {
     const ws = steps('kitchen');
     expect(ws.map((s) => s.id)).toEqual(['doors', 'colour', 'worktop', 'splashback', 'floor', 'summary']);
+    // The Modern kitchen has no generated door styles yet, and oak panels the others lack
+    const modern = sceneOf('kitchen-modern');
+    expect(wizardSteps(APPS.kitchen, modern, (i) => !!BAKED[modern.id]?.items[i], 3).map((s) => s.id)).toEqual(['scene', 'colour', 'panels', 'worktop', 'splashback', 'floor', 'summary']);
     expect(stepItems(ws[1])).toContain('island');
     expect(stepOfItem(ws, 'worktop')).toBe(2);
     expect(lookLabel(ws, { 'kitchen-doors': 'slab' }, { island: 'kit-navy-lacquer', 'wall-cabinets': 'kit-navy-lacquer', 'tall-units': 'kit-navy-lacquer', canopy: 'kit-navy-lacquer', 'base-cabinets': 'kit-navy-lacquer' })).toBe('Slab · Midnight Navy');
+  });
+
+  it('names a finish used on two steps once', () => {
+    const modern = sceneOf('kitchen-modern');
+    const ws = wizardSteps(APPS.kitchen, modern, () => true, 3);
+    const all = Object.fromEntries(modern.items.filter((i) => i.role === 'front').map((i) => [i.id, 'kit-burgundy']));
+    expect(lookLabel(ws, {}, all)).toBe('Burgundy');
   });
 
   it('drops a step with nothing to choose', () => {

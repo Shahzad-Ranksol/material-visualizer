@@ -26,7 +26,8 @@
     "scenes:qa": "esbuild scripts/sceneQa.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/scene-qa.mjs --log-level=warning && node node_modules/.cache/scene-qa.mjs",
     "scenes:intrinsic:setup": "uv venv --python 3.12 scripts/intrinsic/.venv && uv pip install --python scripts/intrinsic/.venv/bin/python -r scripts/intrinsic/requirements.txt",
     "scenes:intrinsic": "scripts/intrinsic/.venv/bin/python scripts/intrinsic/bake.py",
-    "materials:build": "node scripts/buildStudioTextures.mjs"
+    "materials:build": "node scripts/buildStudioTextures.mjs",
+    "finishes:fromref": "esbuild scripts/paintFromReference.ts --bundle --platform=node --format=esm --packages=external --outfile=node_modules/.cache/paint-from-ref.mjs --log-level=warning && node node_modules/.cache/paint-from-ref.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.3.0",

@@ -29,13 +29,13 @@ export const readyStyles = (sceneId: string, groupId: string) => {
 
 export const wizardSteps = (app: AppConfig, scene: Scene, isBaked: (itemId: string) => boolean, sceneCount = 1): WizardStep[] => {
   const steps: WizardStep[] = [];
-  if (sceneCount > 1) steps.push({ kind: 'scene', id: 'scene', title: 'Pick your room', hint: 'Start from the room closest to yours.' });
+  if (sceneCount > 1) steps.push({ kind: 'scene', id: 'scene', title: 'Choose your layout', hint: 'Pick the one closest to yours. We measure properly on the visit.' });
   for (const step of app.steps) {
     const ready: ReadyStep = { ...step };
     if (step.style && readyStyles(scene.id, step.style).length) ready.styleGroup = STYLE_GROUPS.find((g) => g.id === step.style && g.sceneId === scene.id);
     if (step.finish) {
       const items = scene.items.filter((i) => step.finish!.itemIds.includes(i.id) && isBaked(i.id));
-      const materials = materialsFor(scene.id, [...new Set(items.map((i) => i.role))]);
+      const materials = materialsFor(scene.collection ?? scene.id, [...new Set(items.map((i) => i.role))]);
       if (items.length && materials.length) Object.assign(ready, { finishItems: items.map((i) => i.id), materials });
     }
     if (ready.styleGroup || ready.finishItems) steps.push({ kind: 'design', ...ready });
@@ -66,7 +66,8 @@ export const lookLabel = (steps: WizardStep[], styles: Record<string, string>, a
     if (style) parts.push(style.label);
     if (material) parts.push(material.name.replace(/ (Lacquer|Veneer)$/, ''));
   }
-  return parts.slice(0, max).join(' · ');
+  // The same finish on two steps (doors and panels both Burgundy) is named once
+  return [...new Set(parts)].slice(0, max).join(' · ');
 };
 
 /** The step that changes an item (a click on the picture jumps there). */

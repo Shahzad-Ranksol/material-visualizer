@@ -5,7 +5,7 @@ import type { ColourRange, KeepColour } from './recipeMask';
 // render) whose items were cut out once, offline, in /dev/scenes and saved as masks + planes
 // ("baked"), so the studio renders them instantly with no model in the browser.
 
-export type SceneCategory = 'kitchen' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe' | 'bathroom';
+export type SceneCategory = 'kitchen' | 'kitchen-modern' | 'kitchen-galley' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe' | 'bathroom';
 
 // What an item physically is — which materials make sense on it
 export type SurfaceRole = 'front' | 'worktop' | 'splashback' | 'panel' | 'fence' | 'wall' | 'floor' | 'vanity' | 'tile';
@@ -71,6 +71,8 @@ export interface SceneItem {
 
 export interface Scene {
   id: SceneCategory;
+  // The material collection it offers (scenes.ts: the three kitchens share 'kitchen'); default its id
+  collection?: SceneCategory;
   title: string;
   tagline: string;
   photo: string;

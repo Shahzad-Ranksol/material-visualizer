@@ -2,13 +2,16 @@ import json from './styles.baked.json';
 import { BakedItem, StyleBake, StyleBakes } from './types';
 import { BAKED } from './baked';
 import { withAssetUrls } from './assetUrl';
-import { groupOfItem, ORIGINAL, styleKey } from './styles';
+import { groupOfItem, ORIGINAL, STYLE_OPTIONS, styleKey } from './styles';
 
 // Written by /dev/styles (scripts/sceneBakeDevServer.ts); JSON can't carry the Vec3 tuples' type
 export const STYLE_BAKED = withAssetUrls(json as unknown as StyleBakes);
 
+/** A style's shipped bake; none for the original design or a style made on an older photo (`stale`). */
 export const styleBake = (sceneId: string, groupId: string, optionId: string): StyleBake | undefined =>
-  optionId === ORIGINAL ? undefined : STYLE_BAKED[sceneId as keyof StyleBakes]?.[styleKey(groupId, optionId)];
+  optionId === ORIGINAL || STYLE_OPTIONS.some((o) => o.groupId === groupId && o.id === optionId && o.stale)
+    ? undefined
+    : STYLE_BAKED[sceneId as keyof StyleBakes]?.[styleKey(groupId, optionId)];
 
 /** An item's masks and planes under the chosen styles: the style's own bake, else the scene's. */
 export const bakedItemFor = (sceneId: string, itemId: string, styles: Record<string, string>): BakedItem | undefined => {
