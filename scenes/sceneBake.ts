@@ -3,7 +3,7 @@ import { cutObject, cutSurface, JobOptions } from '../services/roomAnalysis';
 import { alphaMaskToCanvas, alphaMaskToPngBlob, applyEditsToParts, canvasToAlphaMask, clearOccluderUnder, unionMasks } from '../services/maskCanvas';
 import { clearOccluderAlpha, dilateDisc } from '../services/areaMaskOps';
 import { autoFitPlane, planeKindFor } from '../services/planeGeometry';
-import { applyRecipeClip, colourMask, keepByColour, keepInside, partitionParts, polygonItemMask, softProtect } from './recipeMask';
+import { applyRecipeClip, colourMask, keepByColour, keepInside, partitionParts, polygonItemMask, softProtectOf } from './recipeMask';
 import { gradientImage, snapPolygon } from './edgeSnap';
 import { BakeRecipe, Outline, PctPoint, Scene, SceneItem } from './types';
 
@@ -171,7 +171,7 @@ const bakeOutline = async (scene: Scene, item: SceneItem, options: JobOptions): 
     }
     objects.push(c);
   }
-  for (const region of recipe.protectSoft ?? []) objects.push(alphaMaskToCanvas(softProtect(rgba, w, h, region)));
+  for (const region of recipe.protectSoft ?? []) objects.push(alphaMaskToCanvas(softProtectOf(rgba, w, h, region)));
   if (recipe.keepOccluders && planes) objects.push(...planes.occluders);
   else if (recipe.keepOccludersIn && planes?.occluders.length)
     objects.push(alphaMaskToCanvas(keepInside(canvasToAlphaMask(unionMasks(planes.occluders)), recipe.keepOccludersIn)));

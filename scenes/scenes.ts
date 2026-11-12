@@ -396,7 +396,11 @@ export const SCENES: Scene[] = [
           // What stands before it, clicked low on each object as for the worktop (a click higher up,
           // on a board or a jar against the wall, took the wall itself), plus the pampas grass and
           // the big vase's branches
-          protect: [U(255, 640), U(290, 625), U(330, 625), U(295, 632), U(500, 618), U(527, 622), U(560, 615), U(650, 605), U(700, 600), U(950, 625), U(1075, 615), U(1115, 615), U(1320, 625), U(395, 545), U(1320, 520)],
+          protect: [U(255, 640), U(290, 625), U(330, 625), U(295, 632), U(500, 618), U(527, 622), U(560, 615), U(650, 605), U(700, 600), U(950, 625), U(1075, 615), U(1115, 615), U(1320, 625), U(395, 545)],
+          // The big vase's pampas fronds before the wall by the window, by colour against the wall
+          // around them (its sun and the plant's shadows vary): a SAM cut took them as one blob
+          // with the wall between them, which then stayed white round the plant on a new finish
+          protectSoft: [{ region: [[U(1168, 330), U(1250, 330), U(1250, 640), U(1168, 640)]], local: 10, low: 14, high: 45 }],
         },
       },
       {

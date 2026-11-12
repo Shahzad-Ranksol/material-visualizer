@@ -1,5 +1,5 @@
 import { AlphaMask, cloneMask, dilateDisc, emptyMask, fillPolygon, Pt } from '../services/areaMaskOps';
-import { BakeRecipe, PctPoint } from './types';
+import { BakeRecipe, PctPoint, SoftProtect } from './types';
 
 // Pure mask maths for baking a scene item (no DOM, unit-tested): a recipe's clip/subtract
 // polygons applied to the cut, and the polygon-only items.
@@ -329,7 +329,7 @@ export const keepByColour = (mask: AlphaMask, rgba: ArrayLike<number>, range: Ke
  * (the median colour of the region, mostly surface), from 0 at `low` to full at `high` (RGB
  * distance). Soft, so the renderer swaps only the surface's share of a mixed pixel.
  */
-export const softProtect = (rgba: ArrayLike<number>, w: number, h: number, region: PctPoint[][], low = 22, high = 70): AlphaMask => {
+export const softProtect = (rgba: ArrayLike<number>, w: number, h: number, region: PctPoint[][], low = 22, high = 70, local = 0): AlphaMask => {
   let inside = emptyMask(w, h);
   for (const poly of region) inside = fillPolygon(inside, toPx(poly, w, h), 'add');
   const idx: number[] = [];
@@ -340,9 +340,56 @@ export const softProtect = (rgba: ArrayLike<number>, w: number, h: number, regio
     const v = idx.map((i) => rgba[i * 4 + c]).sort((a, b) => a - b);
     return v[Math.floor(v.length / 2)];
   });
-  for (const i of idx) {
-    const d = Math.hypot(rgba[i * 4] - med[0], rgba[i * 4 + 1] - med[1], rgba[i * 4 + 2] - med[2]);
-    out.alpha[i] = Math.round(255 * Math.min(1, Math.max(0, (d - low) / (high - low))));
+  // The surface's colour per pixel: the median, or with `local` the surface around it
+  const bg = new Float32Array(w * h * 3);
+  for (const i of idx) bg.set(med, i * 3);
+  const dist = (i: number) => Math.hypot(rgba[i * 4] - bg[i * 3], rgba[i * 4 + 1] - bg[i * 3 + 1], rgba[i * 4 + 2] - bg[i * 3 + 2]);
+  if (local > 0) {
+    // In passes, from a loose tolerance round the median (the surface's light may vary across the
+    // region more than the object differs from it) to a tight one round the local estimate: the
+    // pixels close to the estimate are surface; blur their colours (normalised, so it reaches
+    // across the object from the surface round it)
+    for (const pass of [3.5, 2, 1]) {
+      const weight = new Float32Array(w * h);
+      for (const i of idx) if (dist(i) < low * pass) weight[i] = 1;
+      const chans = [0, 1, 2].map((c) => {
+        const v = new Float32Array(w * h);
+        for (const i of idx) v[i] = rgba[i * 4 + c];
+        return blurNormalised(v, weight, w, h, local);
+      });
+      for (const i of idx) if (chans[0].den[i] > 1e-3) for (let c = 0; c < 3; c++) bg[i * 3 + c] = chans[c].value[i];
+    }
   }
+  for (const i of idx) out.alpha[i] = Math.round(255 * Math.min(1, Math.max(0, (dist(i) - low) / (high - low))));
   return out;
 };
+
+/** Separable Gaussian of `values` weighted by `weight`, divided by the blurred weight (where it is set). */
+const blurNormalised = (values: Float32Array, weight: Float32Array, w: number, h: number, sigma: number) => {
+  const r = Math.ceil(sigma * 3);
+  const k = Array.from({ length: 2 * r + 1 }, (_, d) => Math.exp(-((d - r) ** 2) / (2 * sigma * sigma)));
+  const pass = (src: Float32Array, horizontal: boolean) => {
+    const dst = new Float32Array(w * h);
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        let s = 0;
+        for (let d = -r; d <= r; d++) {
+          const [xx, yy] = horizontal ? [x + d, y] : [x, y + d];
+          if (xx >= 0 && yy >= 0 && xx < w && yy < h) s += src[yy * w + xx] * k[d + r];
+        }
+        dst[y * w + x] = s;
+      }
+    return dst;
+  };
+  const wv = new Float32Array(w * h);
+  for (let i = 0; i < wv.length; i++) wv[i] = values[i] * weight[i];
+  const num = pass(pass(wv, true), false);
+  const den = pass(pass(weight, true), false);
+  const value = new Float32Array(w * h);
+  for (let i = 0; i < value.length; i++) value[i] = den[i] > 1e-3 ? num[i] / den[i] : 0;
+  return { value, den };
+};
+
+/** A `protectSoft` entry (a bare region, or one with options) as its soft occlusion. */
+export const softProtectOf = (rgba: ArrayLike<number>, w: number, h: number, entry: PctPoint[][] | SoftProtect): AlphaMask =>
+  Array.isArray(entry) ? softProtect(rgba, w, h, entry) : softProtect(rgba, w, h, entry.region, entry.low, entry.high, entry.local);
