@@ -1602,7 +1602,7 @@
         "occluder": null,
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-12T08:54:54.147Z"
+        "bakedAt": "2026-11-12T10:25:32.477Z"
       },
       "tall-units": {
         "parts": [
@@ -1715,19 +1715,19 @@
                 "corners": [
                   {
                     "xPct": 19.6875,
-                    "yPct": 41.53839290530647
+                    "yPct": 41.685942087285454
                   },
                   {
-                    "xPct": 47.8125,
-                    "yPct": 53.06144810659187
+                    "xPct": 44.375,
+                    "yPct": 51.37653850496838
                   },
                   {
-                    "xPct": 47.8125,
-                    "yPct": 56.209732205469855
+                    "xPct": 44.375,
+                    "yPct": 57.34730220566095
                   },
                   {
                     "xPct": 19.6875,
-                    "yPct": 62.798244171239006
+                    "yPct": 63.27595403775219
                   }
                 ],
                 "heightMm": 2700
@@ -1738,7 +1738,7 @@
         "occluder": "/scenes/kitchen-galley/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-12T08:55:46.617Z"
+        "bakedAt": "2026-11-12T10:34:31.178Z"
       },
       "floor": {
         "parts": [
@@ -1778,7 +1778,7 @@
         "occluder": null,
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-12T10:05:42.822Z"
+        "bakedAt": "2026-11-12T10:31:39.722Z"
       },
       "worktop": {
         "parts": [
@@ -1882,7 +1882,7 @@
         "occluder": "/scenes/kitchen-galley/worktop.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-12T10:08:21.574Z"
+        "bakedAt": "2026-11-12T10:31:33.660Z"
       }
     }
   }
