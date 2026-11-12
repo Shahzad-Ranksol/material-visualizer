@@ -3,7 +3,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { SCENES } from '../scenes/scenes';
 import { STYLE_GROUPS, STYLE_OPTIONS, styleKey } from '../scenes/styles';
-import { keepByColour, KeepColour, softProtect } from '../scenes/recipeMask';
+import { keepByColour, KeepColour, softProtectOf } from '../scenes/recipeMask';
 import { AlphaMask, dilateDisc, emptyMask, fillPolygon, Pt } from '../services/areaMaskOps';
 import { gradientImage, snapPolygon } from '../scenes/edgeSnap';
 import { BakeRecipe, Outline, PctPoint } from '../scenes/types';
@@ -178,7 +178,7 @@ for (const scene of SCENES) {
         const url = b.occluder ?? `/scenes/${scene.id}/${item.id}.occluder.png`;
         const occ = b.occluder ? await loadAlpha(b.occluder, w, h) : emptyMask(w, h);
         for (const region of item.recipe.protectSoft) {
-          const soft = softProtect(photo.data, w, h, region);
+          const soft = softProtectOf(photo.data, w, h, region);
           for (let i = 0; i < w * h; i++) occ.alpha[i] = Math.max(occ.alpha[i], soft.alpha[i]);
         }
         await saveAlpha(url, occ);

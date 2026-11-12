@@ -59,3 +59,22 @@ describe('softProtect', () => {
     expect(m.alpha[2 * W + 20]).toBe(0);
   });
 });
+
+describe('softProtect with a local surface', () => {
+  it('keeps dark fronds before a wall whose light varies, not the wall', async () => {
+    const { softProtect } = await import('../../scenes/recipeMask');
+    // A wall brightening left to right (190 → 250), a darker frond line at x 20
+    const rgba = new Uint8Array(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      const x = i % W;
+      const v = 190 + (60 * x) / W;
+      rgba.set(x === 20 ? [v - 70, v - 80, v - 90, 255] : [v, v - 4, v - 8, 255], i * 4);
+    }
+    const region = [[{ xPct: 0, yPct: 0 }, { xPct: 1, yPct: 0 }, { xPct: 1, yPct: 1 }, { xPct: 0, yPct: 1 }]];
+    const m = softProtect(rgba, W, H, region, 14, 45, 6);
+    expect(m.alpha[20 * W + 20]).toBe(255);
+    // The wall at both ends, far from the median, stays the wall's
+    expect(m.alpha[20 * W + 2]).toBe(0);
+    expect(m.alpha[20 * W + 37]).toBe(0);
+  });
+});

@@ -83,8 +83,9 @@ export const SCENE_QA: Record<string, ItemQa> = {
   'kitchen/base-cabinets': { include: [[1187, 600], [1190, 650]], exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
   // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
   // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop
-  // The back wall's strip beside the window runs up to the ceiling; above it is ceiling, right of it the window wall
-  'kitchen-modern/splashback': { include: [[700, 520], [200, 500], [1000, 560], [1210, 160], [1210, 300]], exclude: [[400, 520], [334, 610], [945, 620], [1300, 560], [1210, 130], [1260, 300]] },
+  // The back wall's strip beside the window runs up to the ceiling; above it is ceiling, right of it
+  // the window wall. Between the pampas fronds it is wall (the fronds themselves are kept)
+  'kitchen-modern/splashback': { include: [[700, 520], [200, 500], [1000, 560], [1210, 160], [1210, 300], [1190, 480], [1186, 600]], exclude: [[400, 520], [334, 610], [945, 620], [1300, 560], [1210, 130], [1260, 300], [1196, 520]] },
   // Only the hob's glass is kept: its light rim and the worktop round it take the finish
   'kitchen-modern/worktop': { include: [[200, 690], [1400, 680], [700, 645], [766, 639], [880, 646], [992, 642]], exclude: [[880, 641], [945, 620], [800, 640]] },
   // The oak panel's dark side face beside the wall cabinets

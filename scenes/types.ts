@@ -29,6 +29,18 @@ export interface PctPoint {
  */
 export type Outline = PctPoint[] | { points: PctPoint[]; snap?: boolean; solid?: boolean };
 
+/**
+ * A `protectSoft` region with options: `local` (px) measures each pixel against the surface's
+ * colour around it (a Gaussian of that sigma over the pixels that look like surface) instead of
+ * the region's median: for a feathery object (pampas fronds) before a wall whose light varies.
+ */
+export interface SoftProtect {
+  region: PctPoint[][];
+  local?: number;
+  low?: number;
+  high?: number;
+}
+
 export interface BakeRecipe {
   label: string;
   anchors: PctPoint[];
@@ -51,7 +63,7 @@ export interface BakeRecipe {
   // Exact polygons of objects in front, not snapped (a pendant's dome)
   protectShapes?: PctPoint[][];
   // Thin objects too fine for a cut, by their colour against the surface's inside each region (softProtect)
-  protectSoft?: PctPoint[][][];
+  protectSoft?: (PctPoint[][] | SoftProtect)[];
   snap?: boolean;
   // Keep only what the anchors' cut also covers (the gaps between fence boards)
   intersectCut?: boolean;
