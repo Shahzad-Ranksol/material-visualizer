@@ -3,7 +3,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { SRGB8_TO_LINEAR, linearToSrgb } from '../services/renderer/colorSpace';
 import { SCENES } from '../scenes/scenes';
-import { applyGain, glossStreaks, LIGHT_REFINE, lightGain } from '../scenes/lightRefine';
+import { applyFactors, applyGain, glossStreaks, LIGHT_REFINE, lightGain, matchFactors } from '../scenes/lightRefine';
 import { effectiveMask, loadMask, loadRgba, ROOT } from './bakedPixels';
 
 // npm run scenes:light [-- scene …] — per scene in LIGHT_REFINE (scenes/lightRefine.ts), moves the
@@ -42,11 +42,13 @@ for (const [sceneId, items] of Object.entries(LIGHT_REFINE)) {
   // Every item's gain from the unrefined light, then all applied: items don't feed each other
   const gains: Float32Array[] = [];
   const streaks: Float32Array[] = [];
+  const groups = new Map<string, Float32Array[]>();
   for (const [itemId, opts] of Object.entries(items)) {
     const item = baked[sceneId]?.items[itemId];
     if (!item) throw new Error(`${sceneId}/${itemId} is not baked`);
     const mask = await effectiveMask(item, w, h);
     const occluder = item.occluder ? await loadMask(item.occluder, w, h) : null;
+    if (opts.match) groups.set(opts.match, [...(groups.get(opts.match) ?? []), mask]);
     const gain = lightGain(layers, mask, occluder, opts);
     let lo = Infinity;
     let hi = 0;
@@ -60,6 +62,12 @@ for (const [sceneId, items] of Object.entries(LIGHT_REFINE)) {
     }
   }
   for (const g of gains) applyGain(shading, g);
+  // Then each match group to one median light
+  for (const [group, masks] of groups) {
+    const factors = matchFactors(shading, masks);
+    masks.forEach((m, k) => applyFactors(shading, m, factors[k]));
+    console.log(`${sceneId}: ${group} matched, factors ${factors.map((f) => f.map((v) => v.toFixed(2)).join('/')).join('  ')}`);
+  }
   const encode = async (lin: Float32Array, k: number, url: string) => {
     const rgb = Buffer.alloc(w * h * 3);
     for (let i = 0; i < w * h * 3; i++) rgb[i] = Math.round(linearToSrgb(lin[i] * k) * 255);

@@ -52,6 +52,17 @@ describe('apps', () => {
     expect(lookLabel(ws, { 'kitchen-doors': 'slab' }, { island: 'kit-navy-lacquer', 'wall-cabinets': 'kit-navy-lacquer', 'tall-units': 'kit-navy-lacquer', canopy: 'kit-navy-lacquer', 'base-cabinets': 'kit-navy-lacquer' })).toBe('Slab · Midnight Navy');
   });
 
+  it('the kitchen colour step offers the same paints on all three layouts, and no woods', () => {
+    const offered = APPS.kitchen.sceneIds.map((id) => {
+      const scene = sceneOf(id);
+      const colour = wizardSteps(APPS.kitchen, scene, (i) => !!BAKED[scene.id]?.items[i], 3).find((s) => s.id === 'colour');
+      return colour?.kind === 'design' ? (colour.materials ?? []).map((m) => m.id) : [];
+    });
+    expect(offered[0].length).toBeGreaterThan(10);
+    for (const ids of offered) expect(ids).toEqual(offered[0]);
+    expect(offered[0].some((id) => /walnut|oak/.test(id))).toBe(false);
+  });
+
   it('names a finish used on two steps once', () => {
     const modern = sceneOf('kitchen-modern');
     const ws = wizardSteps(APPS.kitchen, modern, () => true, 3);

@@ -15,7 +15,8 @@ export interface DesignStep {
   title: string;
   hint: string;
   style?: string;
-  finish?: { itemIds: string[]; label?: string };
+  // `exclude`: material categories not offered on this step (the kitchen's colour step: no woods)
+  finish?: { itemIds: string[]; label?: string; exclude?: string[] };
 }
 
 export interface AppConfig {

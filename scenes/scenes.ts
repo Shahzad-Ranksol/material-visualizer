@@ -215,12 +215,16 @@ export const SCENES: Scene[] = [
           // The panelled breast, its mantel and the two pilasters
           outline: [
             [K(459, 122), K(876, 122), K(876, 270), K(459, 270)],
-            [K(467, 268), K(866, 268), K(866, 320), K(467, 320)],
+            // The mantel, as traced: snapped, its lit ends (x 467–470, 861–867) and the row above
+            // the tiles were left to nothing
+            { points: [K(467, 268), K(867.5, 268), K(867.5, 320.5), K(467, 320.5)], snap: false },
             // The left pilaster as traced, its shaded side face (x 467–468) included: snapped, it
             // pulled in to x 469 and left that face to nothing above the tiles and to the
             // splashback below
             { points: [K(467, 320), K(537.5, 320), K(537.5, 492), K(467, 492)], snap: false },
-            [K(795, 320), K(866, 320), K(866, 492), K(795, 492)],
+            // The right pilaster: its lit side face reaches x 867 beside the wall cabinets, x 862.5
+            // beside the tiles (traced; snapped, it stopped at x 860)
+            { points: [K(795, 320), K(867.5, 320), K(867.5, 390), K(862.5, 390), K(862.5, 492), K(795, 492)], snap: false },
           ],
           protect: [K(488, 205), K(843, 205)],
           protectShapes: PENDANTS,
@@ -234,7 +238,9 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'cabinet',
           anchors: [],
-          outline: [[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]],
+          // To the run's lit end panel at the right (x 1183–1191, beside the larder): snapped, the
+          // outline stopped short of it
+          outline: [{ points: [K(139.5, 502), K(1192, 502), K(1192, 700), K(139.5, 700)], snap: false }],
           // The range cooker, and the island in front
           subtract: [ISLAND_TOP, ISLAND_SHAPE, [K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
@@ -327,6 +333,8 @@ export const SCENES: Scene[] = [
           anchors: [U(880, 770), U(430, 880), U(1420, 900)],
           outline: [
             [U(514, 657), U(1244, 657), U(1244, 887), U(514, 887)],
+            // Where the left run meets the main one (snapped, the main run's edge pulled in to 516)
+            { points: [U(511, 659), U(518, 657), U(518, 887), U(511, 887)], snap: false },
             // The left run's white fronts, and the right run under the window, in perspective
             { points: [U(351, 707), U(514, 661), U(514, 887), U(351, 1118)], snap: false },
             { points: [U(1244, 658), U(1600, 746), U(1600, 1136), U(1585, 1136), U(1244, 888)], snap: false },
@@ -342,7 +350,9 @@ export const SCENES: Scene[] = [
           label: 'cabinet',
           anchors: [U(185, 200), U(210, 900)],
           outline: [
-            [U(121, 0), U(248, 0), U(248, 428), U(121, 428)],
+            // To the panel's dark side face beside the wall cabinets (x 246–253): snapped, it
+            // stopped at x 245
+            { points: [U(121, 0), U(253.5, 0), U(253.5, 428), U(121, 428)], snap: false },
             [U(71, 704), U(351, 704), U(351, 1118), U(71, 1118)],
           ],
         },
@@ -356,7 +366,8 @@ export const SCENES: Scene[] = [
           label: 'countertop',
           anchors: [],
           outline: [
-            { points: [U(71, 692), U(360, 636), U(1242, 636), U(1244, 657), U(514, 657), U(351, 704), U(71, 704)], snap: false },
+            // (down to the foot of the left run's dark front edge, y 708)
+            { points: [U(71, 692), U(360, 636), U(1242, 636), U(1244, 657), U(514, 657), U(351, 708.5), U(71, 708.5)], snap: false },
             { points: [U(1244, 640), U(1600, 668), U(1600, 746), U(1244, 658)], snap: false },
           ],
           // The induction hob's black glass stays as it is

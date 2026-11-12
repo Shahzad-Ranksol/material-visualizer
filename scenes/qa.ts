@@ -74,15 +74,19 @@ export const SCENE_QA: Record<string, ItemQa> = {
   'kitchen/island': { include: [[1050, 815], [1052, 825], [1048, 835], [1055, 805], [1087, 650], [1087, 810], [383, 591], [250, 839], [1070, 839]], exclude: [[391, 590], [413, 590], [653, 590], [916, 590]] },
   'kitchen/tall-units': { include: [[1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
   'kitchen/wall-cabinets': { include: [[440, 145], [450, 145]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
-  'kitchen/canopy': { include: [[461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450]] },
+  // …and the mantel's lit ends and the right pilaster's side face, beside the wall cabinets and the tiles
+  'kitchen/canopy': { include: [[461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450], [468, 300], [865, 300], [865, 350], [861, 450]], exclude: [[866, 450]] },
   'kitchen/splashback': { include: [[460, 450], [300, 430]], exclude: [[467, 450], [468, 450]] },
   // The island's bevelled corner is the island's, not the floor's
   'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760], [250, 839], [1070, 839]] },
-  'kitchen/base-cabinets': { exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
+  // …and its lit end panel beside the right larder
+  'kitchen/base-cabinets': { include: [[1187, 600], [1190, 650]], exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
   // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
   // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop
   'kitchen-modern/splashback': { include: [[700, 520], [200, 500], [1000, 560]], exclude: [[400, 520], [334, 610], [945, 620], [1300, 560]] },
   'kitchen-modern/worktop': { include: [[200, 690], [1400, 680], [700, 645]], exclude: [[880, 641], [945, 620]] },
+  // The oak panel's dark side face beside the wall cabinets
+  'kitchen-modern/end-panel': { include: [[249, 200], [252, 300]] },
   'kitchen-modern/base-cabinets': { include: [[880, 770], [430, 880], [1420, 900]] },
   // Galley: the hob, toaster and tap are not worktop; the fluted glass is not wall cabinet
   'kitchen-galley/worktop': { include: [[420, 1050], [1180, 900], [1200, 772], [650, 787], [580, 820], [400, 817], [350, 812], [600, 760]], exclude: [[680, 744], [533, 746], [1052, 712], [255, 810], [350, 800], [500, 770]] },
