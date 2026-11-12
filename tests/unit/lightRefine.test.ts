@@ -125,3 +125,23 @@ describe('matchFactors', () => {
     for (let c = 0; c < 3; c++) expect(at(10)[c]).toBeCloseTo(at(70)[c], 5);
   });
 });
+
+describe('bandBlur', () => {
+  it('keeps a glow along the edge and averages a pattern out', async () => {
+    const { bandBlur } = await import('../../scenes/lightRefine');
+    // The weighted area starts at y 5; a glow fading over 10 px from there, under boards
+    // alternating every 4 px along x
+    const values = new Float32Array(W * H);
+    const weight = new Float32Array(W * H);
+    for (let y = 5; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        weight[y * W + x] = 1;
+        values[y * W + x] = Math.max(0, 1 - (y - 5) / 10) + (Math.floor(x / 4) % 2 ? 0.2 : -0.2);
+      }
+    const out = bandBlur(values, weight, W, H, { width: 2, range: 20, sigma: 12 });
+    // Near the edge bright, far from it not; the boards' ±0.2 mostly gone
+    expect(out[6 * W + 40]).toBeGreaterThan(0.75);
+    expect(out[30 * W + 40]).toBeLessThan(0.1);
+    expect(Math.abs(out[30 * W + 40] - out[30 * W + 44])).toBeLessThan(0.05);
+  });
+});

@@ -92,7 +92,7 @@
   },
   "kitchen-modern": {
     "reflection": "/scenes/kitchen-modern/reflection.png",
-    "shading": "/scenes/kitchen-modern/shading.png",
+    "shading": "/scenes/kitchen-modern/shading.lit.png",
     "shadingScale": 0.5,
     "size": [
       1600,
