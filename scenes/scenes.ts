@@ -82,6 +82,15 @@ const knob = (cx: number, cy: number, rx = 5, ry = 4.5): PctPoint[] =>
 const gEllipse = (cx: number, cy: number, rx: number, ry: number): PctPoint[] =>
   Array.from({ length: 16 }, (_, k) => G(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
 const GALLEY_DOWNLIGHTS = [gEllipse(477.5, 563, 15, 4.5), gEllipse(551, 593.5, 12, 4), gEllipse(596, 611.5, 10, 3.5), gEllipse(626, 623.5, 7, 3)];
+// The end box's top: flat to x 697, then its rounded corner down the right side to y 467 (traced row
+// by row against the wall behind; a square corner painted the wall and the ceiling's edge)
+const GALLEY_END_BOX_TOP = [G(697, 381.5), G(705, 384), G(709, 390), G(712.5, 400), G(716.5, 410), G(720.5, 420), G(726, 435), G(732, 450), G(736, 467)];
+// Where the splashback's tile meets the worktop, left to right (from x 310 the window frame's foot):
+// a wavy line, traced at 5× from the shadow under the tile
+const GALLEY_BACK_EDGE = [G(280, 815), G(300, 811), G(310, 810), G(320, 809), G(370, 801), G(390, 794), G(420, 788), G(460, 782.4), G(500, 776), G(520, 774), G(600, 755), G(700, 735)];
+// The floor's back edge right of the island: under the skirting, the curtain's foot and the window
+// wall's white skirting, traced column by column (a straight line painted over the curtain and skirting)
+const GALLEY_FLOOR_BACK = [G(1331, 843.5), G(1360, 845.5), G(1400, 851), G(1430, 857), G(1448, 857.5), G(1470, 862), G(1487, 863), G(1495, 865.5), G(1520, 871), G(1550, 877), G(1565, 881), G(1580, 884), G(1600, 888.5)];
 // The oak shelf under the cooker hood (the wall cabinets', not the splashback's) and its downlights
 const GALLEY_HOOD_SHELF = [G(664, 642), G(700, 642), G(744, 659), G(744, 671), G(725, 671), G(700, 662), G(664, 651)];
 const GALLEY_HOOD_LIGHTS = [gEllipse(699, 654, 6, 2.5), gEllipse(713, 659, 5, 2.5), gEllipse(723, 663, 4.5, 2.5), gEllipse(729, 666, 4, 2)];
@@ -406,7 +415,7 @@ export const SCENES: Scene[] = [
           // front, and its sloped foot right of it); the fluted glass doors stay glass. Then the
           // end box's side strip beside the hood and the oak shelf with downlights under the hood
           outline: [
-            { points: [G(328, 13), G(457, 13), G(652, 383), G(736, 383), G(736, 617), G(706, 589), G(686, 587), G(686, 622), G(652, 622), G(652, 632), G(328, 540)], snap: false },
+            { points: [G(328, 13), G(457, 13), G(652, 382), ...GALLEY_END_BOX_TOP, G(736, 617), G(706, 589), G(686, 587), G(686, 622), G(652, 622), G(652, 632), G(328, 540)], snap: false },
             { points: [G(736, 522), G(744, 530), G(744, 664), G(736, 660)], snap: false },
             { points: GALLEY_HOOD_SHELF, snap: false },
           ],
@@ -478,10 +487,12 @@ export const SCENES: Scene[] = [
           // The tops and the two waterfall ends are separate planes
           anchors: [G(420, 1050), G(1180, 900), G(1200, 772), G(500, 805)],
           outline: [
-            { points: [G(250, 803), G(400, 790), G(770, 718), G(770, 730), G(571, 817), G(571, 818.5), G(250, 818.5)], snap: false },
-            // (down past the waterfall front's snapped top, so no row between them is left out)
-            // The slab's front edge over the base run, a lit band 6–8 px tall
-            { points: [G(571, 817), G(727, 748.8), G(727, 756.5), G(571, 828)], snap: false },
+            // The top: its back edge where the tile (and at the left end the window frame) meets
+            // it, traced (GALLEY_BACK_EDGE), to the front arris, and down past the waterfall front's
+            // snapped top so no row between them is left out
+            { points: [G(262, 818.5), ...GALLEY_BACK_EDGE, G(750, 733), G(770, 732.5), G(770, 736), G(750, 736.5), G(727, 752.4), G(571, 819.4), G(262, 819)], snap: false },
+            // The slab's front edge over the base run, a lit band 5–8 px tall
+            { points: [G(571, 819.4), G(727, 752.4), G(727, 757), G(571, 828)], snap: false },
             [G(262, 817), G(571, 817), G(571, 1280), G(262, 1280)],
             { points: [G(927, 736), G(1368, 770), G(1368, 779), G(1035, 780)], snap: false },
             [G(1035, 778), G(1331, 778), G(1331, 1037), G(1035, 1037)],
@@ -500,7 +511,9 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'wall',
           anchors: [],
-          outline: [{ points: [G(310, 535), G(328, 540), G(652, 632), G(735, 661), G(770, 700), G(770, 718), G(400, 790), G(310, 800)], snap: false }],
+          // The tile ends at the corner with the end wall (x 715), and at the worktop on the
+          // traced back edge (from x 310, left of which is the window frame)
+          outline: [{ points: [G(310, 535), G(328, 540), G(652, 632), G(715, 654), G(715, 734.4), ...GALLEY_BACK_EDGE.filter((q) => q.xPct * 1600 >= 309.9).reverse()], snap: false }],
           // The cooker hood above the range, and the oak shelf under it
           subtract: [[G(652, 587), G(735, 587), G(735, 661), G(652, 640)], { points: GALLEY_HOOD_SHELF, snap: false }],
           protect: [G(533, 746), G(688, 712)],
@@ -518,7 +531,7 @@ export const SCENES: Scene[] = [
           // It meets the base run and the range on one straight line (x = 671.5 + (1050 − y) × 0.475,
           // traced from the photo) and the island and its waterfall end at their feet, edge to edge
           // with those items' outlines so no seam of the old floor shows between them
-          outline: [{ points: [G(571, 1280), G(571, 1261.6), G(781, 819.5), G(781, 800), G(902, 800), G(911, 825.5), G(927, 851), G(1035, 1026), G(1035, 1037), G(1331, 1037), G(1331, 845), G(1600, 860), G(1600, 1280)], snap: false }],
+          outline: [{ points: [G(571, 1280), G(571, 1261.6), G(781, 819.5), G(781, 800), G(902, 800), G(911, 825.5), G(927, 851), G(1035, 1026), G(1035, 1037), G(1331, 1037), ...GALLEY_FLOOR_BACK, G(1600, 1280)], snap: false }],
         },
       },
     ],

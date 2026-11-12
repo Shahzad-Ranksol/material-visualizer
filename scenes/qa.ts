@@ -85,13 +85,16 @@ export const SCENE_QA: Record<string, ItemQa> = {
   'kitchen-modern/worktop': { include: [[200, 690], [1400, 680], [700, 645]], exclude: [[880, 641], [945, 620]] },
   'kitchen-modern/base-cabinets': { include: [[880, 770], [430, 880], [1420, 900]] },
   // Galley: the hob, toaster and tap are not worktop; the fluted glass is not wall cabinet
-  'kitchen-galley/worktop': { include: [[420, 1050], [1180, 900], [1200, 772], [650, 787], [580, 820], [400, 817]], exclude: [[680, 744], [533, 746], [1052, 712]] },
+  'kitchen-galley/worktop': { include: [[420, 1050], [1180, 900], [1200, 772], [650, 787], [580, 820], [400, 817], [350, 812], [600, 760]], exclude: [[680, 744], [533, 746], [1052, 712], [255, 810], [350, 800], [500, 770]] },
   // The floor meets the base run, the island and the waterfall with no seam of old floor between
-  'kitchen-galley/floor': { include: [[655, 1100], [683, 1050], [1200, 1037], [1000, 970]], exclude: [[640, 1100], [1000, 960]] },
+  'kitchen-galley/floor': { include: [[655, 1100], [683, 1050], [1200, 1037], [1000, 970], [1580, 890], [1470, 866]], exclude: [[640, 1100], [1000, 960], [1470, 856], [1580, 878], [1520, 866]] },
+  // The splashback ends at the end wall's corner and above the worktop's traced back edge; the
+  // window frame left of it is neither
+  'kitchen-galley/splashback': { include: [[500, 770], [700, 728]], exclude: [[745, 700], [290, 700], [600, 760], [350, 810]] },
   // …the end box over the hood down to its foot, its side strip and the shelf under the hood are
   // (its steel front is not); the long upright drawer handle and the island's and pantry's brass
   // stay; the island starts at its narrow end door; the doorway's white architrave is no pantry
-  'kitchen-galley/wall-cabinets': { include: [[390, 300], [670, 570], [725, 600], [740, 600], [690, 646]], exclude: [[560, 330], [696, 605]] },
+  'kitchen-galley/wall-cabinets': { include: [[390, 300], [670, 570], [725, 600], [740, 600], [690, 646], [700, 390]], exclude: [[560, 330], [696, 605], [730, 400], [720, 385]] },
   'kitchen-galley/base-cabinets': { include: [[650, 900], [640, 1100]], exclude: [[684, 936], [655, 1100], [650, 784]] },
   'kitchen-galley/island': { include: [[918, 790], [980, 850]], exclude: [[1010, 792], [951, 766]] },
   'kitchen-galley/tall-units': { include: [[840, 700], [975, 600]], exclude: [[782, 700], [858, 720], [800, 571]] },
