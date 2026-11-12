@@ -443,7 +443,8 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'cabinet',
           anchors: [],
-          outline: [{ points: [G(571, 820), G(725, 760), G(725, 960), G(571, 1280)], snap: false }],
+          // From under the worktop's front edge down to the floor line (GALLEY_FLOOR_LINE)
+          outline: [{ points: [G(571, 828), G(725, 757.4), G(725, 937.4), G(571, 1261.6)], snap: false }],
           protectColour: [
             brass([[G(571, 740), G(735, 740), G(735, 1280), G(571, 1280)]]),
             // The upright handle on the right-hand drawer is longer than a knob
@@ -460,7 +461,7 @@ export const SCENES: Scene[] = [
           label: 'cabinet',
           anchors: [],
           // From the narrow end door beside the tall unit
-          outline: [{ points: [G(911, 739), G(927, 741), G(1035, 778), G(1035, 1020), G(927, 845), G(911, 827)], snap: false }],
+          outline: [{ points: [G(911, 739), G(927, 741), G(1035, 778), G(1035, 1026), G(927, 851), G(911, 825.5)], snap: false }],
           subtract: GALLEY_ISLAND_HANDLES.map((points) => ({ points, snap: false })),
           // Its oak is warmer than the other runs' (sat 0.45–0.5), so brass is only what is clearly
           // more saturated (0.6–0.8)
@@ -477,7 +478,10 @@ export const SCENES: Scene[] = [
           // The tops and the two waterfall ends are separate planes
           anchors: [G(420, 1050), G(1180, 900), G(1200, 772), G(500, 805)],
           outline: [
-            { points: [G(250, 803), G(400, 790), G(770, 718), G(770, 730), G(571, 817), G(250, 817)], snap: false },
+            { points: [G(250, 803), G(400, 790), G(770, 718), G(770, 730), G(571, 817), G(571, 818.5), G(250, 818.5)], snap: false },
+            // (down past the waterfall front's snapped top, so no row between them is left out)
+            // The slab's front edge over the base run, a lit band 6–8 px tall
+            { points: [G(571, 817), G(727, 748.8), G(727, 756.5), G(571, 828)], snap: false },
             [G(262, 817), G(571, 817), G(571, 1280), G(262, 1280)],
             { points: [G(927, 736), G(1368, 770), G(1368, 779), G(1035, 780)], snap: false },
             [G(1035, 778), G(1331, 778), G(1331, 1037), G(1035, 1037)],
@@ -511,7 +515,10 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'floor',
           anchors: [p(0.5, 0.9)],
-          outline: [{ points: [G(571, 1280), G(725, 965), G(781, 800), G(902, 800), G(927, 846), G(1035, 1022), G(1035, 1038), G(1331, 1038), G(1331, 845), G(1600, 860), G(1600, 1280)], snap: false }],
+          // It meets the base run and the range on one straight line (x = 671.5 + (1050 − y) × 0.475,
+          // traced from the photo) and the island and its waterfall end at their feet, edge to edge
+          // with those items' outlines so no seam of the old floor shows between them
+          outline: [{ points: [G(571, 1280), G(571, 1261.6), G(781, 819.5), G(781, 800), G(902, 800), G(911, 825.5), G(927, 851), G(1035, 1026), G(1035, 1037), G(1331, 1037), G(1331, 845), G(1600, 860), G(1600, 1280)], snap: false }],
         },
       },
     ],
