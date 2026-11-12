@@ -35,7 +35,7 @@ export const wizardSteps = (app: AppConfig, scene: Scene, isBaked: (itemId: stri
     if (step.style && readyStyles(scene.id, step.style).length) ready.styleGroup = STYLE_GROUPS.find((g) => g.id === step.style && g.sceneId === scene.id);
     if (step.finish) {
       const items = scene.items.filter((i) => step.finish!.itemIds.includes(i.id) && isBaked(i.id));
-      const materials = materialsFor(scene.collection ?? scene.id, [...new Set(items.map((i) => i.role))]);
+      const materials = materialsFor(scene.collection ?? scene.id, [...new Set(items.map((i) => i.role))]).filter((m) => !step.finish!.exclude?.includes(m.category));
       if (items.length && materials.length) Object.assign(ready, { finishItems: items.map((i) => i.id), materials });
     }
     if (ready.styleGroup || ready.finishItems) steps.push({ kind: 'design', ...ready });

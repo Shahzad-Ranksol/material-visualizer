@@ -104,3 +104,24 @@ describe('frontLines', () => {
     expect(Math.abs(out[0])).toBe(0);
   });
 });
+
+describe('matchFactors', () => {
+  it('brings each item of a group to the group’s median light, per channel', async () => {
+    const { matchFactors, applyFactors } = await import('../../scenes/lightRefine');
+    const n = W * H;
+    const shading = new Float32Array(n * 3);
+    const a = new Float32Array(n);
+    const b = new Float32Array(n);
+    // Item a lit 1.0 neutral (left half), item b lit warmer and dimmer (right half)
+    for (let i = 0; i < n; i++) {
+      const left = i % W < W / 2;
+      (left ? a : b)[i] = 1;
+      shading.set(left ? [1, 1, 1] : [0.8, 0.7, 0.6], i * 3);
+    }
+    const f = matchFactors(shading, [a, b]);
+    applyFactors(shading, a, f[0]);
+    applyFactors(shading, b, f[1]);
+    const at = (x: number) => Array.from(shading.subarray((20 * W + x) * 3, (20 * W + x) * 3 + 3));
+    for (let c = 0; c < 3; c++) expect(at(10)[c]).toBeCloseTo(at(70)[c], 5);
+  });
+});

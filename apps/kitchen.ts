@@ -17,7 +17,8 @@ export const KITCHEN_APP: AppConfig = {
   sceneIds: ['kitchen', 'kitchen-modern', 'kitchen-galley'],
   steps: [
     { id: 'doors', title: 'Pick your doors', hint: 'The door style sets the look of every cabinet.', style: 'kitchen-doors' },
-    { id: 'colour', title: 'Choose a colour', hint: 'Paints and wood finishes for the doors and drawers.', finish: { itemIds: FRONTS, label: 'Colour' } },
+    // Paints only: the same palette on all three layouts, no wood veneers
+    { id: 'colour', title: 'Choose a colour', hint: 'Paints for the doors and drawers.', finish: { itemIds: FRONTS, label: 'Colour', exclude: ['wood'] } },
     { id: 'panels', title: 'Accent panels', hint: 'The oak end panels: keep them oak or match the doors.', finish: { itemIds: ['end-panel'] } },
     { id: 'worktop', title: 'Choose a worktop', hint: 'Pick a profile, then the material.', style: 'kitchen-worktop', finish: { itemIds: ['worktop'], label: 'Material' } },
     { id: 'splashback', title: 'Add a splashback', hint: 'Tiles or a single slab behind the hob and sink.', style: 'kitchen-splashback', finish: { itemIds: ['splashback'], label: 'Material' } },

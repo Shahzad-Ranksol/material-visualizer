@@ -39,15 +39,27 @@ export interface LightRefine {
   // the shading, so a new paint keeps them; grain, fainter than `threshold`, stays the material's.
   // `strength` scales them (a gap reads fainter on a dark paint than on pale oak)
   lines?: { sigma: number; threshold: number; strength?: number };
+  // Items sharing a `match` group get the same median light (per channel): a paint across the
+  // wall cabinets, the larders and the island then reads as one colour, as in the client's
+  // references, where the photo's own light left the island darker and warmer than the run behind
+  match?: string;
 }
 
 // A gap between oak fronts is a dark slot or a lit edge a few px wide, 8%+ off the wood around it
 // (log luminance); the grain beside it mostly stays under that
 const FRONT_LINES = { sigma: 2.5, threshold: 0.08, strength: 1.5 };
 
-// Per scene, per item. Only the Galley so far: the Classic kitchen's paints are fitted against its
-// unrefined light (npm run finishes:fromref), and the Modern kitchen's light reads right as it is
+// Per scene, per item. The Modern kitchen's light reads right as it is
 export const LIGHT_REFINE: Record<string, Record<string, LightRefine>> = {
+  // The Classic kitchen's painted fronts, one light level and colour (its paints are fitted
+  // against this light: npm run finishes:fromref after a change)
+  kitchen: {
+    'wall-cabinets': { sigma: 0, match: 'fronts' },
+    'tall-units': { sigma: 0, match: 'fronts' },
+    canopy: { sigma: 0, match: 'fronts' },
+    'base-cabinets': { sigma: 0, match: 'fronts' },
+    island: { sigma: 0, match: 'fronts' },
+  },
   'kitchen-galley': {
     // The light pools under the wall cabinets and the run darkening toward the hood, as strong as
     // they look on the white tile
@@ -255,6 +267,29 @@ export const glossStreaks = (layers: LightLayers, mask: Float32Array, gloss: { a
     extra[i] = p * (1 - Math.exp(-s)) * mask[i];
   }
   return extra;
+};
+
+/**
+ * Per item of a `match` group, the per-channel factor that brings its median light (over its mask)
+ * to the median over all the group's items' pixels together.
+ */
+export const matchFactors = (shading: Float32Array, masks: Float32Array[]): [number, number, number][] => {
+  const median = (v: number[]) => (v.sort((a, b) => a - b), v[v.length >> 1]);
+  const per = masks.map((m) => [0, 1, 2].map((c) => {
+    const v: number[] = [];
+    for (let i = 0; i < m.length; i++) if (m[i] >= 0.9) v.push(shading[i * 3 + c]);
+    return v;
+  }));
+  const all = [0, 1, 2].map((c) => median(per.flatMap((p) => p[c])));
+  return per.map((p) => [0, 1, 2].map((c) => (p[c].length ? all[c] / median(p[c]) : 1)) as [number, number, number]);
+};
+
+/** Multiplies the shading by per-channel factors where `mask` is set (by its alpha), in place. */
+export const applyFactors = (shading: Float32Array, mask: Float32Array, f: [number, number, number]) => {
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i] <= 0) continue;
+    for (let c = 0; c < 3; c++) shading[i * 3 + c] *= f[c] ** mask[i];
+  }
 };
 
 /** Multiplies the shading by the gain, in place. */

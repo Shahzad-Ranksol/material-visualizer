@@ -47,7 +47,7 @@
   },
   "kitchen": {
     "reflection": "/scenes/kitchen/reflection.png",
-    "shading": "/scenes/kitchen/shading.png",
+    "shading": "/scenes/kitchen/shading.lit.png",
     "shadingScale": 0.5,
     "size": [
       1344,
