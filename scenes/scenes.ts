@@ -77,6 +77,18 @@ const WARDROBE_HANDLES = [
 const knob = (cx: number, cy: number, rx = 5, ry = 4.5): PctPoint[] =>
   Array.from({ length: 16 }, (_, k) => K(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
 
+// The galley's downlights under its wall cabinets and the objects standing before its tall unit and
+// in its island top (photo px, a pixel or two of margin): kept as the photo's own pixels
+const gEllipse = (cx: number, cy: number, rx: number, ry: number): PctPoint[] =>
+  Array.from({ length: 16 }, (_, k) => G(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
+const GALLEY_DOWNLIGHTS = [gEllipse(477.5, 563, 15, 4.5), gEllipse(551, 593.5, 12, 4), gEllipse(596, 611.5, 10, 3.5), gEllipse(626, 623.5, 7, 3)];
+const GALLEY_BOWL = [G(993, 712), G(1040, 712), G(1039, 720), G(1035, 728), G(1028, 734), G(1026, 741), G(1004, 741), G(1003, 735), G(998, 728), G(994, 720)];
+// The tap's swan neck where it crosses the tall unit (right of x 1048 it is before the window)
+const GALLEY_TAP = [G(1018, 714), G(1019, 704), G(1023, 702), G(1023, 688), G(1025, 681), G(1030, 676), G(1036, 674), G(1049, 674), G(1049, 683), G(1037, 683), G(1033, 686), G(1031, 692), G(1031, 702), G(1030, 714)];
+const GALLEY_SINK = [G(988, 750), G(1050, 750), G(1059, 758), G(1003, 758)];
+// The toaster's wire handle and the twig in the vase on the splashback, kept by colour (softProtect)
+const GALLEY_THIN = [[[G(532, 715), G(550, 715), G(550, 730), G(532, 730)]], [[G(683, 702), G(693, 675), G(703, 675), G(694, 702)]]];
+
 const PENDANTS = [dome(488, 230, 63.5, 66, 6), dome(843, 230, 63.5, 66, 6)];
 
 const C = px(1600, 1067); // sideboard photo
@@ -375,7 +387,8 @@ export const SCENES: Scene[] = [
           anchors: [],
           // The run's oak case, frames and end box; the fluted glass doors stay glass
           outline: [{ points: [G(328, 13), G(457, 13), G(652, 383), G(735, 383), G(735, 528), G(652, 528), G(652, 632), G(328, 540)], snap: false }],
-          subtract: [{ points: [G(466, 52), G(648, 388), G(648, 612), G(466, 542)], snap: false }],
+          // …and the downlights in its underside stay lit
+          subtract: [{ points: [G(466, 52), G(648, 388), G(648, 612), G(466, 542)], snap: false }, ...GALLEY_DOWNLIGHTS.map((points) => ({ points, snap: false }))],
         },
       },
       {
@@ -390,8 +403,8 @@ export const SCENES: Scene[] = [
             [G(902, 493), G(1047, 493), G(1047, 742), G(902, 742)],
             [G(781, 570), G(902, 570), G(902, 799), G(781, 799)],
           ],
-          // The oven in the far run
-          subtract: [[G(781, 682), G(814, 682), G(814, 745), G(781, 745)]],
+          // The oven in the far run; the bowl and the tap before the island's tall unit
+          subtract: [[G(781, 682), G(814, 682), G(814, 745), G(781, 745)], ...[GALLEY_BOWL, GALLEY_TAP].map((points) => ({ points, snap: false }))],
         },
       },
       {
@@ -433,8 +446,8 @@ export const SCENES: Scene[] = [
             { points: [G(927, 736), G(1368, 770), G(1368, 779), G(1035, 780)], snap: false },
             [G(1035, 778), G(1331, 778), G(1331, 1037), G(1035, 1037)],
           ],
-          // The hob on the range stays as it is
-          subtract: [[G(600, 736), G(765, 728), G(765, 754), G(600, 754)]],
+          // The hob on the range and the island's sink stay as they are
+          subtract: [[G(600, 736), G(765, 728), G(765, 754), G(600, 754)], { points: GALLEY_SINK, snap: false }],
           // The toaster, the copper vase, the tap and the bowl
           protect: [G(533, 746), G(688, 712), G(1052, 712), G(1014, 724)],
         },
@@ -451,6 +464,7 @@ export const SCENES: Scene[] = [
           // The cooker hood above the range
           subtract: [[G(652, 587), G(735, 587), G(735, 661), G(652, 640)]],
           protect: [G(533, 746), G(688, 712)],
+          protectSoft: GALLEY_THIN,
         },
       },
       {

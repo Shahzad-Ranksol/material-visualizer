@@ -3,6 +3,7 @@ import { autoFitPlane, planeKindFor, Mat3 } from '../planeGeometry';
 import { hexToLinear } from './colorSpace';
 import { recoverLighting } from './lightingRecovery';
 import { Intrinsics, loadIntrinsics } from './intrinsics';
+import { matteOccluder } from './occluderMatte';
 import { canvas2d, loadImage, prepareAlbedo } from './materialPreprocess';
 import { meanLinear, recolorReference, RecolorReference, recolorSurface } from './recolor';
 import { buildSurfaceMapping, defaultIntrinsics, SurfaceMapping } from './surfaceMapping';
@@ -211,7 +212,9 @@ export const renderMaterial = async (
     for (const layer of layers) {
       const mask = await loadMask(layer.surface.mask, w, h);
       if (mask.covered < MIN_RENDER_PIXELS) throw new NeedsSurfaceReviewError('This surface has no area selected yet — review it before rendering.');
-      const occluder = layer.surface.occluderMask ? (await loadMask(layer.surface.occluderMask, w, h)).values : null;
+      // Objects in front, their edges matted against the surface (no ring of the old material)
+      const matte = layer.surface.occluderMask ? matteOccluder(original.data, mask.values, (await loadMask(layer.surface.occluderMask, w, h)).values, w, h) : null;
+      const occluder = matte?.occluder ?? null;
       for (let i = 0; i < unionMask.length; i++) {
         const v = layerAlpha(mask.values[i], occluder ? occluder[i] : 0);
         if (v > unionMask[i]) unionMask[i] = v;
@@ -294,11 +297,17 @@ export const renderMaterial = async (
       );
       deleteTexture(m, lightTex);
 
-      // Composite: surface alpha from the mask, occluders restored exactly on top
+      // Composite: surface alpha from the mask, occluders restored exactly on top. At a matted
+      // occluder edge only the old surface's share of the pixel is swapped for the new finish
+      const bg = matte?.background;
       for (let i = 0; i < mask.values.length; i++) {
         const a = layerAlpha(mask.values[i], occluder ? occluder[i] : 0) * (pixels[i * 4 + 3] / 255);
         if (a <= 0) continue;
         const p = i * 4;
+        if (bg && !Number.isNaN(bg[i * 3])) {
+          for (let c = 0; c < 3; c++) out[p + c] = original.data[p + c] + a * (pixels[p + c] - bg[i * 3 + c]);
+          continue;
+        }
         out[p] = out[p] * (1 - a) + pixels[p] * a;
         out[p + 1] = out[p + 1] * (1 - a) + pixels[p + 1] * a;
         out[p + 2] = out[p + 2] * (1 - a) + pixels[p + 2] * a;

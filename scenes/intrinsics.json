@@ -81,8 +81,8 @@
     }
   },
   "kitchen-galley": {
-    "reflection": "/scenes/kitchen-galley/reflection.png",
-    "shading": "/scenes/kitchen-galley/shading.png",
+    "reflection": "/scenes/kitchen-galley/reflection.lit.png",
+    "shading": "/scenes/kitchen-galley/shading.lit.png",
     "shadingScale": 0.5,
     "size": [
       1600,

@@ -50,6 +50,8 @@ export interface BakeRecipe {
   outline?: Outline[];
   // Exact polygons of objects in front, not snapped (a pendant's dome)
   protectShapes?: PctPoint[][];
+  // Thin objects too fine for a cut, by their colour against the surface's inside each region (softProtect)
+  protectSoft?: PctPoint[][][];
   snap?: boolean;
   // Keep only what the anchors' cut also covers (the gaps between fence boards)
   intersectCut?: boolean;

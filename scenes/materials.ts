@@ -3,7 +3,7 @@ import { defaultProfileFor, PhysicalProfile } from '../services/materialProfile'
 import { StudioMaterial } from './types';
 
 // The studio catalogue: five materials per scene collection plus shared room finishes for walls
-// and floors. Scans are Poly Haven CC0, web-sized and committed under /materials/; lacquers are
+// and floors. Scans are Poly Haven CC0 (the cream marble slab ambientCG CC0), web-sized and committed under /materials/; lacquers are
 // flat colour swatches committed under /finishes/.
 
 type Seed = Omit<StudioMaterial, keyof PhysicalProfile | 'tenantId'> & Partial<PhysicalProfile>;
@@ -48,7 +48,7 @@ const SEEDS: Seed[] = [
   { id: 'kit-natural-oak', collection: 'kitchen', roles: ['front'], name: 'Natural Oak', category: 'wood', finishType: 'Oiled veneer', colorTone: 'Honey oak', description: 'Crown-cut oak veneer, lightly oiled.', ...scan('oak_veneer_01'), ...veneer(), roughness: 0.6 },
   { id: 'kit-concrete', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Concrete', category: 'stone', finishType: 'Sealed matte', colorTone: 'Warm grey', description: 'Sealed concrete with a soft trowelled finish.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.6 },
   { id: 'kit-bianco-quartz', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Bianco Quartz', category: 'stone', finishType: 'Polished', colorTone: 'Bright white', description: 'Polished white quartz with a fine speckle.', tag: 'Bestseller', ...lacquer('bianco'), realWidthMm: 1400, roughness: 0.18 },
-  { id: 'kit-crema-marble', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Crema Marble', category: 'stone', finishType: 'Honed', colorTone: 'Warm cream', description: 'Honed cream marble with soft veining.', ...scan('marble_01'), realWidthMm: 1400, roughness: 0.3 },
+  { id: 'kit-crema-marble', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Crema Marble', category: 'stone', finishType: 'Honed', colorTone: 'Warm cream', description: 'Honed cream marble with soft veining.', ...scan('crema_marble_slab'), realWidthMm: 2000, roughness: 0.3 },
 
   // Fencing
   { id: 'fen-cedar', collection: 'fencing', roles: ['fence'], name: 'Western Red Cedar', category: 'wood', finishType: 'Natural', colorTone: 'Warm red-brown', description: 'Vertical-grain cedar boards, left natural.', tag: 'Bestseller', ...scan('japanese_cedar_planks'), realWidthMm: 1500, roughness: 0.8 },
@@ -59,7 +59,7 @@ const SEEDS: Seed[] = [
 
   // Media wall
   { id: 'med-smoked-walnut', collection: 'media-wall', roles: ['panel', 'front'], name: 'Smoked Walnut', category: 'wood', finishType: 'Matte veneer', colorTone: 'Smoky brown', description: 'Smoked walnut veneer, matte lacquered.', tag: 'Bestseller', ...scan('smoked_walnut_veneer'), ...veneer(), roughness: 0.55 },
-  { id: 'med-crema-marble', collection: 'media-wall', roles: ['panel'], name: 'Crema Marble Slab', category: 'stone', finishType: 'Polished', colorTone: 'Warm cream', description: 'A single cream marble feature slab.', ...scan('marble_01'), realWidthMm: 1600, roughness: 0.15 },
+  { id: 'med-crema-marble', collection: 'media-wall', roles: ['panel'], name: 'Crema Marble Slab', category: 'stone', finishType: 'Polished', colorTone: 'Warm cream', description: 'A single cream marble feature slab.', ...scan('crema_marble_slab'), realWidthMm: 1600, roughness: 0.15 },
   { id: 'med-microcement', collection: 'media-wall', roles: ['panel', 'wall'], name: 'Microcement', category: 'plaster', finishType: 'Sealed matte', colorTone: 'Warm grey', description: 'Seamless trowelled microcement.', tag: 'Trending', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.7 },
   { id: 'med-charcoal-lacquer', collection: 'media-wall', roles: ['panel', 'front'], name: 'Charcoal Lacquer', category: 'paint', finishType: 'Satin lacquer', colorTone: 'Charcoal', description: 'Charcoal satin lacquer for a moody wall.', ...lacquer('charcoal'), roughness: 0.4 },
   { id: 'med-light-oak', collection: 'media-wall', roles: ['panel', 'front'], name: 'Washed Grey Oak', category: 'wood', finishType: 'Matte veneer', colorTone: 'Washed grey', description: 'Whitewashed oak veneer with soft grain.', ...scan('washed_grey_oak_veneer'), ...veneer(), roughness: 0.6 },
@@ -90,7 +90,7 @@ const SEEDS: Seed[] = [
 
   // Shared room finishes (walls and floors in every scene)
   { id: 'room-oak-parquet', collection: 'room', roles: ['floor'], name: 'Oak Herringbone', category: 'wood', finishType: 'Oiled', colorTone: 'Natural oak', description: 'Classic oak herringbone parquet.', ...scan('herringbone_parquet'), realWidthMm: 1200, roughness: 0.55 },
-  { id: 'room-concrete', collection: 'room', roles: ['floor', 'wall'], name: 'Polished Concrete', category: 'stone', finishType: 'Sealed', colorTone: 'Mid grey', description: 'Smooth sealed concrete.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.5 },
+  { id: 'room-concrete', collection: 'room', roles: ['floor', 'wall'], name: 'Polished Concrete', category: 'stone', finishType: 'Polished', colorTone: 'Mid grey', description: 'Smooth polished and sealed concrete.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.3 },
   { id: 'room-limewash', collection: 'room', roles: ['wall'], name: 'Limewash Plaster', category: 'plaster', finishType: 'Limewash', colorTone: 'Chalk white', description: 'Soft, cloudy limewash plaster.', ...scan('white_plaster_02'), realWidthMm: 2000, roughness: 0.9 },
   { id: 'room-warm-white', collection: 'room', roles: ['wall'], name: 'Warm White Paint', category: 'paint', finishType: 'Matte emulsion', colorTone: 'Warm white', description: 'A warm, flat white emulsion.', ...lacquer('warm-white'), realWidthMm: 2000, roughness: 0.9 },
 ];
