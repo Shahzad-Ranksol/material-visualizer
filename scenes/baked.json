@@ -1504,19 +1504,19 @@
                 "corners": [
                   {
                     "xPct": 5,
-                    "yPct": 38.48002411949758
+                    "yPct": 38.465920069671334
                   },
                   {
                     "xPct": 77.1875,
-                    "yPct": 43.25712408618723
+                    "yPct": 43.25542569275265
                   },
                   {
                     "xPct": 77.1875,
-                    "yPct": 55.36022362767882
+                    "yPct": 55.356569694699786
                   },
                   {
                     "xPct": 5,
-                    "yPct": 57.411258104034644
+                    "yPct": 57.42491884966848
                   }
                 ],
                 "heightMm": 2700
@@ -1527,7 +1527,7 @@
         "occluder": "/scenes/kitchen-modern/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-11T18:56:30.931Z"
+        "bakedAt": "2026-11-12T12:08:06.617Z"
       },
       "worktop": {
         "parts": [
@@ -1561,7 +1561,7 @@
         "occluder": "/scenes/kitchen-modern/worktop.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-12T11:31:45.814Z"
+        "bakedAt": "2026-11-12T12:15:56.137Z"
       }
     }
   },

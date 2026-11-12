@@ -370,8 +370,10 @@ export const SCENES: Scene[] = [
             { points: [U(71, 692), U(360, 636), U(1242, 636), U(1244, 657), U(514, 657), U(351, 708.5), U(71, 708.5)], snap: false },
             { points: [U(1244, 640), U(1600, 668), U(1600, 746), U(1244, 658)], snap: false },
           ],
-          // The induction hob's black glass stays as it is
-          subtract: [{ points: [U(764, 635), U(993, 635), U(993, 647), U(764, 647)], snap: false }],
+          // The induction hob's black glass stays as it is: only the glass (a slanted quad, traced),
+          // so its light rim and the old pale worktop round it take the new finish; a box round it
+          // left a white frame round the hob on a dark top
+          subtract: [{ points: [U(767.5, 636.3), U(983.5, 636.3), U(991, 644.6), U(765.5, 644.6), U(767.2, 641)], snap: false }],
           // What stands on it: utensils, the basket, the tap, jars, kettle, boards, pan, grinder, vase
           protect: [U(255, 640), U(290, 625), U(330, 625), U(295, 632), U(500, 618), U(527, 622), U(560, 615), U(650, 605), U(700, 600), U(950, 625), U(1075, 615), U(1115, 615), U(1320, 625)],
         },
@@ -385,7 +387,10 @@ export const SCENES: Scene[] = [
           label: 'wall',
           anchors: [],
           outline: [
-            { points: [U(443, 474), U(1175, 474), U(1175, 375), U(1244, 375), U(1244, 637), U(443, 637)], snap: false },
+            // …and beside the window, the strip of back wall right of the wall cabinets up to the
+            // ceiling (x 1175–1246.5, from y 140), as the left wall's strip is: stopped at the
+            // shelf's height, it left a hard line of the old white wall above the new finish
+            { points: [U(443, 474), U(1175, 474), U(1175, 140.5), U(1246.5, 140.5), U(1245, 375), U(1244, 637), U(443, 637)], snap: false },
             { points: [U(71, 0), U(121, 0), U(121, 428), U(254, 428), U(443, 472), U(443, 637), U(360, 637), U(71, 692)], snap: false },
           ],
           // What stands before it, clicked low on each object as for the worktop (a click higher up,

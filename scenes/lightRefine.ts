@@ -43,13 +43,19 @@ export interface LightRefine {
   // wall cabinets, the larders and the island then reads as one colour, as in the client's
   // references, where the photo's own light left the island darker and warmer than the run behind
   match?: string;
+  // A patterned floor lit along its edges (an LED strip under the plinths): its brightness is
+  // averaged (Gaussian `sigma`) only among pixels at the same distance from the item's edge, in
+  // bands `width` px wide out to `range` px, and plainly beyond that. The glow's falloff from the
+  // plinth survives; the boards' pattern, at every distance alike, averages out. Replaces the
+  // plain blur of `sigma` above.
+  bands?: { width: number; range: number; sigma: number };
 }
 
 // A gap between oak fronts is a dark slot or a lit edge a few px wide, 8%+ off the wood around it
 // (log luminance); the grain beside it mostly stays under that
 const FRONT_LINES = { sigma: 2.5, threshold: 0.08, strength: 1.5 };
 
-// Per scene, per item. The Modern kitchen's light reads right as it is
+// Per scene, per item
 export const LIGHT_REFINE: Record<string, Record<string, LightRefine>> = {
   // The Classic kitchen's painted fronts, one light level and colour (its paints are fitted
   // against this light: npm run finishes:fromref after a change)
@@ -59,6 +65,13 @@ export const LIGHT_REFINE: Record<string, Record<string, LightRefine>> = {
     canopy: { sigma: 0, match: 'fronts' },
     'base-cabinets': { sigma: 0, match: 'fronts' },
     island: { sigma: 0, match: 'fronts' },
+  },
+  // The Modern kitchen: the LED strip under the plinths glowing on the floor, the sun from the
+  // window on the right-hand worktop and the plant's shadows on the wall by it
+  'kitchen-modern': {
+    floor: { sigma: 0, bands: { width: 3, range: 60, sigma: 40 }, contrast: 1.5 },
+    worktop: { sigma: 8, contrast: 1.6 },
+    splashback: { sigma: 8, contrast: 1.4 },
   },
   'kitchen-galley': {
     // The light pools under the wall cabinets and the run darkening toward the hood, as strong as
@@ -190,14 +203,14 @@ export const lightGain = (layers: LightLayers, mask: Float32Array, occluder: Flo
   const { width: w, height: h, shading } = layers;
   const n = w * h;
   const gain = new Float32Array(n).fill(1);
-  if (opts.sigma <= 0 && !opts.contrast && !opts.lines) return gain;
+  if (opts.sigma <= 0 && !opts.contrast && !opts.lines && !opts.bands) return gain;
   const { logA, weight, count } = logAlbedo(layers, mask);
   if (count < 16) return gain;
   const lines = opts.lines ? frontLines(logA, weight, w, h, opts.lines) : null;
   // The reference level is the median of the smoothed albedo, on the same footing as what it is
   // compared with (a raw median of a two-tone grain would sit on one tone, the blur between them)
-  const smooth = opts.sigma > 0 ? maskedBlur(logA, weight, w, h, opts.sigma) : new Float32Array(n);
-  const median = opts.sigma > 0 ? medianWhere(smooth, weight) : 0;
+  const smooth = opts.bands ? bandBlur(logA, weight, w, h, opts.bands) : opts.sigma > 0 ? maskedBlur(logA, weight, w, h, opts.sigma) : new Float32Array(n);
+  const median = opts.sigma > 0 || opts.bands ? medianWhere(smooth, weight) : 0;
   const near = opts.near && occluder ? distanceTo(occluder, w, h) : null;
   const max = Math.log(opts.maxGain ?? 3);
   for (let i = 0; i < n; i++) {
@@ -222,6 +235,25 @@ export const lightGain = (layers: LightLayers, mask: Float32Array, occluder: Flo
   }
   if (lines) for (let i = 0; i < n; i++) if (lines[i] && mask[i] > 0) gain[i] *= Math.exp(Math.min(max, Math.max(-max, lines[i])) * mask[i]);
   return gain;
+};
+
+/** `values` averaged within bands of equal distance from the weighted area's edge (see `bands`). */
+export const bandBlur = (values: Float32Array, weight: Float32Array, w: number, h: number, opts: { width: number; range: number; sigma: number }): Float32Array => {
+  const outside = new Float32Array(w * h);
+  for (let i = 0; i < outside.length; i++) outside[i] = weight[i] ? 0 : 1;
+  const dist = distanceTo(outside, w, h);
+  const bands = Math.ceil(opts.range / opts.width);
+  const band = (i: number) => Math.min(bands, Math.floor(dist[i] / opts.width));
+  const out = new Float32Array(w * h);
+  for (let b = 0; b <= bands; b++) {
+    const wb = new Float32Array(w * h);
+    let any = false;
+    for (let i = 0; i < wb.length; i++) if (weight[i] && band(i) === b) [wb[i], any] = [weight[i], true];
+    if (!any) continue;
+    const blurred = maskedBlur(values, wb, w, h, opts.sigma);
+    for (let i = 0; i < wb.length; i++) if (wb[i]) out[i] = blurred[i];
+  }
+  return out;
 };
 
 /**
