@@ -82,6 +82,23 @@ const knob = (cx: number, cy: number, rx = 5, ry = 4.5): PctPoint[] =>
 const gEllipse = (cx: number, cy: number, rx: number, ry: number): PctPoint[] =>
   Array.from({ length: 16 }, (_, k) => G(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
 const GALLEY_DOWNLIGHTS = [gEllipse(477.5, 563, 15, 4.5), gEllipse(551, 593.5, 12, 4), gEllipse(596, 611.5, 10, 3.5), gEllipse(626, 623.5, 7, 3)];
+// The oak shelf under the cooker hood (the wall cabinets', not the splashback's) and its downlights
+const GALLEY_HOOD_SHELF = [G(664, 642), G(700, 642), G(744, 659), G(744, 671), G(725, 671), G(700, 662), G(664, 651)];
+const GALLEY_HOOD_LIGHTS = [gEllipse(699, 654, 6, 2.5), gEllipse(713, 659, 5, 2.5), gEllipse(723, 663, 4.5, 2.5), gEllipse(729, 666, 4, 2)];
+const gBox = (x0: number, y0: number, x1: number, y1: number): PctPoint[] => [G(x0, y0), G(x1, y0), G(x1, y1), G(x0, y1)];
+// The pantry's two bar handles and its four small knobs, each pixel-tight
+const GALLEY_PANTRY_HANDLES = [
+  gBox(855.6, 712.5, 859.6, 729.8), gBox(860.6, 712.5, 863.8, 729.8),
+  gBox(815.5, 627.6, 817.8, 630.8), gBox(818.6, 627.6, 820.8, 630.8), gBox(856.4, 627.6, 858.6, 630.8), gBox(859.6, 627.6, 862.4, 630.8),
+];
+// A thin bar along a segment (photo px), `half` px either side: the island's far bar handles, seen
+// edge-on, run into the door gaps as one colour and the colour rule can't single them out
+const gBar = (x0: number, y0: number, x1: number, y1: number, half = 2): PctPoint[] => {
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const [nx, ny] = [(-(y1 - y0) / len) * half, ((x1 - x0) / len) * half];
+  return [G(x0 + nx, y0 + ny), G(x1 + nx, y1 + ny), G(x1 - nx, y1 - ny), G(x0 - nx, y0 - ny)];
+};
+const GALLEY_ISLAND_HANDLES = [gBar(917, 748.5, 923, 750.5), gBar(932, 744, 950, 751), gBar(927, 752, 932, 754), gBar(950, 750.5, 965, 756.5), gBar(939, 760, 963, 771.5)];
 const GALLEY_BOWL = [G(993, 712), G(1040, 712), G(1039, 720), G(1035, 728), G(1028, 734), G(1026, 741), G(1004, 741), G(1003, 735), G(998, 728), G(994, 720)];
 // The tap's swan neck where it crosses the tall unit (right of x 1048 it is before the window)
 const GALLEY_TAP = [G(1018, 714), G(1019, 704), G(1023, 702), G(1023, 688), G(1025, 681), G(1030, 676), G(1036, 674), G(1049, 674), G(1049, 683), G(1037, 683), G(1033, 686), G(1031, 692), G(1031, 702), G(1030, 714)];
@@ -385,10 +402,16 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'cabinet',
           anchors: [],
-          // The run's oak case, frames and end box; the fluted glass doors stay glass
-          outline: [{ points: [G(328, 13), G(457, 13), G(652, 383), G(735, 383), G(735, 528), G(652, 528), G(652, 632), G(328, 540)], snap: false }],
+          // The run's oak case, frames and end box (down to the hood: its niche left of the steel
+          // front, and its sloped foot right of it); the fluted glass doors stay glass. Then the
+          // end box's side strip beside the hood and the oak shelf with downlights under the hood
+          outline: [
+            { points: [G(328, 13), G(457, 13), G(652, 383), G(736, 383), G(736, 617), G(706, 589), G(686, 587), G(686, 622), G(652, 622), G(652, 632), G(328, 540)], snap: false },
+            { points: [G(736, 522), G(744, 530), G(744, 664), G(736, 660)], snap: false },
+            { points: GALLEY_HOOD_SHELF, snap: false },
+          ],
           // …and the downlights in its underside stay lit
-          subtract: [{ points: [G(466, 52), G(648, 388), G(648, 612), G(466, 542)], snap: false }, ...GALLEY_DOWNLIGHTS.map((points) => ({ points, snap: false }))],
+          subtract: [{ points: [G(466, 52), G(648, 388), G(648, 612), G(466, 542)], snap: false }, ...[...GALLEY_DOWNLIGHTS, ...GALLEY_HOOD_LIGHTS].map((points) => ({ points, snap: false }))],
         },
       },
       {
@@ -401,10 +424,15 @@ export const SCENES: Scene[] = [
           anchors: [],
           outline: [
             [G(902, 493), G(1047, 493), G(1047, 742), G(902, 742)],
-            [G(781, 570), G(902, 570), G(902, 799), G(781, 799)],
+            // (inside the doorway's white architrave)
+            [G(784, 575), G(902, 575), G(902, 799), G(784, 799)],
           ],
-          // The oven in the far run; the bowl and the tap before the island's tall unit
-          subtract: [[G(781, 682), G(814, 682), G(814, 745), G(781, 745)], ...[GALLEY_BOWL, GALLEY_TAP].map((points) => ({ points, snap: false }))],
+          // The oven in the far run and the pantry's pale brass bar handles and knobs (too pale
+          // for the colour rule); the bowl and the tap before the island's tall unit
+          subtract: [
+            [G(781, 682), G(814, 682), G(814, 745), G(781, 745)],
+            ...[GALLEY_BOWL, GALLEY_TAP, ...GALLEY_PANTRY_HANDLES].map((points) => ({ points, snap: false })),
+          ],
         },
       },
       {
@@ -416,7 +444,11 @@ export const SCENES: Scene[] = [
           label: 'cabinet',
           anchors: [],
           outline: [{ points: [G(571, 820), G(725, 760), G(725, 960), G(571, 1280)], snap: false }],
-          protectColour: [brass([[G(571, 740), G(735, 740), G(735, 1280), G(571, 1280)]])],
+          protectColour: [
+            brass([[G(571, 740), G(735, 740), G(735, 1280), G(571, 1280)]]),
+            // The upright handle on the right-hand drawer is longer than a knob
+            { ...brass([[G(664, 918), G(703, 918), G(703, 960), G(664, 960)]]), blobs: { minArea: 22, maxArea: 1500, maxAspect: 8, core: { minSat: 0.55, minShare: 0.1 } } },
+          ],
         },
       },
       {
@@ -427,8 +459,12 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'cabinet',
           anchors: [],
-          outline: [{ points: [G(927, 741), G(1035, 778), G(1035, 1020), G(927, 845)], snap: false }],
-          protectColour: [brass([[G(920, 735), G(1040, 735), G(1040, 1025), G(920, 1025)]])],
+          // From the narrow end door beside the tall unit
+          outline: [{ points: [G(911, 739), G(927, 741), G(1035, 778), G(1035, 1020), G(927, 845), G(911, 827)], snap: false }],
+          subtract: GALLEY_ISLAND_HANDLES.map((points) => ({ points, snap: false })),
+          // Its oak is warmer than the other runs' (sat 0.45–0.5), so brass is only what is clearly
+          // more saturated (0.6–0.8)
+          protectColour: [{ ...brass([[G(905, 735), G(1040, 735), G(1040, 1025), G(905, 1025)]], 12), minSat: 0.58, blobs: { minArea: 12, maxArea: 700, maxAspect: 12, core: { minSat: 0.65, minShare: 0.1 } } }],
         },
       },
       {
@@ -461,8 +497,8 @@ export const SCENES: Scene[] = [
           label: 'wall',
           anchors: [],
           outline: [{ points: [G(310, 535), G(328, 540), G(652, 632), G(735, 661), G(770, 700), G(770, 718), G(400, 790), G(310, 800)], snap: false }],
-          // The cooker hood above the range
-          subtract: [[G(652, 587), G(735, 587), G(735, 661), G(652, 640)]],
+          // The cooker hood above the range, and the oak shelf under it
+          subtract: [[G(652, 587), G(735, 587), G(735, 661), G(652, 640)], { points: GALLEY_HOOD_SHELF, snap: false }],
           protect: [G(533, 746), G(688, 712)],
           protectSoft: GALLEY_THIN,
         },

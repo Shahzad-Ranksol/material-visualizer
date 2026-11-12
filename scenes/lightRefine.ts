@@ -35,7 +35,15 @@ export interface LightRefine {
   contrast?: number;
   // Polished floor: reflection streaks moved from the albedo into the reflection layer
   gloss?: { along: number; across: number };
+  // Cabinet fronts: the gaps between doors and drawers (a dark slot with a lit edge) carried into
+  // the shading, so a new paint keeps them; grain, fainter than `threshold`, stays the material's.
+  // `strength` scales them (a gap reads fainter on a dark paint than on pale oak)
+  lines?: { sigma: number; threshold: number; strength?: number };
 }
+
+// A gap between oak fronts is a dark slot or a lit edge a few px wide, 8%+ off the wood around it
+// (log luminance); the grain beside it mostly stays under that
+const FRONT_LINES = { sigma: 2.5, threshold: 0.08, strength: 1.5 };
 
 // Per scene, per item. Only the Galley so far: the Classic kitchen's paints are fitted against its
 // unrefined light (npm run finishes:fromref), and the Modern kitchen's light reads right as it is
@@ -44,8 +52,12 @@ export const LIGHT_REFINE: Record<string, Record<string, LightRefine>> = {
     // The light pools under the wall cabinets and the run darkening toward the hood, as strong as
     // they look on the white tile
     splashback: { sigma: 10, contrast: 1.8 },
-    // The lit underside of the wall cabinets around its downlights
-    'wall-cabinets': { sigma: 8 },
+    // The lit underside of the wall cabinets around its downlights; on every front, the gaps
+    // between its doors and drawers and the pantry's door frames
+    'wall-cabinets': { sigma: 8, lines: FRONT_LINES },
+    'tall-units': { sigma: 0, lines: FRONT_LINES },
+    'base-cabinets': { sigma: 0, lines: FRONT_LINES },
+    island: { sigma: 0, lines: FRONT_LINES },
     // The toaster's, the vase's and the tap's contact shadows and reflections; the veins stay
     worktop: { sigma: 3, near: 18 },
     // The polished herringbone's reflections of the doorway, the oven and the cabinet edges
@@ -166,9 +178,10 @@ export const lightGain = (layers: LightLayers, mask: Float32Array, occluder: Flo
   const { width: w, height: h, shading } = layers;
   const n = w * h;
   const gain = new Float32Array(n).fill(1);
-  if (opts.sigma <= 0 && !opts.contrast) return gain;
+  if (opts.sigma <= 0 && !opts.contrast && !opts.lines) return gain;
   const { logA, weight, count } = logAlbedo(layers, mask);
   if (count < 16) return gain;
+  const lines = opts.lines ? frontLines(logA, weight, w, h, opts.lines) : null;
   // The reference level is the median of the smoothed albedo, on the same footing as what it is
   // compared with (a raw median of a two-tone grain would sit on one tone, the blur between them)
   const smooth = opts.sigma > 0 ? maskedBlur(logA, weight, w, h, opts.sigma) : new Float32Array(n);
@@ -195,7 +208,29 @@ export const lightGain = (layers: LightLayers, mask: Float32Array, occluder: Flo
       gain[i] *= Math.exp(e * mask[i]);
     }
   }
+  if (lines) for (let i = 0; i < n; i++) if (lines[i] && mask[i] > 0) gain[i] *= Math.exp(Math.min(max, Math.max(-max, lines[i])) * mask[i]);
   return gain;
+};
+
+/**
+ * The albedo's fine structure (log, relative to a `sigma` blur) where it stands out by more than
+ * `threshold`, fading in up to twice that: the slots and lit edges between fronts, not the grain.
+ */
+export const frontLines = (logA: Float32Array, weight: Float32Array, w: number, h: number, opts: { sigma: number; threshold: number; strength?: number }): Float32Array => {
+  const base = maskedBlur(logA, weight, w, h, opts.sigma);
+  const out = new Float32Array(w * h);
+  const t = opts.threshold;
+  // The item's own outline is no line to carry: its rim pixels are part background
+  const outside = new Float32Array(w * h);
+  for (let i = 0; i < out.length; i++) outside[i] = weight[i] ? 0 : 1;
+  const rim = distanceTo(outside, w, h);
+  for (let i = 0; i < out.length; i++) {
+    if (!weight[i] || rim[i] <= 2) continue;
+    const d = logA[i] - base[i];
+    const k = Math.min(1, Math.max(0, (Math.abs(d) - t) / t));
+    out[i] = d * k * k * (3 - 2 * k) * (opts.strength ?? 1);
+  }
+  return out;
 };
 
 /**

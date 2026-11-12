@@ -89,3 +89,18 @@ describe('maskedBlur and distanceTo', () => {
     expect(d[20 * W + 16]).toBeCloseTo(6, 5);
   });
 });
+
+describe('frontLines', () => {
+  it('carries the gap between two fronts, not the grain', async () => {
+    const { frontLines } = await import('../../scenes/lightRefine');
+    // Log albedo: faint grain (±0.03) everywhere, a dark slot (−0.4) at x 40–41
+    const logA = new Float32Array(W * H);
+    const weight = new Float32Array(W * H).fill(1);
+    for (let i = 0; i < W * H; i++) logA[i] = (i % W === 40 || i % W === 41 ? -0.4 : 0) + (i % 2 ? 0.03 : -0.03);
+    const out = frontLines(logA, weight, W, H, { sigma: 2.5, threshold: 0.08 });
+    expect(out[20 * W + 40]).toBeLessThan(-0.2);
+    for (let x = 10; x < 34; x++) expect(Math.abs(out[20 * W + x])).toBe(0);
+    // The item's own rim carries nothing
+    expect(Math.abs(out[0])).toBe(0);
+  });
+});

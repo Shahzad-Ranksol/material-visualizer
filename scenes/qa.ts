@@ -86,8 +86,13 @@ export const SCENE_QA: Record<string, ItemQa> = {
   'kitchen-modern/base-cabinets': { include: [[880, 770], [430, 880], [1420, 900]] },
   // Galley: the hob, toaster and tap are not worktop; the fluted glass is not wall cabinet
   'kitchen-galley/worktop': { include: [[420, 1050], [1180, 900], [1200, 772]], exclude: [[680, 744], [533, 746], [1052, 712]] },
-  'kitchen-galley/wall-cabinets': { include: [[390, 300]], exclude: [[560, 330]] },
-  'kitchen-galley/base-cabinets': { include: [[650, 900]] },
+  // …the end box over the hood down to its foot, its side strip and the shelf under the hood are
+  // (its steel front is not); the long upright drawer handle and the island's and pantry's brass
+  // stay; the island starts at its narrow end door; the doorway's white architrave is no pantry
+  'kitchen-galley/wall-cabinets': { include: [[390, 300], [670, 570], [725, 600], [740, 600], [690, 646]], exclude: [[560, 330], [696, 605]] },
+  'kitchen-galley/base-cabinets': { include: [[650, 900]], exclude: [[684, 936]] },
+  'kitchen-galley/island': { include: [[918, 790], [980, 850]], exclude: [[1010, 792], [951, 766]] },
+  'kitchen-galley/tall-units': { include: [[840, 700], [975, 600]], exclude: [[782, 700], [858, 720], [800, 571]] },
   // The door's foot and the right wall's skirting are not floor
   'wardrobe/floor': { include: [[1500, 950], [800, 1000]], exclude: [[110, 995], [150, 962], [1540, 895], [1500, 860]] },
   // The door casing's plinth block is not wall
