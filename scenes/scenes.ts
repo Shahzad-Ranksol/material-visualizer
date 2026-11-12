@@ -12,6 +12,8 @@ const rect = (x0: number, y0: number, x1: number, y1: number): PctPoint[] => [p(
 const px = (w: number, h: number) => (x: number, y: number): PctPoint => ({ xPct: x / w, yPct: y / h });
 const W = px(1600, 1067); // wardrobe photo
 const K = px(1344, 885); // the client's kitchen render
+const U = px(1600, 1136); // the client's modern U-shaped kitchen render
+const G = px(1600, 1280); // the client's galley kitchen render
 
 // The kitchen island: its oak top (seen from slightly above) and its painted body
 const ISLAND_TOP = [K(300, 524), K(1020, 524), K(1097, 548), K(1097, 560), K(231, 560), K(231, 548)];
@@ -75,6 +77,35 @@ const WARDROBE_HANDLES = [
 const knob = (cx: number, cy: number, rx = 5, ry = 4.5): PctPoint[] =>
   Array.from({ length: 16 }, (_, k) => K(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
 
+// The galley's downlights under its wall cabinets and the objects standing before its tall unit and
+// in its island top (photo px, a pixel or two of margin): kept as the photo's own pixels
+const gEllipse = (cx: number, cy: number, rx: number, ry: number): PctPoint[] =>
+  Array.from({ length: 16 }, (_, k) => G(cx + rx * Math.cos((Math.PI * k) / 8), cy + ry * Math.sin((Math.PI * k) / 8)));
+const GALLEY_DOWNLIGHTS = [gEllipse(477.5, 563, 15, 4.5), gEllipse(551, 593.5, 12, 4), gEllipse(596, 611.5, 10, 3.5), gEllipse(626, 623.5, 7, 3)];
+// The oak shelf under the cooker hood (the wall cabinets', not the splashback's) and its downlights
+const GALLEY_HOOD_SHELF = [G(664, 642), G(700, 642), G(744, 659), G(744, 671), G(725, 671), G(700, 662), G(664, 651)];
+const GALLEY_HOOD_LIGHTS = [gEllipse(699, 654, 6, 2.5), gEllipse(713, 659, 5, 2.5), gEllipse(723, 663, 4.5, 2.5), gEllipse(729, 666, 4, 2)];
+const gBox = (x0: number, y0: number, x1: number, y1: number): PctPoint[] => [G(x0, y0), G(x1, y0), G(x1, y1), G(x0, y1)];
+// The pantry's two bar handles and its four small knobs, each pixel-tight
+const GALLEY_PANTRY_HANDLES = [
+  gBox(855.6, 712.5, 859.6, 729.8), gBox(860.6, 712.5, 863.8, 729.8),
+  gBox(815.5, 627.6, 817.8, 630.8), gBox(818.6, 627.6, 820.8, 630.8), gBox(856.4, 627.6, 858.6, 630.8), gBox(859.6, 627.6, 862.4, 630.8),
+];
+// A thin bar along a segment (photo px), `half` px either side: the island's far bar handles, seen
+// edge-on, run into the door gaps as one colour and the colour rule can't single them out
+const gBar = (x0: number, y0: number, x1: number, y1: number, half = 2): PctPoint[] => {
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const [nx, ny] = [(-(y1 - y0) / len) * half, ((x1 - x0) / len) * half];
+  return [G(x0 + nx, y0 + ny), G(x1 + nx, y1 + ny), G(x1 - nx, y1 - ny), G(x0 - nx, y0 - ny)];
+};
+const GALLEY_ISLAND_HANDLES = [gBar(917, 748.5, 923, 750.5), gBar(932, 744, 950, 751), gBar(927, 752, 932, 754), gBar(950, 750.5, 965, 756.5), gBar(939, 760, 963, 771.5)];
+const GALLEY_BOWL = [G(993, 712), G(1040, 712), G(1039, 720), G(1035, 728), G(1028, 734), G(1026, 741), G(1004, 741), G(1003, 735), G(998, 728), G(994, 720)];
+// The tap's swan neck where it crosses the tall unit (right of x 1048 it is before the window)
+const GALLEY_TAP = [G(1018, 714), G(1019, 704), G(1023, 702), G(1023, 688), G(1025, 681), G(1030, 676), G(1036, 674), G(1049, 674), G(1049, 683), G(1037, 683), G(1033, 686), G(1031, 692), G(1031, 702), G(1030, 714)];
+const GALLEY_SINK = [G(988, 750), G(1050, 750), G(1059, 758), G(1003, 758)];
+// The toaster's wire handle and the twig in the vase on the splashback, kept by colour (softProtect)
+const GALLEY_THIN = [[[G(532, 715), G(550, 715), G(550, 730), G(532, 730)]], [[G(683, 702), G(693, 675), G(703, 675), G(694, 702)]]];
+
 const PENDANTS = [dome(488, 230, 63.5, 66, 6), dome(843, 230, 63.5, 66, 6)];
 
 const C = px(1600, 1067); // sideboard photo
@@ -113,7 +144,7 @@ const files = (id: SceneCategory) => {
 export const SCENES: Scene[] = [
   {
     id: 'kitchen',
-    title: 'Kitchen',
+    title: 'Classic with island',
     tagline: 'Painted shaker kitchen with an oak-topped island',
     ...files('kitchen'),
     items: [
@@ -182,7 +213,7 @@ export const SCENES: Scene[] = [
             { points: [K(467, 320), K(537.5, 320), K(537.5, 492), K(467, 492)], snap: false },
             [K(795, 320), K(866, 320), K(866, 492), K(795, 492)],
           ],
-          protect: [K(488, 205), K(843, 205), K(768, 245), K(835, 425), K(852, 455)],
+          protect: [K(488, 205), K(843, 205)],
           protectShapes: PENDANTS,
         },
       },
@@ -197,7 +228,7 @@ export const SCENES: Scene[] = [
           outline: [[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]],
           // The range cooker, and the island in front
           subtract: [ISLAND_TOP, ISLAND_SHAPE, [K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
-          protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527), K(890, 505)],
+          protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
           protectColour: [brass([[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]])],
         },
       },
@@ -217,8 +248,8 @@ export const SCENES: Scene[] = [
           label: 'countertop',
           anchors: [p(0.5, 0.6)],
           outline: [ISLAND_TOP, [K(137, 489), K(547, 489), K(547, 502), K(137, 502)], [K(782, 489), K(1192, 489), K(1192, 502), K(782, 502)]],
-          // The lemons in their bowl and the vase stand on it
-          protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527), K(890, 505)],
+          // The lemons in their bowl stand on it
+          protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
         },
       },
       {
@@ -237,8 +268,8 @@ export const SCENES: Scene[] = [
             [K(867, 390), K(1150, 390), K(1150, 489), K(867, 489)],
           ],
           subtract: [[K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
-          // The pan on the range, and the olive branches before the right-hand tiles
-          protect: [K(617, 462), K(895, 435), K(835, 425), K(852, 455)],
+          // The pan on the range
+          protect: [K(617, 462)],
         },
       },
       {
@@ -251,6 +282,243 @@ export const SCENES: Scene[] = [
           anchors: [p(0.08, 0.92), p(0.92, 0.92)],
           outline: [[K(0, 700), K(1344, 700), K(1344, 885), K(0, 885)]],
           subtract: [ISLAND_SHAPE, ...ISLAND_FEET],
+        },
+      },
+    ],
+  },
+  {
+    id: 'kitchen-modern',
+    collection: 'kitchen',
+    title: 'Modern U-shape',
+    tagline: 'Handleless slab kitchen with oak accents',
+    ...files('kitchen-modern'),
+    items: [
+      {
+        id: 'wall-cabinets',
+        label: 'Wall cabinets',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [],
+          outline: [
+            [U(443, 116), U(1175, 116), U(1175, 375), U(443, 375)],
+            // The side run on the left wall, under the sloping ceiling line
+            { points: [U(254, 0), U(351, 0), U(443, 116), U(443, 472), U(254, 428)], snap: false },
+          ],
+        },
+      },
+      {
+        id: 'base-cabinets',
+        label: 'Base cabinets',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [U(880, 770), U(430, 880), U(1420, 900)],
+          outline: [
+            [U(514, 657), U(1244, 657), U(1244, 887), U(514, 887)],
+            // The left run's white fronts, and the right run under the window, in perspective
+            { points: [U(351, 707), U(514, 661), U(514, 887), U(351, 1118)], snap: false },
+            { points: [U(1244, 658), U(1600, 746), U(1600, 1136), U(1585, 1136), U(1244, 888)], snap: false },
+          ],
+        },
+      },
+      {
+        id: 'end-panel',
+        label: 'Oak panels',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [U(185, 200), U(210, 900)],
+          outline: [
+            [U(121, 0), U(248, 0), U(248, 428), U(121, 428)],
+            [U(71, 704), U(351, 704), U(351, 1118), U(71, 1118)],
+          ],
+        },
+      },
+      {
+        id: 'worktop',
+        label: 'Worktops',
+        kind: 'countertop',
+        role: 'worktop',
+        recipe: {
+          label: 'countertop',
+          anchors: [],
+          outline: [
+            { points: [U(71, 692), U(360, 636), U(1242, 636), U(1244, 657), U(514, 657), U(351, 704), U(71, 704)], snap: false },
+            { points: [U(1244, 640), U(1600, 668), U(1600, 746), U(1244, 658)], snap: false },
+          ],
+          // The induction hob's black glass stays as it is
+          subtract: [{ points: [U(764, 635), U(993, 635), U(993, 647), U(764, 647)], snap: false }],
+          // What stands on it: utensils, the basket, the tap, jars, kettle, boards, pan, grinder, vase
+          protect: [U(255, 640), U(290, 625), U(330, 625), U(295, 632), U(500, 618), U(527, 622), U(560, 615), U(650, 605), U(700, 600), U(950, 625), U(1075, 615), U(1115, 615), U(1320, 625)],
+        },
+      },
+      {
+        id: 'splashback',
+        label: 'Splashback wall',
+        kind: 'wall',
+        role: 'splashback',
+        recipe: {
+          label: 'wall',
+          anchors: [],
+          outline: [
+            { points: [U(443, 474), U(1175, 474), U(1175, 375), U(1244, 375), U(1244, 637), U(443, 637)], snap: false },
+            { points: [U(71, 0), U(121, 0), U(121, 428), U(254, 428), U(443, 472), U(443, 637), U(360, 637), U(71, 692)], snap: false },
+          ],
+          // What stands before it, clicked low on each object as for the worktop (a click higher up,
+          // on a board or a jar against the wall, took the wall itself), plus the pampas grass and
+          // the big vase's branches
+          protect: [U(255, 640), U(290, 625), U(330, 625), U(295, 632), U(500, 618), U(527, 622), U(560, 615), U(650, 605), U(700, 600), U(950, 625), U(1075, 615), U(1115, 615), U(1320, 625), U(395, 545), U(1320, 520)],
+        },
+      },
+      {
+        id: 'floor',
+        label: 'Floor',
+        kind: 'floor',
+        role: 'floor',
+        recipe: {
+          label: 'floor',
+          anchors: [p(0.5, 0.92)],
+          outline: [{ points: [U(0, 1120), U(71, 1118), U(351, 1118), U(514, 887), U(1244, 888), U(1585, 1136), U(0, 1136)], snap: false }],
+        },
+      },
+    ],
+  },
+  {
+    id: 'kitchen-galley',
+    collection: 'kitchen',
+    title: 'Galley with island',
+    tagline: 'Oak galley kitchen with a marble waterfall island',
+    ...files('kitchen-galley'),
+    items: [
+      {
+        id: 'wall-cabinets',
+        label: 'Wall cabinets',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [],
+          // The run's oak case, frames and end box (down to the hood: its niche left of the steel
+          // front, and its sloped foot right of it); the fluted glass doors stay glass. Then the
+          // end box's side strip beside the hood and the oak shelf with downlights under the hood
+          outline: [
+            { points: [G(328, 13), G(457, 13), G(652, 383), G(736, 383), G(736, 617), G(706, 589), G(686, 587), G(686, 622), G(652, 622), G(652, 632), G(328, 540)], snap: false },
+            { points: [G(736, 522), G(744, 530), G(744, 664), G(736, 660)], snap: false },
+            { points: GALLEY_HOOD_SHELF, snap: false },
+          ],
+          // …and the downlights in its underside stay lit
+          subtract: [{ points: [G(466, 52), G(648, 388), G(648, 612), G(466, 542)], snap: false }, ...[...GALLEY_DOWNLIGHTS, ...GALLEY_HOOD_LIGHTS].map((points) => ({ points, snap: false }))],
+        },
+      },
+      {
+        id: 'tall-units',
+        label: 'Tall units',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [],
+          outline: [
+            [G(902, 493), G(1047, 493), G(1047, 742), G(902, 742)],
+            // (inside the doorway's white architrave)
+            [G(784, 575), G(902, 575), G(902, 799), G(784, 799)],
+          ],
+          // The oven in the far run and the pantry's pale brass bar handles and knobs (too pale
+          // for the colour rule); the bowl and the tap before the island's tall unit
+          subtract: [
+            [G(781, 682), G(814, 682), G(814, 745), G(781, 745)],
+            ...[GALLEY_BOWL, GALLEY_TAP, ...GALLEY_PANTRY_HANDLES].map((points) => ({ points, snap: false })),
+          ],
+        },
+      },
+      {
+        id: 'base-cabinets',
+        label: 'Base cabinets',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [],
+          // From under the worktop's front edge down to the floor line (GALLEY_FLOOR_LINE)
+          outline: [{ points: [G(571, 828), G(725, 757.4), G(725, 937.4), G(571, 1261.6)], snap: false }],
+          protectColour: [
+            brass([[G(571, 740), G(735, 740), G(735, 1280), G(571, 1280)]]),
+            // The upright handle on the right-hand drawer is longer than a knob
+            { ...brass([[G(664, 918), G(703, 918), G(703, 960), G(664, 960)]]), blobs: { minArea: 22, maxArea: 1500, maxAspect: 8, core: { minSat: 0.55, minShare: 0.1 } } },
+          ],
+        },
+      },
+      {
+        id: 'island',
+        label: 'Island',
+        kind: 'cabinet',
+        role: 'front',
+        recipe: {
+          label: 'cabinet',
+          anchors: [],
+          // From the narrow end door beside the tall unit
+          outline: [{ points: [G(911, 739), G(927, 741), G(1035, 778), G(1035, 1026), G(927, 851), G(911, 825.5)], snap: false }],
+          subtract: GALLEY_ISLAND_HANDLES.map((points) => ({ points, snap: false })),
+          // Its oak is warmer than the other runs' (sat 0.45–0.5), so brass is only what is clearly
+          // more saturated (0.6–0.8)
+          protectColour: [{ ...brass([[G(905, 735), G(1040, 735), G(1040, 1025), G(905, 1025)]], 12), minSat: 0.58, blobs: { minArea: 12, maxArea: 700, maxAspect: 12, core: { minSat: 0.65, minShare: 0.1 } } }],
+        },
+      },
+      {
+        id: 'worktop',
+        label: 'Worktops',
+        kind: 'countertop',
+        role: 'worktop',
+        recipe: {
+          label: 'countertop',
+          // The tops and the two waterfall ends are separate planes
+          anchors: [G(420, 1050), G(1180, 900), G(1200, 772), G(500, 805)],
+          outline: [
+            { points: [G(250, 803), G(400, 790), G(770, 718), G(770, 730), G(571, 817), G(571, 818.5), G(250, 818.5)], snap: false },
+            // (down past the waterfall front's snapped top, so no row between them is left out)
+            // The slab's front edge over the base run, a lit band 6–8 px tall
+            { points: [G(571, 817), G(727, 748.8), G(727, 756.5), G(571, 828)], snap: false },
+            [G(262, 817), G(571, 817), G(571, 1280), G(262, 1280)],
+            { points: [G(927, 736), G(1368, 770), G(1368, 779), G(1035, 780)], snap: false },
+            [G(1035, 778), G(1331, 778), G(1331, 1037), G(1035, 1037)],
+          ],
+          // The hob on the range and the island's sink stay as they are
+          subtract: [[G(600, 736), G(765, 728), G(765, 754), G(600, 754)], { points: GALLEY_SINK, snap: false }],
+          // The toaster, the copper vase, the tap and the bowl
+          protect: [G(533, 746), G(688, 712), G(1052, 712), G(1014, 724)],
+        },
+      },
+      {
+        id: 'splashback',
+        label: 'Splashback',
+        kind: 'wall',
+        role: 'splashback',
+        recipe: {
+          label: 'wall',
+          anchors: [],
+          outline: [{ points: [G(310, 535), G(328, 540), G(652, 632), G(735, 661), G(770, 700), G(770, 718), G(400, 790), G(310, 800)], snap: false }],
+          // The cooker hood above the range, and the oak shelf under it
+          subtract: [[G(652, 587), G(735, 587), G(735, 661), G(652, 640)], { points: GALLEY_HOOD_SHELF, snap: false }],
+          protect: [G(533, 746), G(688, 712)],
+          protectSoft: GALLEY_THIN,
+        },
+      },
+      {
+        id: 'floor',
+        label: 'Floor',
+        kind: 'floor',
+        role: 'floor',
+        recipe: {
+          label: 'floor',
+          anchors: [p(0.5, 0.9)],
+          // It meets the base run and the range on one straight line (x = 671.5 + (1050 − y) × 0.475,
+          // traced from the photo) and the island and its waterfall end at their feet, edge to edge
+          // with those items' outlines so no seam of the old floor shows between them
+          outline: [{ points: [G(571, 1280), G(571, 1261.6), G(781, 819.5), G(781, 800), G(902, 800), G(911, 825.5), G(927, 851), G(1035, 1026), G(1035, 1037), G(1331, 1037), G(1331, 845), G(1600, 860), G(1600, 1280)], snap: false }],
         },
       },
     ],

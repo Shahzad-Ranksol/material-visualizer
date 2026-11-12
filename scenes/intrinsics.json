@@ -80,6 +80,26 @@
       }
     }
   },
+  "kitchen-galley": {
+    "reflection": "/scenes/kitchen-galley/reflection.lit.png",
+    "shading": "/scenes/kitchen-galley/shading.lit.png",
+    "shadingScale": 0.5,
+    "size": [
+      1600,
+      1280
+    ],
+    "styles": {}
+  },
+  "kitchen-modern": {
+    "reflection": "/scenes/kitchen-modern/reflection.png",
+    "shading": "/scenes/kitchen-modern/shading.png",
+    "shadingScale": 0.5,
+    "size": [
+      1600,
+      1136
+    ],
+    "styles": {}
+  },
   "media-wall": {
     "reflection": "/scenes/media-wall/reflection.png",
     "shading": "/scenes/media-wall/shading.png",

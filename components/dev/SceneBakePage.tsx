@@ -43,7 +43,7 @@ export const SceneBakePage: React.FC = () => {
   );
   useEffect(() => void refresh(), [refresh]);
 
-  // ?run=all|missing[&scene=<id>] starts a bake on load (npm run scenes:bake drives this)
+  // ?run=all|missing[&scene=<id>][&items=<id>,…] starts a bake on load (npm run scenes:bake drives this)
   const started = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -52,7 +52,8 @@ export const SceneBakePage: React.FC = () => {
     started.current = true;
     const only = params.get('scene');
     if (only) setSceneId(only as typeof sceneId);
-    void autoBake(only ? SCENES.filter((s) => s.id === only) : SCENES, run === 'missing');
+    const items = params.get('items')?.split(',');
+    void autoBake(only ? SCENES.filter((s) => s.id === only) : SCENES, run === 'missing', items);
   }, [bust]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Overview: every baked item of the scene tinted over the photo
@@ -98,12 +99,13 @@ export const SceneBakePage: React.FC = () => {
     return result;
   };
 
-  const autoBake = async (scenes: Scene[], onlyMissing: boolean) => {
+  const autoBake = async (scenes: Scene[], onlyMissing: boolean, onlyItems?: string[]) => {
     setError(null);
     setLog([]);
     for (const s of scenes) {
       for (const item of s.items) {
         if (onlyMissing && baked[s.id]?.items[item.id]) continue;
+        if (onlyItems && !onlyItems.includes(item.id)) continue;
         try {
           const r = await bakeAndSave(s, item);
           setLog((l) => [...l, `✓ ${s.id}/${item.id} — ${r.parts.length} plane(s), confidence ${Math.round(r.confidence * 100)}%`]);

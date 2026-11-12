@@ -3,7 +3,7 @@ import { defaultProfileFor, PhysicalProfile } from '../services/materialProfile'
 import { StudioMaterial } from './types';
 
 // The studio catalogue: five materials per scene collection plus shared room finishes for walls
-// and floors. Scans are Poly Haven CC0, web-sized and committed under /materials/; lacquers are
+// and floors. Scans are Poly Haven CC0 (the cream marble slab ambientCG CC0), web-sized and committed under /materials/; lacquers are
 // flat colour swatches committed under /finishes/.
 
 type Seed = Omit<StudioMaterial, keyof PhysicalProfile | 'tenantId'> & Partial<PhysicalProfile>;
@@ -23,12 +23,32 @@ const veneer = (category: MaterialCategory = 'wood') => ({ category, realWidthMm
 // Fence scans whose boards run across (stained pine, coastal blue) are turned upright with
 // orientationDeg 90; the others are already vertical
 const SEEDS: Seed[] = [
-  // Kitchen
-  { id: 'kit-sage-lacquer', collection: 'kitchen', roles: ['front'], name: 'Sage Matte Lacquer', category: 'paint', finishType: 'Matte lacquer', colorTone: 'Sage green', description: 'Soft sage lacquer with a velvet matte finish.', tag: 'Trending', ...lacquer('sage'), roughness: 0.55 },
-  { id: 'kit-navy-lacquer', collection: 'kitchen', roles: ['front'], name: 'Midnight Navy Lacquer', category: 'paint', finishType: 'Satin lacquer', colorTone: 'Deep navy', description: 'Deep navy satin lacquer for a tailored look.', ...lacquer('navy'), roughness: 0.4 },
-  { id: 'kit-natural-oak', collection: 'kitchen', roles: ['front'], name: 'Natural Oak Veneer', category: 'wood', finishType: 'Oiled veneer', colorTone: 'Honey oak', description: 'Crown-cut oak veneer, lightly oiled.', tag: 'Bestseller', ...scan('oak_veneer_01'), ...veneer(), roughness: 0.6 },
+  // Kitchen fronts (the Classic, Modern and Galley kitchens share them). Paints are recoloured on
+  // the photo's own joinery (scenes/lookLayers.ts), so a swatch is the paint's true colour (albedo).
+  // Burgundy, Cherry Red, Burnt Orange, Charcoal and Dark Walnut are fitted to the client's colour
+  // references of the Classic kitchen (npm run finishes:fromref, tests/fixtures/kitchen-refs/)
+  { id: 'kit-burgundy', collection: 'kitchen', roles: ['front'], name: 'Burgundy', category: 'paint', finishType: 'Matte paint', colorTone: 'Deep wine red', description: 'A deep, rich wine red.', tag: 'Trending', ...lacquer('burgundy'), roughness: 0.6 },
+  { id: 'kit-cherry-red', collection: 'kitchen', roles: ['front'], name: 'Cherry Red', category: 'paint', finishType: 'Matte paint', colorTone: 'Bright cherry red', description: 'A confident, warm cherry red.', ...lacquer('cherry-red'), roughness: 0.6 },
+  { id: 'kit-burnt-orange', collection: 'kitchen', roles: ['front'], name: 'Burnt Orange', category: 'paint', finishType: 'Matte paint', colorTone: 'Burnt orange', description: 'An earthy, sun-baked orange.', tag: 'New', ...lacquer('burnt-orange'), roughness: 0.6 },
+  { id: 'kit-charcoal', collection: 'kitchen', roles: ['front'], name: 'Charcoal', category: 'paint', finishType: 'Matte paint', colorTone: 'Soft black', description: 'A soft, near-black charcoal.', tag: 'Bestseller', ...lacquer('charcoal-paint'), roughness: 0.6 },
+  { id: 'kit-sage-lacquer', collection: 'kitchen', roles: ['front'], name: 'Sage', category: 'paint', finishType: 'Matte paint', colorTone: 'Sage green', description: 'Soft sage with a velvet matte finish.', tag: 'Trending', ...lacquer('sage'), roughness: 0.55 },
+  { id: 'kit-navy-lacquer', collection: 'kitchen', roles: ['front'], name: 'Midnight Navy', category: 'paint', finishType: 'Satin paint', colorTone: 'Deep navy', description: 'Deep navy for a tailored look.', ...lacquer('navy'), roughness: 0.45 },
+  { id: 'kit-forest-lacquer', collection: 'kitchen', roles: ['front'], name: 'Forest Green', category: 'paint', finishType: 'Satin paint', colorTone: 'Deep green', description: 'Deep forest green.', ...lacquer('forest'), roughness: 0.45 },
+  { id: 'kit-olive', collection: 'kitchen', roles: ['front'], name: 'Olive', category: 'paint', finishType: 'Matte paint', colorTone: 'Olive green', description: 'A muted, earthy olive.', ...lacquer('olive'), roughness: 0.6 },
+  { id: 'kit-duck-egg', collection: 'kitchen', roles: ['front'], name: 'Duck Egg Blue', category: 'paint', finishType: 'Matte paint', colorTone: 'Soft blue-green', description: 'A soft, airy blue-green.', ...lacquer('duck-egg'), roughness: 0.6 },
+  { id: 'kit-plum', collection: 'kitchen', roles: ['front'], name: 'Plum', category: 'paint', finishType: 'Matte paint', colorTone: 'Dusky plum', description: 'A dusky, sophisticated plum.', ...lacquer('plum'), roughness: 0.6 },
+  { id: 'kit-ochre', collection: 'kitchen', roles: ['front'], name: 'Ochre', category: 'paint', finishType: 'Matte paint', colorTone: 'Golden ochre', description: 'A warm, golden ochre.', ...lacquer('ochre'), roughness: 0.6 },
+  { id: 'kit-mushroom', collection: 'kitchen', roles: ['front'], name: 'Mushroom', category: 'paint', finishType: 'Matte paint', colorTone: 'Warm taupe', description: 'A warm, grounded taupe.', ...lacquer('mushroom'), roughness: 0.6 },
+  { id: 'kit-stone-grey', collection: 'kitchen', roles: ['front'], name: 'Stone Grey', category: 'paint', finishType: 'Matte paint', colorTone: 'Mid stone grey', description: 'A calm, mid stone grey.', ...lacquer('stone-grey'), roughness: 0.6 },
+  { id: 'kit-cashmere-lacquer', collection: 'kitchen', roles: ['front'], name: 'Cashmere', category: 'paint', finishType: 'Matte paint', colorTone: 'Soft greige', description: 'Soft greige.', ...lacquer('cashmere'), roughness: 0.55 },
+  { id: 'kit-cream-lacquer', collection: 'kitchen', roles: ['front'], name: 'Cream', category: 'paint', finishType: 'Satin paint', colorTone: 'Warm cream', description: 'Timeless warm cream.', ...lacquer('cream'), roughness: 0.45 },
+  { id: 'kit-pure-white', collection: 'kitchen', roles: ['front'], name: 'Pure White', category: 'paint', finishType: 'Matte paint', colorTone: 'Clean white', description: 'A clean, bright white.', ...lacquer('pure-white'), roughness: 0.6 },
+  { id: 'kit-dark-walnut', collection: 'kitchen', roles: ['front'], name: 'Dark Walnut', category: 'wood', finishType: 'Stained veneer', colorTone: 'Dark brown', description: 'Walnut veneer in a deep brown stain, grain still visible.', tag: 'Bestseller', ...scan('american_walnut_veneer'), thumbnail: '/materials/dark_walnut_stain_chip.jpg', albedoUrl: '/materials/dark_walnut_stain.jpg', ...veneer(), roughness: 0.55 },
+  { id: 'kit-smoked-walnut', collection: 'kitchen', roles: ['front'], name: 'Smoked Walnut', category: 'wood', finishType: 'Matte veneer', colorTone: 'Smoky brown', description: 'Smoked walnut veneer, matte lacquered.', ...scan('smoked_walnut_veneer'), ...veneer(), roughness: 0.55 },
+  { id: 'kit-natural-oak', collection: 'kitchen', roles: ['front'], name: 'Natural Oak', category: 'wood', finishType: 'Oiled veneer', colorTone: 'Honey oak', description: 'Crown-cut oak veneer, lightly oiled.', ...scan('oak_veneer_01'), ...veneer(), roughness: 0.6 },
+  { id: 'kit-concrete', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Concrete', category: 'stone', finishType: 'Sealed matte', colorTone: 'Warm grey', description: 'Sealed concrete with a soft trowelled finish.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.6 },
   { id: 'kit-bianco-quartz', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Bianco Quartz', category: 'stone', finishType: 'Polished', colorTone: 'Bright white', description: 'Polished white quartz with a fine speckle.', tag: 'Bestseller', ...lacquer('bianco'), realWidthMm: 1400, roughness: 0.18 },
-  { id: 'kit-crema-marble', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Crema Marble', category: 'stone', finishType: 'Honed', colorTone: 'Warm cream', description: 'Honed cream marble with soft veining.', ...scan('marble_01'), realWidthMm: 1400, roughness: 0.3 },
+  { id: 'kit-crema-marble', collection: 'kitchen', roles: ['worktop', 'splashback'], name: 'Crema Marble', category: 'stone', finishType: 'Honed', colorTone: 'Warm cream', description: 'Honed cream marble with soft veining.', ...scan('crema_marble_slab'), realWidthMm: 2000, roughness: 0.3 },
 
   // Fencing
   { id: 'fen-cedar', collection: 'fencing', roles: ['fence'], name: 'Western Red Cedar', category: 'wood', finishType: 'Natural', colorTone: 'Warm red-brown', description: 'Vertical-grain cedar boards, left natural.', tag: 'Bestseller', ...scan('japanese_cedar_planks'), realWidthMm: 1500, roughness: 0.8 },
@@ -39,7 +59,7 @@ const SEEDS: Seed[] = [
 
   // Media wall
   { id: 'med-smoked-walnut', collection: 'media-wall', roles: ['panel', 'front'], name: 'Smoked Walnut', category: 'wood', finishType: 'Matte veneer', colorTone: 'Smoky brown', description: 'Smoked walnut veneer, matte lacquered.', tag: 'Bestseller', ...scan('smoked_walnut_veneer'), ...veneer(), roughness: 0.55 },
-  { id: 'med-crema-marble', collection: 'media-wall', roles: ['panel'], name: 'Crema Marble Slab', category: 'stone', finishType: 'Polished', colorTone: 'Warm cream', description: 'A single cream marble feature slab.', ...scan('marble_01'), realWidthMm: 1600, roughness: 0.15 },
+  { id: 'med-crema-marble', collection: 'media-wall', roles: ['panel'], name: 'Crema Marble Slab', category: 'stone', finishType: 'Polished', colorTone: 'Warm cream', description: 'A single cream marble feature slab.', ...scan('crema_marble_slab'), realWidthMm: 1600, roughness: 0.15 },
   { id: 'med-microcement', collection: 'media-wall', roles: ['panel', 'wall'], name: 'Microcement', category: 'plaster', finishType: 'Sealed matte', colorTone: 'Warm grey', description: 'Seamless trowelled microcement.', tag: 'Trending', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.7 },
   { id: 'med-charcoal-lacquer', collection: 'media-wall', roles: ['panel', 'front'], name: 'Charcoal Lacquer', category: 'paint', finishType: 'Satin lacquer', colorTone: 'Charcoal', description: 'Charcoal satin lacquer for a moody wall.', ...lacquer('charcoal'), roughness: 0.4 },
   { id: 'med-light-oak', collection: 'media-wall', roles: ['panel', 'front'], name: 'Washed Grey Oak', category: 'wood', finishType: 'Matte veneer', colorTone: 'Washed grey', description: 'Whitewashed oak veneer with soft grain.', ...scan('washed_grey_oak_veneer'), ...veneer(), roughness: 0.6 },
@@ -58,9 +78,19 @@ const SEEDS: Seed[] = [
   { id: 'war-forest', collection: 'wardrobe', roles: ['front'], name: 'Forest Green Lacquer', category: 'paint', finishType: 'Satin lacquer', colorTone: 'Deep green', description: 'Deep forest green satin lacquer.', ...lacquer('forest'), roughness: 0.4 },
   { id: 'war-smoked-walnut', collection: 'wardrobe', roles: ['front'], name: 'Smoked Walnut', category: 'wood', finishType: 'Matte veneer', colorTone: 'Smoky brown', description: 'Smoked walnut veneer, matte lacquered.', ...scan('smoked_walnut_veneer'), ...veneer(), roughness: 0.55 },
 
+  // Bathroom (the scene arrives with the client's render; apps/bathroom.ts)
+  { id: 'bat-oak-vanity', collection: 'bathroom', roles: ['vanity'], name: 'Natural Oak', category: 'wood', finishType: 'Oiled veneer', colorTone: 'Honey oak', description: 'Crown-cut oak veneer, sealed for bathrooms.', tag: 'Bestseller', ...scan('oak_veneer_01'), ...veneer(), roughness: 0.6 },
+  { id: 'bat-walnut-vanity', collection: 'bathroom', roles: ['vanity'], name: 'Smoked Walnut', category: 'wood', finishType: 'Matte veneer', colorTone: 'Smoky brown', description: 'Smoked walnut veneer, matte lacquered.', ...scan('smoked_walnut_veneer'), ...veneer(), roughness: 0.55 },
+  { id: 'bat-sage-vanity', collection: 'bathroom', roles: ['vanity'], name: 'Sage Lacquer', category: 'paint', finishType: 'Matte lacquer', colorTone: 'Sage green', description: 'Soft sage lacquer with a velvet matte finish.', tag: 'Trending', ...lacquer('sage'), roughness: 0.55 },
+  { id: 'bat-navy-vanity', collection: 'bathroom', roles: ['vanity'], name: 'Midnight Navy', category: 'paint', finishType: 'Satin lacquer', colorTone: 'Deep navy', description: 'Deep navy satin lacquer.', ...lacquer('navy'), roughness: 0.4 },
+  { id: 'bat-marble-tile', collection: 'bathroom', roles: ['tile', 'floor'], name: 'Crema Marble', category: 'stone', finishType: 'Honed', colorTone: 'Warm cream', description: 'Honed cream marble with soft veining.', tag: 'Bestseller', ...scan('marble_01'), realWidthMm: 1200, roughness: 0.3 },
+  { id: 'bat-white-tile', collection: 'bathroom', roles: ['tile'], name: 'Gloss White', category: 'tile', finishType: 'Gloss glaze', colorTone: 'Bright white', description: 'Bright white glazed ceramic.', ...lacquer('bianco'), realWidthMm: 1200, roughness: 0.15 },
+  { id: 'bat-sage-tile', collection: 'bathroom', roles: ['tile'], name: 'Sage Glaze', category: 'tile', finishType: 'Satin glaze', colorTone: 'Sage green', description: 'Sage green ceramic with a soft satin glaze.', tag: 'Trending', ...lacquer('sage'), realWidthMm: 1200, roughness: 0.25 },
+  { id: 'bat-concrete-tile', collection: 'bathroom', roles: ['tile', 'floor'], name: 'Concrete Effect', category: 'tile', finishType: 'Matte porcelain', colorTone: 'Warm grey', description: 'Concrete-effect porcelain.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.6 },
+
   // Shared room finishes (walls and floors in every scene)
   { id: 'room-oak-parquet', collection: 'room', roles: ['floor'], name: 'Oak Herringbone', category: 'wood', finishType: 'Oiled', colorTone: 'Natural oak', description: 'Classic oak herringbone parquet.', ...scan('herringbone_parquet'), realWidthMm: 1200, roughness: 0.55 },
-  { id: 'room-concrete', collection: 'room', roles: ['floor', 'wall'], name: 'Polished Concrete', category: 'stone', finishType: 'Sealed', colorTone: 'Mid grey', description: 'Smooth sealed concrete.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.5 },
+  { id: 'room-concrete', collection: 'room', roles: ['floor', 'wall'], name: 'Polished Concrete', category: 'stone', finishType: 'Polished', colorTone: 'Mid grey', description: 'Smooth polished and sealed concrete.', ...scan('brushed_concrete'), realWidthMm: 2000, roughness: 0.3 },
   { id: 'room-limewash', collection: 'room', roles: ['wall'], name: 'Limewash Plaster', category: 'plaster', finishType: 'Limewash', colorTone: 'Chalk white', description: 'Soft, cloudy limewash plaster.', ...scan('white_plaster_02'), realWidthMm: 2000, roughness: 0.9 },
   { id: 'room-warm-white', collection: 'room', roles: ['wall'], name: 'Warm White Paint', category: 'paint', finishType: 'Matte emulsion', colorTone: 'Warm white', description: 'A warm, flat white emulsion.', ...lacquer('warm-white'), realWidthMm: 2000, roughness: 0.9 },
 ];

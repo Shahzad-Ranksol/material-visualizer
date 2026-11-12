@@ -322,3 +322,27 @@ export const keepByColour = (mask: AlphaMask, rgba: ArrayLike<number>, range: Ke
   for (let i = 0; i < w * h; i++) if (keep[i]) out.alpha[i] = mask.alpha[i];
   return out;
 };
+
+/**
+ * A thin object before a plain surface, too fine for a cut (a toaster's wire handle, a twig in a
+ * vase): inside the polygons, each pixel's occlusion is how far its colour is from the surface's
+ * (the median colour of the region, mostly surface), from 0 at `low` to full at `high` (RGB
+ * distance). Soft, so the renderer swaps only the surface's share of a mixed pixel.
+ */
+export const softProtect = (rgba: ArrayLike<number>, w: number, h: number, region: PctPoint[][], low = 22, high = 70): AlphaMask => {
+  let inside = emptyMask(w, h);
+  for (const poly of region) inside = fillPolygon(inside, toPx(poly, w, h), 'add');
+  const idx: number[] = [];
+  for (let i = 0; i < w * h; i++) if (inside.alpha[i] >= 128) idx.push(i);
+  const out = emptyMask(w, h);
+  if (!idx.length) return out;
+  const med = [0, 1, 2].map((c) => {
+    const v = idx.map((i) => rgba[i * 4 + c]).sort((a, b) => a - b);
+    return v[Math.floor(v.length / 2)];
+  });
+  for (const i of idx) {
+    const d = Math.hypot(rgba[i * 4] - med[0], rgba[i * 4 + 1] - med[1], rgba[i * 4 + 2] - med[2]);
+    out.alpha[i] = Math.round(255 * Math.min(1, Math.max(0, (d - low) / (high - low))));
+  }
+  return out;
+};

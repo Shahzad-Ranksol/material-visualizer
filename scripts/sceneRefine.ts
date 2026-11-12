@@ -3,7 +3,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { SCENES } from '../scenes/scenes';
 import { STYLE_GROUPS, STYLE_OPTIONS, styleKey } from '../scenes/styles';
-import { keepByColour, KeepColour } from '../scenes/recipeMask';
+import { keepByColour, KeepColour, softProtect } from '../scenes/recipeMask';
 import { AlphaMask, dilateDisc, emptyMask, fillPolygon, Pt } from '../services/areaMaskOps';
 import { gradientImage, snapPolygon } from '../scenes/edgeSnap';
 import { BakeRecipe, Outline, PctPoint } from '../scenes/types';
@@ -171,8 +171,24 @@ for (const scene of SCENES) {
   const { width: w, height: h } = photo;
   for (const item of scene.items) {
     const b = baked[scene.id]?.items[item.id];
-    if (b && pick(scene.id, item.id, item.recipe))
+    if (b && pick(scene.id, item.id, item.recipe)) {
       await refineItem(`${scene.id}/${item.id}`, b, photo.data, w, h, item.recipe, item.recipe.keepColour, snapperFor(photo.data, w, h, item.recipe));
+      // Thin objects in front (protectSoft) join the occluder: a union, so a re-run changes nothing
+      if (item.recipe.protectSoft?.length) {
+        const url = b.occluder ?? `/scenes/${scene.id}/${item.id}.occluder.png`;
+        const occ = b.occluder ? await loadAlpha(b.occluder, w, h) : emptyMask(w, h);
+        for (const region of item.recipe.protectSoft) {
+          const soft = softProtect(photo.data, w, h, region);
+          for (let i = 0; i < w * h; i++) occ.alpha[i] = Math.max(occ.alpha[i], soft.alpha[i]);
+        }
+        await saveAlpha(url, occ);
+        if (!b.occluder) {
+          b.occluder = url;
+          fs.writeFileSync(path.join(ROOT, 'scenes/baked.json'), JSON.stringify(baked, null, 2) + '\n');
+        }
+        console.log(`${scene.id}/${item.id}: occluder + ${item.recipe.protectSoft.length} thin object(s)`);
+      }
+    }
   }
   for (const group of STYLE_GROUPS.filter((g) => g.sceneId === scene.id)) {
     for (const option of STYLE_OPTIONS.filter((o) => o.groupId === group.id)) {

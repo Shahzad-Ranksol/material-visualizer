@@ -5,10 +5,10 @@ import type { ColourRange, KeepColour } from './recipeMask';
 // render) whose items were cut out once, offline, in /dev/scenes and saved as masks + planes
 // ("baked"), so the studio renders them instantly with no model in the browser.
 
-export type SceneCategory = 'kitchen' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe';
+export type SceneCategory = 'kitchen' | 'kitchen-modern' | 'kitchen-galley' | 'fencing' | 'media-wall' | 'cabinet' | 'wardrobe' | 'bathroom';
 
 // What an item physically is — which materials make sense on it
-export type SurfaceRole = 'front' | 'worktop' | 'splashback' | 'panel' | 'fence' | 'wall' | 'floor';
+export type SurfaceRole = 'front' | 'worktop' | 'splashback' | 'panel' | 'fence' | 'wall' | 'floor' | 'vanity' | 'tile';
 
 export interface PctPoint {
   xPct: number;
@@ -50,6 +50,8 @@ export interface BakeRecipe {
   outline?: Outline[];
   // Exact polygons of objects in front, not snapped (a pendant's dome)
   protectShapes?: PctPoint[][];
+  // Thin objects too fine for a cut, by their colour against the surface's inside each region (softProtect)
+  protectSoft?: PctPoint[][][];
   snap?: boolean;
   // Keep only what the anchors' cut also covers (the gaps between fence boards)
   intersectCut?: boolean;
@@ -71,6 +73,8 @@ export interface SceneItem {
 
 export interface Scene {
   id: SceneCategory;
+  // The material collection it offers (scenes.ts: the three kitchens share 'kitchen'); default its id
+  collection?: SceneCategory;
   title: string;
   tagline: string;
   photo: string;

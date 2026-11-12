@@ -16,10 +16,9 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     launchOptions: { args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] },
   },
-  webServer: {
-    command: 'npx vite --port 3000 --strictPort',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  // The kitchen app (the default) for every suite, and the fencing app for its configurator test
+  webServer: [
+    { command: 'npx vite --port 3000 --strictPort', url: 'http://localhost:3000', reuseExistingServer: true, timeout: 60_000 },
+    { command: 'VITE_APP=fencing npx vite --port 3010 --strictPort', url: 'http://localhost:3010', reuseExistingServer: true, timeout: 60_000 },
+  ],
 });

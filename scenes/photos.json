@@ -6,6 +6,18 @@
     "credit": "Client render"
   },
   {
+    "id": "kitchen-modern",
+    "file": "photo.png",
+    "source": "client",
+    "credit": "Client render"
+  },
+  {
+    "id": "kitchen-galley",
+    "file": "photo.png",
+    "source": "client",
+    "credit": "Client render"
+  },
+  {
     "id": "fencing",
     "url": "https://images.unsplash.com/photo-1691821331552-ab4f12500a24?w=1600&q=85&fm=jpg&fit=max",
     "source": "unsplash",

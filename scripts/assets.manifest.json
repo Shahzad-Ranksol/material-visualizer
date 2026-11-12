@@ -1,7 +1,8 @@
 {
-  "_comment": "Local assets for the no-API renderer. Downloaded once by `npm run assets:fetch` into public/ (git-ignored) and served from the app's own origin. Textures: Poly Haven, CC0. Models: Hugging Face (SegFormer-B2 ADE20K, SAM 2.1 Hiera Tiny, MoGe-2 ViT-S Normal).",
+  "_comment": "Local assets for the no-API renderer. Downloaded once by `npm run assets:fetch` into public/ (git-ignored) and served from the app's own origin. Textures: Poly Haven, CC0 (entries with `ambientcg`: ambientCG, CC0). Models: Hugging Face (SegFormer-B2 ADE20K, SAM 2.1 Hiera Tiny, MoGe-2 ViT-S Normal).",
   "textures": {
     "marble_01": {},
+    "crema_marble_slab": { "ambientcg": "Marble014" },
     "terrazzo_tiles": {},
     "large_sandstone_blocks_01": {},
     "granite_tile_03": {},

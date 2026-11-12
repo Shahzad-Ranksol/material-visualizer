@@ -91,7 +91,11 @@ export const recolorSurface = (
   occluder: Float32Array | null,
   target: [number, number, number],
   reference: RecolorReference | null = recolorReference(original, [mask], occluder),
-  intrinsics?: Intrinsics | null
+  intrinsics?: Intrinsics | null,
+  // Share of the old albedo's brightness variation kept (with baked light): low for timber whose
+  // old grain must not print through a new stain, high for painted joinery, whose grooves and
+  // bevels are that variation
+  albedoDetail = ALBEDO_DETAIL
 ): void => {
   if (!reference) return;
   const px = [0, 0, 0];
@@ -108,7 +112,7 @@ export const recolorSurface = (
       const tint = Math.max(0, 1 + CHROMA_DETAIL * (Math.min(3, chroma) - 1));
       let lin: number;
       if (intrinsics) {
-        const albedo = Math.min(1, target[c] * Math.max(0, 1 + ALBEDO_DETAIL * (Math.min(3, rel) - 1)) * tint);
+        const albedo = Math.min(1, target[c] * Math.max(0, 1 + albedoDetail * (Math.min(3, rel) - 1)) * tint);
         lin = albedo * intrinsics.shading[i * 3 + c] + intrinsics.reflection[i * 3 + c];
       } else {
         lin = target[c] * rel * tint;
