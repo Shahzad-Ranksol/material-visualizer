@@ -65,6 +65,15 @@
   /* The finish popover / bottom sheet entering */
   @keyframes pop-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+  /* Big screens (a showroom's 100-inch 4K panel): the customer pages scale up in steps, so the layout
+     keeps about 1500–1750 px of room and type, photo and controls grow with the screen instead of
+     sitting small in the middle of it */
+  /* (--app-zoom lets a height in vh, which zoom scales too, be divided back to the screen's) */
+  .app-scale { --app-zoom: 1; zoom: var(--app-zoom); }
+  @media (min-width: 1800px) { .app-scale { --app-zoom: 1.2; } }
+  @media (min-width: 2200px) { .app-scale { --app-zoom: 1.45; } }
+  @media (min-width: 2800px) { .app-scale { --app-zoom: 1.85; } }
+  @media (min-width: 3400px) { .app-scale { --app-zoom: 2.2; } }
   /* The apps' paper ground from the first paint (the dev pages set their own dark one) */
   body {
     background-color: #f6f3ec;

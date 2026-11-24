@@ -40,7 +40,7 @@ export const wizardSteps = (app: AppConfig, scene: Scene, isBaked: (itemId: stri
     }
     if (ready.styleGroup || ready.finishItems) steps.push({ kind: 'design', ...ready });
   }
-  steps.push({ kind: 'summary', id: 'summary', title: 'Your design', hint: 'Download it, share it, or ask us for a quote.' });
+  steps.push({ kind: 'summary', id: 'summary', title: 'Your design', hint: 'Download it, or ask us for a quote.' });
   return steps;
 };
 

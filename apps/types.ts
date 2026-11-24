@@ -29,6 +29,8 @@ export interface AppConfig {
   // Menu labels on the right of the header; `current` marks the page you are on. Labels only for
   // now (the client's AI Visualiser is still to come)
   nav?: { label: string; current?: boolean }[];
+  // Items the app leaves as shown: no step offers them, and a share link can't change them
+  fixedItems?: string[];
   hero: { title: string; blurb: string; badges: string[]; cta: string };
   sceneIds: SceneCategory[];
   steps: DesignStep[];

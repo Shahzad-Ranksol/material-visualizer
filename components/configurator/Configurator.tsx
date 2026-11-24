@@ -24,7 +24,7 @@ const initialLook = () => {
   const shared = decodeLook(
     window.location.search,
     (id) => APP_SCENES.some((s) => s.id === id),
-    (sceneId, itemId) => !!APP_SCENES.find((s) => s.id === sceneId)?.items.some((i) => i.id === itemId),
+    (sceneId, itemId) => !APP.fixedItems?.includes(itemId) && !!APP_SCENES.find((s) => s.id === sceneId)?.items.some((i) => i.id === itemId),
     (id) => !!materialById(id),
     (sceneId, groupId, optionId) => !!styleBake(sceneId, groupId, optionId)
   );
@@ -104,7 +104,7 @@ const Wizard: React.FC = () => {
   const designSteps = steps.filter((s) => s.kind === 'design').length;
 
   return (
-    <div className="min-h-screen bg-paper font-grotesk text-spruce">
+    <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar note={`Step ${index + 1} of ${steps.length}`} progress={{ at: index, of: steps.length }} />
 
       <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-12 lg:pt-4">
@@ -147,7 +147,7 @@ const Wizard: React.FC = () => {
           {scene.source === 'unsplash' && <p className="mt-1.5 hidden text-[11px] text-spruce-soft/80 lg:block">Photo by {scene.credit.replace(/ \(.*\)$/, '')} on Unsplash</p>}
         </div>
 
-        <div ref={panel} className="scroll-mt-[60vh] lg:flex lg:max-h-[calc(100vh-7rem)] lg:flex-col lg:self-start lg:rounded-2xl lg:border lg:border-line lg:bg-white/60 lg:sticky lg:top-24">
+        <div ref={panel} className="scroll-mt-[60vh] lg:flex lg:max-h-[calc(100vh/var(--app-zoom,1)_-_7rem)] lg:flex-col lg:self-start lg:rounded-2xl lg:border lg:border-line lg:bg-white/60 lg:sticky lg:top-24">
           <div key={step.id} className="motion-safe:animate-[pop-in_220ms_ease-out] lg:flex-1 lg:overflow-y-auto lg:p-6">
             <h1 className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px]">{step.title}</h1>
             <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">{step.hint}</p>

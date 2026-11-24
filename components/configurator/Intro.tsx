@@ -19,7 +19,7 @@ export const Intro: React.FC = () => {
   const start = scene ? (several ? `/design?scene=${scene.id}&step=1` : '/design') : '/';
 
   return (
-    <div className="min-h-screen bg-paper font-grotesk text-spruce">
+    <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar />
       <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-5 lg:pt-6">
         <h1 className="font-serif text-[34px] leading-[1.06] tracking-[-0.01em] text-spruce sm:text-[44px] lg:col-start-2 lg:row-start-1 lg:whitespace-nowrap lg:text-[30px] xl:text-[36px]">

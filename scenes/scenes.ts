@@ -28,19 +28,6 @@ const ISLAND_FEET = [
   { points: [K(1058, 838), K(1089, 838), K(1089, 840.5), K(1058, 840.5)], snap: false },
 ];
 
-// A pendant's white dome as an exact shape: a half-ellipse over its rim (photo px)
-const dome = (cx: number, rimY: number, rx: number, ry: number, rimDepth: number): PctPoint[] => {
-  const pts: PctPoint[] = [];
-  for (let k = 0; k <= 32; k++) {
-    const t = Math.PI + (Math.PI * k) / 32;
-    pts.push(K(cx + rx * Math.cos(t), rimY + ry * Math.sin(t)));
-  }
-  for (let k = 1; k < 16; k++) {
-    const t = (Math.PI * k) / 16;
-    pts.push(K(cx + rx * Math.cos(t), rimY + rimDepth * Math.sin(t)));
-  }
-  return pts;
-};
 // The brass knobs and cup handles, by colour: saturated gold against cream paint, compact pieces
 // only (the panel grooves' warm shadows share the hue but are long thin lines)
 // (minArea: the smallest knob in that item, in px — larger drops more groove-corner specks)
@@ -115,7 +102,27 @@ const GALLEY_SINK = [G(988, 750), G(1050, 750), G(1059, 758), G(1003, 758)];
 // The toaster's wire handle and the twig in the vase on the splashback, kept by colour (softProtect)
 const GALLEY_THIN = [[[G(532, 715), G(550, 715), G(550, 730), G(532, 730)]], [[G(683, 702), G(693, 675), G(703, 675), G(694, 702)]]];
 
-const PENDANTS = [dome(488, 230, 63.5, 66, 6), dome(843, 230, 63.5, 66, 6)];
+// Each shade traced: its right edge row by row (the photo's brightness step against the cabinets,
+// checked at 6×), mirrored about its centre (the left edge has almost no contrast), then the rim's
+// lower curve. A half-ellipse was up to 5 px narrow at the shoulders and a SAM cut ran up to 13 px
+// below the rim, so cream cabinet stayed round the shades on a new colour
+const shade = (cx: number, right: [number, number][], rimY: number, bottomY: number): PctPoint[] => {
+  const pts = right.map(([y, x]) => K(x, y));
+  const hw = right[right.length - 1][1] - cx;
+  for (let k = 1; k < 16; k++) {
+    const t = (Math.PI * k) / 16;
+    pts.push(K(cx + hw * Math.cos(t), rimY + (bottomY - rimY) * Math.sin(t)));
+  }
+  for (const [y, x] of [...right].reverse()) pts.push(K(2 * cx - x, y));
+  return pts;
+};
+const PENDANTS = [
+  shade(488.4, [[164.5, 504.5], [172, 520.5], [180, 530.5], [186, 536.5], [190, 539.5], [196, 543.5], [200, 545.5], [210, 549.5], [220, 551.5], [226, 552], [231.3, 553]], 231.3, 237.8),
+  shade(843.8, [[164.5, 861.5], [170, 876.5], [176, 887.5], [180, 890.5], [186, 892.5], [190, 895.5], [196, 898.5], [200, 900.5], [206, 903.5], [210, 904.5], [216, 906.5], [220, 906.5], [226, 907.5], [231.3, 908.5]], 231.3, 237.5),
+];
+// The brass fittings above the shades and their cables, by colour against the cabinets round them
+// (brass and the dark cable stand 70+ off the cream; the cornice mouldings round them, 30–50, stay paint)
+const PENDANT_FITTINGS = [488.4, 843.8].map((cx) => ({ region: [[K(cx - 18, 118), K(cx + 18, 118), K(cx + 18, 166), K(cx - 18, 166)]], local: 5, low: 36, high: 70 }));
 
 const C = px(1600, 1067); // sideboard photo
 const F = px(1600, 1280); // fencing photo
@@ -166,11 +173,11 @@ export const SCENES: Scene[] = [
           label: 'cabinet',
           anchors: [],
           outline: [
-            { points: [K(164, 130), K(467, 130), K(467, 390), K(164, 390)], snap: false },
-            { points: [K(867, 130), K(1168, 130), K(1168, 390), K(867, 390)], snap: false },
+            { points: [K(164, 128.5), K(467, 128.5), K(467, 390), K(164, 390)], snap: false },
+            { points: [K(867, 128.5), K(1168, 128.5), K(1168, 390), K(867, 390)], snap: false },
           ],
-          protect: [K(488, 205), K(843, 205)],
           protectShapes: PENDANTS,
+          protectSoft: PENDANT_FITTINGS,
           protectColour: [brass([[K(160, 130), K(1170, 130), K(1170, 390), K(160, 390)]])],
         },
       },
@@ -184,9 +191,12 @@ export const SCENES: Scene[] = [
           anchors: [],
           outline: [
             // Where they meet the wall cabinets they stay as traced, overlapping them a little:
-            // snapped, both sides would pull back to different edges and leave a sliver
-            { points: [K(0, 121), K(168, 121), K(168, 390), K(177, 390), K(177, 489), K(140, 489), K(140, 700), K(0, 700)], snap: false },
-            { points: [K(1176, 121), K(1344, 121), K(1344, 700), K(1192, 700), K(1192, 489), K(1150, 489), K(1150, 390), K(1164, 390), K(1164, 121)], snap: false },
+            // snapped, both sides would pull back to different edges and leave a sliver. The top
+            // is the cornice's lit lip (y 118.5): from y 121 it stayed a light line on a dark paint
+            { points: [K(0, 118.5), K(168, 118.5), K(168, 390), K(177, 390), K(177, 489.5), K(140, 490.8), K(140, 700), K(0, 700)], snap: false },
+            // (and the right larder's white front edge beside the worktop's end)
+            { points: [K(1188.5, 486), K(1192.5, 486), K(1192.5, 503), K(1188.5, 503)], snap: false },
+            { points: [K(1176, 118.5), K(1344, 118.5), K(1344, 700), K(1192, 700), K(1192, 489), K(1150, 489), K(1150, 390), K(1164, 390), K(1164, 118.5)], snap: false },
           ],
           // The larders' knobs are the smallest in the scene. The search stops short of the worktop
           // ends beside them and of the floor (their knobs are at y 231 and 491): oak is warm and
@@ -214,7 +224,7 @@ export const SCENES: Scene[] = [
           anchors: [],
           // The panelled breast, its mantel and the two pilasters
           outline: [
-            [K(459, 122), K(876, 122), K(876, 270), K(459, 270)],
+            { points: [K(459, 120.5), K(876, 120.5), K(876, 270), K(459, 270)], snap: false },
             // The mantel, as traced: snapped, its lit ends (x 467–470, 861–867) and the row above
             // the tiles were left to nothing
             { points: [K(467, 268), K(867.5, 268), K(867.5, 320.5), K(467, 320.5)], snap: false },
@@ -226,8 +236,8 @@ export const SCENES: Scene[] = [
             // beside the tiles (traced; snapped, it stopped at x 860)
             { points: [K(795, 320), K(867.5, 320), K(867.5, 390), K(862.5, 390), K(862.5, 492), K(795, 492)], snap: false },
           ],
-          protect: [K(488, 205), K(843, 205)],
           protectShapes: PENDANTS,
+          protectSoft: PENDANT_FITTINGS,
         },
       },
       {
@@ -263,6 +273,12 @@ export const SCENES: Scene[] = [
           label: 'countertop',
           anchors: [p(0.5, 0.6)],
           outline: [ISLAND_TOP, [K(137, 489), K(547, 489), K(547, 502), K(137, 502)], [K(782, 489), K(1192, 489), K(1192, 502), K(782, 502)]],
+          // The larders' white edges at its two ends: the bottom of the left one's side panel behind
+          // its back edge, the right one's front edge past its end (oak ends at x 1188.5)
+          subtract: [
+            { points: [K(130, 484), K(177, 484), K(177, 489.5), K(140, 490.8), K(130, 490.8)], snap: false },
+            { points: [K(1188.5, 484), K(1200, 484), K(1200, 503), K(1188.5, 503)], snap: false },
+          ],
           // The lemons in their bowl stand on it
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
         },
