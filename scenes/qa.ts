@@ -72,10 +72,12 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // Kitchen: warm cream paint in shadow is painted (it used to pass for brass and stay cream), the
   // brass knobs are not
   'kitchen/island': { include: [[1050, 815], [1052, 825], [1048, 835], [1055, 805], [1087, 650], [1087, 810], [383, 591], [250, 839], [1070, 839]], exclude: [[391, 590], [413, 590], [653, 590], [916, 590]] },
-  'kitchen/tall-units': { include: [[1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
-  'kitchen/wall-cabinets': { include: [[440, 145], [450, 145]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
+  // …and the cornice's lit top lip, and the white edges at the worktop's two ends
+  'kitchen/tall-units': { include: [[60, 119], [1250, 119], [160, 489], [1190, 495], [1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
+  // The top lip; round the pendants' shades only the shades and fittings are kept (no cream rim)
+  'kitchen/wall-cabinets': { include: [[440, 145], [450, 145], [300, 129], [445, 240], [912, 200]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
   // …and the mantel's lit ends and the right pilaster's side face, beside the wall cabinets and the tiles
-  'kitchen/canopy': { include: [[461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450], [468, 300], [865, 300], [865, 350], [861, 450]], exclude: [[866, 450]] },
+  'kitchen/canopy': { include: [[600, 121], [552, 215], [555, 236], [530, 240], [780, 242], [461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450], [468, 300], [865, 300], [865, 350], [861, 450]], exclude: [[866, 450], [488, 200], [488, 150], [843, 200], [843, 150]] },
   'kitchen/splashback': { include: [[460, 450], [300, 430]], exclude: [[467, 450], [468, 450]] },
   // The island's bevelled corner is the island's, not the floor's
   'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760], [250, 839], [1070, 839]] },

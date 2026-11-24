@@ -26,10 +26,10 @@ describe('apps', () => {
         if (step.style) expect(STYLE_GROUPS.some((g) => g.id === step.style && app.sceneIds.includes(g.sceneId)), `${app.id}/${step.id}`).toBe(true);
         for (const id of step.finish?.itemIds ?? []) expect(scenes.some((s) => s.items.some((i) => i.id === id)), `${app.id}/${step.id}/${id}`).toBe(true);
       }
-      // Every item can be reached from some step (a click on it jumps there)
+      // Every item can be reached from some step (a click on it jumps there), but those left as shown
       for (const scene of scenes) {
         const ws = wizardSteps(app, scene, () => true);
-        for (const item of scene.items) expect(stepOfItem(ws, item.id), `${app.id}/${scene.id}/${item.id}`).toBeGreaterThanOrEqual(0);
+        for (const item of scene.items) if (!app.fixedItems?.includes(item.id)) expect(stepOfItem(ws, item.id), `${app.id}/${scene.id}/${item.id}`).toBeGreaterThanOrEqual(0);
       }
     }
   });
@@ -43,10 +43,11 @@ describe('apps', () => {
 
   it('kitchen asks design and finish, ending on the summary; each layout has its own steps', () => {
     const ws = steps('kitchen');
-    expect(ws.map((s) => s.id)).toEqual(['doors', 'colour', 'worktop', 'splashback', 'floor', 'summary']);
+    // No splashback or floor step (the client keeps them as shown)
+    expect(ws.map((s) => s.id)).toEqual(['doors', 'colour', 'worktop', 'summary']);
     // The Modern kitchen has no generated door styles yet, and oak panels the others lack
     const modern = sceneOf('kitchen-modern');
-    expect(wizardSteps(APPS.kitchen, modern, (i) => !!BAKED[modern.id]?.items[i], 3).map((s) => s.id)).toEqual(['scene', 'colour', 'panels', 'worktop', 'splashback', 'floor', 'summary']);
+    expect(wizardSteps(APPS.kitchen, modern, (i) => !!BAKED[modern.id]?.items[i], 3).map((s) => s.id)).toEqual(['scene', 'colour', 'panels', 'worktop', 'summary']);
     expect(stepItems(ws[1])).toContain('island');
     expect(stepOfItem(ws, 'worktop')).toBe(2);
     expect(lookLabel(ws, { 'kitchen-doors': 'slab' }, { island: 'kit-navy-lacquer', 'wall-cabinets': 'kit-navy-lacquer', 'tall-units': 'kit-navy-lacquer', canopy: 'kit-navy-lacquer', 'base-cabinets': 'kit-navy-lacquer' })).toBe('Slab · Midnight Navy');

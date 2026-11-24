@@ -51,12 +51,20 @@ test.describe('kitchen', () => {
     page.on('request', (r) => requests.push(r.url()));
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Design your dream kitchen' })).toBeVisible();
-    await expect(page).toHaveTitle('Hollin Kitchens');
-    await page.getByTestId('start').click();
-    // Step 1: the layout (Classic is chosen to start with), then the door style
+    await expect(page).toHaveTitle('Native Coast Kitchen Appliances');
+    // The wordmark and the menu (labels for now, the Layout Designer the current page)
+    await expect(page.getByTestId('brand')).toContainText('Native Coast');
+    await expect(page.getByRole('navigation', { name: 'Main' })).toContainText('Layout Designer');
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByText('Layout Designer')).toHaveAttribute('aria-current', 'page');
+    // The layout is chosen on the front page (Classic to start with): picking one swaps the photo
     await expect(page.getByRole('heading', { name: 'Choose your layout' })).toBeVisible();
-    await expect(page.getByTestId('step-note')).toHaveText('Step 1 of 7');
-    await page.getByTestId('next').click();
+    await expect(page.getByTestId('layout-kitchen')).toHaveAttribute('aria-checked', 'true');
+    await page.getByTestId('layout-kitchen-galley').click();
+    await expect(page.getByTestId('layout-kitchen-galley')).toHaveAttribute('aria-checked', 'true');
+    await page.getByTestId('layout-kitchen').click();
+    // Start opens the step after the layout: the door style
+    await page.getByTestId('start').click();
+    await expect(page.getByTestId('step-note')).toHaveText('Step 2 of 5');
 
     // Step 3: the colour goes on every front at once
     await page.getByTestId('next').click();
@@ -95,6 +103,11 @@ test.describe('kitchen', () => {
     await expect(page.getByTestId('design-summary')).toContainText('Bianco Quartz');
     const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('download').click()]);
     expect(download.suggestedFilename()).toBe('kitchen-design.png');
+    // No splashback or floor step, and no Copy link (the quote request carries the design's link)
+    await expect(page.getByTestId('design-summary')).not.toContainText('Splashback');
+    await expect(page.getByTestId('design-summary')).not.toContainText('Floor');
+    await expect(page.getByText('Copy link')).toHaveCount(0);
+    await expect(page.getByTestId('quote')).toHaveAttribute('href', /Design%20link/);
 
     // A reload restores the look and the step
     await page.reload();
@@ -102,12 +115,12 @@ test.describe('kitchen', () => {
 
     // Back goes back a step; a tap on the picture jumps to the step that changes that item
     await page.getByTestId('back').click();
-    await expect(page.getByTestId('step-note')).toHaveText('Step 6 of 7');
+    await expect(page.getByTestId('step-note')).toHaveText('Step 4 of 5');
     await page.waitForTimeout(500); // item masks load for hit-testing
     const box = (await page.getByTestId('scene-canvas').boundingBox())!;
     // The island: its first step is the door style
     await page.getByTestId('scene-canvas').click({ position: { x: box.width * 0.55, y: box.height * 0.85 } });
-    await expect(page.getByTestId('step-note')).toHaveText('Step 2 of 7');
+    await expect(page.getByTestId('step-note')).toHaveText('Step 2 of 5');
 
     expect(requests.filter((u) => u.includes('/models/'))).toEqual([]);
   });

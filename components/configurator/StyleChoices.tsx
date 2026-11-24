@@ -61,7 +61,7 @@ export const StyleChoices: React.FC<Props> = ({ scene, group, width, height, act
             </span>
           )}
         </span>
-        <span className="mt-2 block px-1 pb-0.5 text-[13px] font-semibold leading-snug text-spruce">{label}</span>
+        <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold leading-snug text-spruce">{label}</span>
       </button>
     );
   };

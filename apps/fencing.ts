@@ -5,6 +5,7 @@ export const FENCING_APP: AppConfig = {
   id: 'fencing',
   brand: 'Hollin',
   product: 'Fencing',
+  noun: 'fence',
   hero: {
     title: 'Design your new fence',
     blurb: 'See slatted, closeboard, picket and lattice-top fences on a real garden before you choose. Then share your design or ask for a quote.',
