@@ -858,7 +858,7 @@
         "occluder": "/scenes/kitchen/wall-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:03:33.029Z"
+        "bakedAt": "2026-11-24T19:07:44.029Z"
       },
       "tall-units": {
         "parts": [
@@ -903,19 +903,19 @@
                 "corners": [
                   {
                     "xPct": 34.375,
-                    "yPct": 13.744075829383887
+                    "yPct": 12.796208530805686
                   },
                   {
                     "xPct": 65,
-                    "yPct": 13.744075829383887
+                    "yPct": 12.796208530805686
                   },
                   {
                     "xPct": 65,
-                    "yPct": 36.018957345971565
+                    "yPct": 35.07109004739337
                   },
                   {
                     "xPct": 34.375,
-                    "yPct": 36.018957345971565
+                    "yPct": 35.07109004739337
                   }
                 ],
                 "heightMm": 2700
@@ -926,7 +926,7 @@
         "occluder": "/scenes/kitchen/canopy.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:03:53.181Z"
+        "bakedAt": "2026-11-24T19:08:02.245Z"
       },
       "base-cabinets": {
         "parts": [
@@ -1053,11 +1053,11 @@
                   },
                   {
                     "xPct": 85,
-                    "yPct": 54.976303317535546
+                    "yPct": 54.502369668246445
                   },
                   {
                     "xPct": 13.750000000000002,
-                    "yPct": 54.976303317535546
+                    "yPct": 54.502369668246445
                   }
                 ],
                 "heightMm": 2700
@@ -1068,7 +1068,7 @@
         "occluder": "/scenes/kitchen/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:39:53.498Z"
+        "bakedAt": "2026-11-24T19:10:46.421Z"
       },
       "floor": {
         "parts": [

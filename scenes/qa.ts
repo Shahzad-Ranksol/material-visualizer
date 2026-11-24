@@ -77,7 +77,7 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // The top lip; round the pendants' shades only the shades and fittings are kept (no cream rim)
   'kitchen/wall-cabinets': { include: [[440, 145], [450, 145], [300, 129], [445, 240], [912, 200]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
   // …and the mantel's lit ends and the right pilaster's side face, beside the wall cabinets and the tiles
-  'kitchen/canopy': { include: [[600, 121], [552, 215], [555, 236], [530, 240], [780, 242], [461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450], [468, 300], [865, 300], [865, 350], [861, 450]], exclude: [[866, 450], [488, 200], [488, 150], [843, 200], [843, 150]] },
+  'kitchen/canopy': { include: [[791, 340], [793, 470], [600, 121], [552, 215], [555, 236], [530, 240], [780, 242], [461, 242], [464, 266], [467, 340], [468, 340], [467, 450], [468, 450], [468, 300], [865, 300], [865, 350], [861, 450]], exclude: [[866, 450], [488, 200], [488, 150], [843, 200], [843, 150], [808, 176], [470, 167]] },
   'kitchen/splashback': { include: [[460, 450], [300, 430]], exclude: [[467, 450], [468, 450]] },
   // The island's bevelled corner is the island's, not the floor's
   'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760], [250, 839], [1070, 839]] },
