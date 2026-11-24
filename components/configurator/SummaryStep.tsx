@@ -40,7 +40,7 @@ export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments
   };
 
   const quoteBody = encodeURIComponent(
-    `Hello,\n\nI'd like a quote for this ${APP.product.toLowerCase().replace(/s$/, '')} design:\n\n${rows.map((r) => `• ${r.title}: ${r.value}`).join('\n')}\n\nDesign link: ${shareUrl}\n`
+    `Hello,\n\nI'd like a quote for this ${APP.noun} design:\n\n${rows.map((r) => `• ${r.title}: ${r.value}`).join('\n')}\n\nDesign link: ${shareUrl}\n`
   );
 
   return (
@@ -53,8 +53,8 @@ export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments
             ) : (
               <span className="h-9 w-9 shrink-0 rounded-md bg-mist ring-1 ring-black/5" />
             )}
-            <dt className="w-24 shrink-0 text-[12px] capitalize text-spruce-soft">{r.title}</dt>
-            <dd className="min-w-0 flex-1 text-right text-[13px] font-medium text-spruce">{r.value}</dd>
+            <dt className="w-24 shrink-0 text-[13px] capitalize text-spruce-soft">{r.title}</dt>
+            <dd className="min-w-0 flex-1 text-right text-[14px] font-medium text-spruce">{r.value}</dd>
           </button>
         ))}
       </dl>

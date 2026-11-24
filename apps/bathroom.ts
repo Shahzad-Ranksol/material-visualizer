@@ -7,6 +7,7 @@ export const BATHROOM_APP: AppConfig = {
   id: 'bathroom',
   brand: 'Hollin',
   product: 'Bathrooms',
+  noun: 'bathroom',
   hero: {
     title: 'Design your new bathroom',
     blurb: 'Choose your vanity, tiles and finishes and see them on a real bathroom as you go. Then share your design or ask for a quote.',

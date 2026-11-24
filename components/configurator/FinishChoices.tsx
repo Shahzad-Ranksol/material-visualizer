@@ -23,7 +23,7 @@ export const FinishChoices: React.FC<Props> = (props) => {
     <div className="space-y-4">
       {groups.map((g) => (
         <div key={g.label}>
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{g.label}</h3>
+          <h3 className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{g.label}</h3>
           <Swatches {...props} materials={g.materials} />
         </div>
       ))}
@@ -59,8 +59,8 @@ const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
               </span>
             )}
           </span>
-          <span className="mt-1.5 block text-[11.5px] font-semibold leading-tight text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
-          <span className="block text-[10.5px] leading-snug text-spruce-soft">{m.finishType}</span>
+          <span className="mt-2 block text-[13px] font-semibold leading-tight text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
+          <span className="mt-0.5 block text-[12px] leading-snug text-spruce-soft">{m.finishType}</span>
         </button>
       );
     })}

@@ -126,7 +126,7 @@ const Wizard: React.FC = () => {
               }}
             />
             {!compare && (
-              <span data-testid="look-chip" className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate rounded-full bg-paper/95 px-3 py-1 text-[12px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+              <span data-testid="look-chip" className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
                 {look || `${scene.title} · as shown`}
               </span>
             )}
@@ -136,7 +136,7 @@ const Wizard: React.FC = () => {
               onClick={() => setCompare((c) => !c)}
               disabled={!renderUrl}
               aria-pressed={compare}
-              className={`absolute bottom-3 right-3 rounded-full px-3 py-1.5 text-[12px] font-medium shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
+              className={`absolute bottom-3 right-3 rounded-full px-3.5 py-2 text-[13px] font-medium shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
                 compare ? 'bg-spruce text-paper' : 'bg-paper/95 text-spruce hover:bg-paper'
               }`}
             >
@@ -150,7 +150,7 @@ const Wizard: React.FC = () => {
         <div ref={panel} className="scroll-mt-[60vh] lg:flex lg:max-h-[calc(100vh-7rem)] lg:flex-col lg:self-start lg:rounded-2xl lg:border lg:border-line lg:bg-white/60 lg:sticky lg:top-24">
           <div key={step.id} className="motion-safe:animate-[pop-in_220ms_ease-out] lg:flex-1 lg:overflow-y-auto lg:p-6">
             <h1 className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px]">{step.title}</h1>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-spruce-soft">{step.hint}</p>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">{step.hint}</p>
 
             <div className="mt-5 space-y-6">
               {step.kind === 'scene' && (
@@ -164,7 +164,7 @@ const Wizard: React.FC = () => {
                       className={`rounded-xl border bg-white p-2 text-left transition ${s.id === scene.id ? 'border-spruce' : 'border-line hover:border-spruce/40'}`}
                     >
                       <img src={s.thumbnail} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
-                      <span className="mt-2 block px-1 text-[13px] font-semibold">{s.title}</span>
+                      <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold">{s.title}</span>
                     </button>
                   ))}
                 </div>
@@ -172,7 +172,7 @@ const Wizard: React.FC = () => {
 
               {step.kind === 'design' && step.styleGroup && baked && (
                 <div>
-                  {step.finishItems && <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Design</h2>}
+                  {step.finishItems && <h2 className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Design</h2>}
                   <StyleChoices
                     scene={scene}
                     group={step.styleGroup}
@@ -192,7 +192,7 @@ const Wizard: React.FC = () => {
 
               {step.kind === 'design' && step.finishItems && step.materials && (
                 <div>
-                  {step.styleGroup && <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{step.finish?.label ?? 'Finish'}</h2>}
+                  {step.styleGroup && <h2 className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{step.finish?.label ?? 'Finish'}</h2>}
                   <FinishChoices
                     materials={step.materials}
                     activeId={stepMaterial(step, state.assignments)?.id ?? null}
@@ -235,9 +235,9 @@ const Wizard: React.FC = () => {
             className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur lg:static lg:rounded-b-2xl lg:bg-white/80 lg:px-6 lg:pb-5"
           >
             <div className="mx-auto flex max-w-[1280px] items-center gap-3">
-              <p className="min-w-0 flex-1 truncate text-[12px] leading-tight text-spruce-soft">
+              <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-spruce-soft">
                 {step.kind === 'summary' ? `${designSteps} ${designSteps === 1 ? 'choice' : 'choices'}` : step.kind === 'design' ? (look ? 'Your design so far' : 'Pick one, or skip with Next') : ''}
-                {step.kind !== 'summary' && look && <span className="block truncate text-[13px] font-medium text-spruce">{look}</span>}
+                {step.kind !== 'summary' && look && <span className="mt-0.5 block truncate text-[14px] font-medium text-spruce">{look}</span>}
               </p>
               <button
                 type="button"

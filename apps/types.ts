@@ -21,9 +21,14 @@ export interface DesignStep {
 
 export interface AppConfig {
   id: AppId;
-  // "Hollin" + "Kitchens" in the header
+  // The wordmark: the brand ("Native Coast") over its product line ("Kitchen Appliances")
   brand: string;
   product: string;
+  // What a customer designs, in a sentence ("a quote for this kitchen design")
+  noun: string;
+  // Menu labels on the right of the header; `current` marks the page you are on. Labels only for
+  // now (the client's AI Visualiser is still to come)
+  nav?: { label: string; current?: boolean }[];
   hero: { title: string; blurb: string; badges: string[]; cta: string };
   sceneIds: SceneCategory[];
   steps: DesignStep[];

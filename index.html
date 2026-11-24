@@ -9,16 +9,17 @@
     <meta property="og:description" content="Try real finishes on kitchens, fencing, media walls, cabinets and wardrobes.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@500;600;700&family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- The two faces of the apps: Playfair Display for display type, Familjen Grotesk for everything else -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#f6f3ec">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+              sans: ['"Familjen Grotesk"', 'system-ui', '-apple-system', 'sans-serif'],
               serif: ['"Playfair Display"', 'Georgia', 'serif'],
-              display: ['"Cinzel"', 'serif'],
               grotesk: ['"Familjen Grotesk"', 'system-ui', 'sans-serif'],
             },
             colors: {
@@ -64,11 +65,14 @@
   /* The finish popover / bottom sheet entering */
   @keyframes pop-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+  /* The apps' paper ground from the first paint (the dev pages set their own dark one) */
   body {
-    background-color: #0b0c10;
-    color: #e2e8f0;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: #f6f3ec;
+    color: #1e2b29;
+    font-family: 'Familjen Grotesk', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* Custom luxury scrollbar */
@@ -101,7 +105,7 @@
 </style>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="min-h-screen bg-[#0b0c10] text-slate-100 selection:bg-amber-500/30 selection:text-amber-200">
+<body class="min-h-screen bg-paper text-spruce selection:bg-brass/25 selection:text-spruce">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

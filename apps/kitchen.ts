@@ -5,8 +5,10 @@ const FRONTS = ['wall-cabinets', 'tall-units', 'canopy', 'base-cabinets', 'islan
 
 export const KITCHEN_APP: AppConfig = {
   id: 'kitchen',
-  brand: 'Hollin',
-  product: 'Kitchens',
+  brand: 'Native Coast',
+  product: 'Kitchen Appliances',
+  noun: 'kitchen',
+  nav: [{ label: 'Layout Designer', current: true }, { label: 'AI Visualiser' }],
   hero: {
     title: 'Design your dream kitchen',
     blurb: 'Choose your layout, door style, colour, worktop and splashback and see them on a real kitchen as you go. Then share your design or ask for a quote.',

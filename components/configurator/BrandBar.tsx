@@ -3,34 +3,56 @@ import { Link } from 'react-router-dom';
 import { APP } from '../../apps';
 
 interface Props {
-  // Right-hand note: "Takes a minute", "Step 2 of 6"
+  // Where you are ("Step 2 of 6"), shown with the progress
   note?: string;
-  // 0–1 progress through the steps, drawn as segments under the bar
+  // Progress through the steps, drawn as segments under the bar
   progress?: { at: number; of: number };
 }
 
-/** The app's header: its mark, brand and product, and where you are. Same in every app. */
+/**
+ * The app's header, the same in every app: its wordmark (the brand in the display serif over its
+ * product line in spaced capitals), the menu on the right, and on a step the progress under it.
+ */
 export const BrandBar: React.FC<Props> = ({ note, progress }) => (
-  <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/80">
-    <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 pb-3 pt-4 sm:px-8">
-      <Link to="/" className="flex items-center gap-2.5" aria-label={`${APP.brand} ${APP.product} home`}>
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-spruce font-serif text-sm font-semibold text-paper">{APP.brand[0]}</span>
-        <span className="text-[17px] font-semibold tracking-tight text-spruce">
-          {APP.brand} <span className="font-normal text-spruce-soft">{APP.product}</span>
-        </span>
+  <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
+    <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 pb-3 pt-4 sm:px-8 sm:pt-6">
+      <Link to="/" className="flex flex-col leading-none" aria-label={`${APP.brand} ${APP.product}, home`} data-testid="brand">
+        <span className="font-serif text-[21px] font-semibold tracking-[-0.005em] text-spruce sm:text-[26px]">{APP.brand}</span>
+        <span className="mt-1 text-[9.5px] font-medium uppercase tracking-[0.2em] text-spruce-soft sm:text-[11px]">{APP.product}</span>
       </Link>
-      {note && (
-        <span className="text-[13px] text-spruce-soft" data-testid="step-note">
-          {note}
-        </span>
+      {APP.nav?.length ? (
+        <nav aria-label="Main" className="flex items-center gap-4 sm:gap-10">
+          {APP.nav.map((item) => (
+            <span
+              key={item.label}
+              aria-current={item.current ? 'page' : undefined}
+              className={`whitespace-nowrap border-b pb-1 text-[10.5px] font-medium uppercase tracking-[0.14em] sm:text-[12.5px] ${
+                item.current ? 'border-brass text-spruce' : 'border-transparent text-spruce-soft'
+              }`}
+            >
+              {item.label}
+            </span>
+          ))}
+        </nav>
+      ) : (
+        note && <StepNote note={note} />
       )}
     </div>
     {progress && (
-      <div className="mx-auto flex max-w-[1280px] gap-1 px-4 pb-2 sm:px-8" aria-hidden>
-        {Array.from({ length: progress.of }, (_, i) => (
-          <span key={i} className={`h-[3px] flex-1 rounded-full transition-colors duration-300 ${i <= progress.at ? 'bg-brass' : 'bg-line'}`} />
-        ))}
+      <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 pb-2.5 sm:px-8">
+        <div className="flex flex-1 gap-1" aria-hidden>
+          {Array.from({ length: progress.of }, (_, i) => (
+            <span key={i} className={`h-[3px] flex-1 rounded-full transition-colors duration-300 ${i <= progress.at ? 'bg-brass' : 'bg-line'}`} />
+          ))}
+        </div>
+        {note && APP.nav?.length ? <StepNote note={note} /> : null}
       </div>
     )}
   </header>
+);
+
+const StepNote: React.FC<{ note: string }> = ({ note }) => (
+  <span className="shrink-0 text-[12.5px] tabular-nums text-spruce-soft" data-testid="step-note">
+    {note}
+  </span>
 );
