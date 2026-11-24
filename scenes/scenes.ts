@@ -108,19 +108,34 @@ const GALLEY_THIN = [[[G(532, 715), G(550, 715), G(550, 730), G(532, 730)]], [[G
 // checked at 6×), mirrored about its centre (the left edge has almost no contrast), then the rim's
 // lower curve. A half-ellipse was up to 5 px narrow at the shoulders and a SAM cut ran up to 13 px
 // below the rim, so cream cabinet stayed round the shades on a new colour
-const shade = (cx: number, right: [number, number][], rimY: number, bottomY: number): PctPoint[] => {
+// The left edges too, traced: the shades aren't symmetric in the photo (each is up to 5 px off its
+// mirror at the shoulder, where the paint bit into the shade)
+const shade = (cx: number, right: [number, number][], left: [number, number][], rimY: number, bottomY: number): PctPoint[] => {
   const pts = right.map(([y, x]) => K(x, y));
-  const hw = right[right.length - 1][1] - cx;
+  const r = right[right.length - 1][1];
+  const l = left[left.length - 1][1];
   for (let k = 1; k < 16; k++) {
     const t = (Math.PI * k) / 16;
-    pts.push(K(cx + hw * Math.cos(t), rimY + (bottomY - rimY) * Math.sin(t)));
+    pts.push(K((r + l) / 2 + ((r - l) / 2) * Math.cos(t), rimY + (bottomY - rimY) * Math.sin(t)));
   }
-  for (const [y, x] of [...right].reverse()) pts.push(K(2 * cx - x, y));
+  for (const [y, x] of [...left].reverse()) pts.push(K(x, y));
   return pts;
 };
 const PENDANTS = [
-  shade(488.4, [[164.5, 504.5], [172, 520.5], [180, 530.5], [186, 536.5], [190, 539.5], [196, 543.5], [200, 545.5], [210, 549.5], [220, 551.5], [226, 552], [231.3, 553]], 231.3, 237.8),
-  shade(843.8, [[164.5, 861.5], [170, 876.5], [176, 887.5], [180, 890.5], [186, 892.5], [190, 895.5], [196, 898.5], [200, 900.5], [206, 903.5], [210, 904.5], [216, 906.5], [220, 906.5], [226, 907.5], [231.3, 908.5]], 231.3, 237.5),
+  shade(
+    488.4,
+    [[164.5, 504.5], [172, 520.5], [180, 530.5], [186, 536.5], [190, 539.5], [196, 543.5], [200, 545.5], [210, 549.5], [220, 551.5], [226, 552], [231.3, 553]],
+    [[164.5, 471], [166, 467.5], [172, 454.5], [180, 445], [186, 439.5], [196, 432.5], [206, 428.5], [220, 424.5], [231.3, 424]],
+    231.3,
+    237.8
+  ),
+  shade(
+    843.8,
+    [[164.5, 861.5], [170, 876.5], [176, 887.5], [180, 890.5], [186, 892.5], [190, 895.5], [196, 898.5], [200, 900.5], [206, 903.5], [210, 904.5], [216, 906.5], [220, 906.5], [226, 907.5], [231.3, 908.5]],
+    [[164.5, 827], [170, 814.5], [176, 805.5], [180, 800.5], [186, 795.5], [196, 789.5], [206, 782], [216, 780.5], [226, 779.5], [231.3, 779]],
+    231.3,
+    237.5
+  ),
 ];
 // The brass fittings above the shades and their cables, by colour against the cabinets round them
 // (brass and the dark cable stand 70+ off the cream; the cornice mouldings round them, 30–50, stay paint)
@@ -239,9 +254,10 @@ export const SCENES: Scene[] = [
             // pulled in to x 469 and left that face to nothing above the tiles and to the
             // splashback below
             { points: [K(467, 320), K(537.5, 320), K(537.5, 492), K(467, 492)], snap: false },
-            // The right pilaster: its lit side face reaches x 867 beside the wall cabinets, x 862.5
-            // beside the tiles (traced; snapped, it stopped at x 860)
-            { points: [K(795, 320), K(867.5, 320), K(867.5, 390), K(862.5, 390), K(862.5, 492), K(795, 492)], snap: false },
+            // The right pilaster: from its shaded left face (x 789.5, where the tile ends) to its lit
+            // side face, x 867 beside the wall cabinets, x 862.5 beside the tiles (traced; snapped,
+            // it stopped at x 860, and from x 795 a cream strip stayed between tile and paint)
+            { points: [K(789.5, 320), K(867.5, 320), K(867.5, 390), K(862.5, 390), K(862.5, 492), K(789.5, 492)], snap: false },
           ],
           protectShapes: PENDANTS,
           protectSoft: PENDANT_FITTINGS,
@@ -306,7 +322,7 @@ export const SCENES: Scene[] = [
             // As traced: it meets the tall unit, the wall cabinets and the canopy's pilaster on
             // traced lines, and snapping took the pilaster's side face
             { points: [K(177, 390), K(467, 390), K(467, 489), K(177, 489)], snap: false },
-            [K(538, 320), K(795, 320), K(795, 489), K(538, 489)],
+            { points: [K(538, 320), K(789.5, 320), K(789.5, 489), K(538, 489)], snap: false },
             [K(867, 390), K(1150, 390), K(1150, 489), K(867, 489)],
           ],
           subtract: [RANGE],
