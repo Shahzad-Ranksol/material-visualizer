@@ -84,7 +84,8 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // …and its lit end panel beside the right larder
   // The worktop runs into the range's sides (only the traced range is kept) and its front edge to
   // x 1192 at the right end; the range itself is not worktop
-  'kitchen/worktop': { include: [[550, 490], [778, 490], [1190, 498]], exclude: [[600, 480], [650, 510], [1190, 490]] },
+  // …and the island top's lit back edge (y 521–523) under the range and before the base cabinets
+  'kitchen/worktop': { include: [[550, 490], [778, 490], [1190, 498], [600, 522], [700, 522], [900, 522]], exclude: [[600, 480], [650, 510], [600, 519], [1190, 490]] },
   'kitchen/base-cabinets': { include: [[1187, 600], [1190, 650]], exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
   // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
   // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop

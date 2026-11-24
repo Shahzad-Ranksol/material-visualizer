@@ -16,7 +16,9 @@ const U = px(1600, 1136); // the client's modern U-shaped kitchen render
 const G = px(1600, 1280); // the client's galley kitchen render
 
 // The kitchen island: its oak top (seen from slightly above) and its painted body
-const ISLAND_TOP = [K(300, 524), K(1020, 524), K(1097, 548), K(1097, 560), K(231, 560), K(231, 548)];
+// (its back edge, the lit lip under the range and before the base cabinets, is at y 521: from y 524
+// a 3 px strip of the old oak ran the island's length behind a new top)
+const ISLAND_TOP = [K(300, 523.5), K(309, 521), K(1011, 521), K(1020, 523.5), K(1097, 548), K(1097, 560), K(231, 560), K(231, 548)];
 // Traced exactly, not snapped: snapping pulled the right side onto the strong edge at x 1085 and
 // left the 3 px highlight on the island's bevelled corner (x 1086–1088) out of the island, and in
 // the floor beside it
@@ -123,9 +125,9 @@ const PENDANTS = [
 // The brass fittings above the shades and their cables, by colour against the cabinets round them
 // (brass and the dark cable stand 70+ off the cream; the cornice mouldings round them, 30–50, stay paint)
 // The range cooker, traced: its raised hob back (x 557.5–772.5 from y 476.5), the hob's lip sloping out
-// between y 490 and 496, and the control panel (x 546.5–782.5) down past the island's top. A box
+// between y 490 and 496, and the control panel (x 546.5–782.5) down to the island top's back edge. A box
 // round it (x 547–782 from y 476) took the worktop either side of the hob back, left oak on a new top
-const RANGE = { points: [K(557.5, 476.5), K(772.5, 476.5), K(773, 490), K(781, 494), K(782.5, 497), K(782.5, 524), K(546.5, 524), K(546.5, 497), K(549, 494), K(555, 490)], snap: false };
+const RANGE = { points: [K(557.5, 476.5), K(772.5, 476.5), K(773, 490), K(781, 494), K(782.5, 497), K(782.5, 521), K(546.5, 521), K(546.5, 497), K(549, 494), K(555, 490)], snap: false };
 const PENDANT_FITTINGS = [488.4, 843.8].map((cx) => ({ region: [[K(cx - 18, 118), K(cx + 18, 118), K(cx + 18, 166), K(cx - 18, 166)]], local: 5, low: 36, high: 70 }));
 
 const C = px(1600, 1067); // sideboard photo
@@ -285,7 +287,7 @@ export const SCENES: Scene[] = [
             RANGE,
             { points: [K(130, 484), K(177, 484), K(177, 489.5), K(140, 490.8), K(130, 490.8)], snap: false },
             { points: [K(1188.5, 484), K(1200, 484), K(1200, 494.5), K(1188.5, 494.5)], snap: false },
-            { points: [K(1192.5, 494.5), K(1200, 494.5), K(1200, 503), K(1192.5, 503)], snap: false },
+            { points: [K(1191.5, 494.5), K(1200, 494.5), K(1200, 503), K(1191.5, 503)], snap: false },
           ],
           // The lemons in their bowl stand on it
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],

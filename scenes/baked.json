@@ -960,7 +960,7 @@
         "occluder": "/scenes/kitchen/base-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:04:39.309Z"
+        "bakedAt": "2026-11-24T18:39:47.759Z"
       },
       "island": {
         "parts": [
@@ -994,7 +994,7 @@
         "occluder": "/scenes/kitchen/island.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-11T18:27:49.564Z"
+        "bakedAt": "2026-11-24T18:39:48.548Z"
       },
       "worktop": {
         "parts": [
@@ -1034,7 +1034,7 @@
         "occluder": "/scenes/kitchen/worktop.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:11:47.568Z"
+        "bakedAt": "2026-11-24T18:39:52.678Z"
       },
       "splashback": {
         "parts": [
@@ -1068,7 +1068,7 @@
         "occluder": "/scenes/kitchen/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:04:45.157Z"
+        "bakedAt": "2026-11-24T18:39:53.498Z"
       },
       "floor": {
         "parts": [
@@ -1108,7 +1108,7 @@
         "occluder": null,
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-11T18:28:15.707Z"
+        "bakedAt": "2026-11-24T18:39:57.642Z"
       }
     }
   },
