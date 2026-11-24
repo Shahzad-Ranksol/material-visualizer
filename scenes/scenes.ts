@@ -22,7 +22,7 @@ const ISLAND_TOP = [K(300, 523.5), K(309, 521), K(1011, 521), K(1020, 523.5), K(
 // Traced exactly, not snapped: snapping pulled the right side onto the strong edge at x 1085 and
 // left the 3 px highlight on the island's bevelled corner (x 1086–1088) out of the island, and in
 // the floor beside it
-const ISLAND_BODY = [K(242.5, 560), K(1089, 560), K(1089, 838.5), K(242.5, 838.5)];
+const ISLAND_BODY = [K(242.5, 560), K(1089, 560), K(1089, 840), K(242.5, 840)];
 const ISLAND_SHAPE = { points: ISLAND_BODY, snap: false };
 // Its two feet stand 2 px lower than the plinth between them (to y 840, photo px)
 const ISLAND_FEET = [
@@ -143,6 +143,10 @@ const PENDANTS = [
 // between y 490 and 496, and the control panel (x 546.5–782.5) down to the island top's back edge. A box
 // round it (x 547–782 from y 476) took the worktop either side of the hob back, left oak on a new top
 const RANGE = { points: [K(557.5, 476.5), K(772.5, 476.5), K(773, 490), K(781, 494), K(782.5, 497), K(782.5, 521), K(546.5, 521), K(546.5, 497), K(549, 494), K(555, 490)], snap: false };
+// The larders' tops where the cornice returns round the corner, traced (the top edge drops from y 119
+// to y 129 over 20 px; flat at y 118.5 the paint ran up onto the wall there)
+const LEFT_LARDER_TOP = [K(148, 118.5), K(152, 120.5), K(156, 122.5), K(160, 124.5), K(164, 126.5), K(168, 128.5)];
+const RIGHT_LARDER_TOP = [K(1164, 129.5), K(1168, 128.5), K(1172, 125.5), K(1176, 124.5), K(1180, 122.5)];
 const PENDANT_FITTINGS = [488.4, 843.8].map((cx) => ({ region: [[K(cx - 18, 118), K(cx + 18, 118), K(cx + 18, 166), K(cx - 18, 166)]], local: 5, low: 36, high: 70 }));
 
 const C = px(1600, 1067); // sideboard photo
@@ -214,10 +218,10 @@ export const SCENES: Scene[] = [
             // Where they meet the wall cabinets they stay as traced, overlapping them a little:
             // snapped, both sides would pull back to different edges and leave a sliver. The top
             // is the cornice's lit lip (y 118.5): from y 121 it stayed a light line on a dark paint
-            { points: [K(0, 118.5), K(168, 118.5), K(168, 390), K(177, 390), K(177, 489.5), K(140, 490.8), K(140, 700), K(0, 700)], snap: false },
+            { points: [K(0, 118.5), ...LEFT_LARDER_TOP, K(168, 390), K(180, 390), K(180, 486.5), K(140, 494.5), K(140, 700), K(0, 700)], snap: false },
             // (and the right larder's white front edge beside the worktop's end)
             { points: [K(1188.5, 486), K(1192.5, 486), K(1192.5, 494.5), K(1188.5, 494.5)], snap: false },
-            { points: [K(1176, 118.5), K(1344, 118.5), K(1344, 700), K(1192, 700), K(1192, 489), K(1150, 489), K(1150, 390), K(1164, 390), K(1164, 118.5)], snap: false },
+            { points: [K(1184, 118.5), K(1344, 118.5), K(1344, 700), K(1192, 700), K(1192, 494.5), K(1188.5, 493.5), K(1150, 487.5), K(1150, 390), K(1164, 390), ...RIGHT_LARDER_TOP], snap: false },
           ],
           // The larders' knobs are the smallest in the scene. The search stops short of the worktop
           // ends beside them and of the floor (their knobs are at y 231 and 491): oak is warm and
@@ -253,7 +257,7 @@ export const SCENES: Scene[] = [
             // The left pilaster as traced, its shaded side face (x 467–468) included: snapped, it
             // pulled in to x 469 and left that face to nothing above the tiles and to the
             // splashback below
-            { points: [K(467, 320), K(537.5, 320), K(537.5, 492), K(467, 492)], snap: false },
+            { points: [K(467, 320), K(540, 320), K(540, 492), K(467, 492)], snap: false },
             // The right pilaster: from its shaded left face (x 789.5, where the tile ends) to its lit
             // side face, x 867 beside the wall cabinets, x 862.5 beside the tiles (traced; snapped,
             // it stopped at x 860, and from x 795 a cream strip stayed between tile and paint)
@@ -302,8 +306,8 @@ export const SCENES: Scene[] = [
           // edge, rows 495–501, runs on to x 1192.5)
           subtract: [
             RANGE,
-            { points: [K(130, 484), K(177, 484), K(177, 489.5), K(140, 490.8), K(130, 490.8)], snap: false },
-            { points: [K(1188.5, 484), K(1200, 484), K(1200, 494.5), K(1188.5, 494.5)], snap: false },
+            { points: [K(130, 484), K(180, 484), K(180, 486.5), K(140, 494.5), K(130, 494.5)], snap: false },
+            { points: [K(1150, 484), K(1200, 484), K(1200, 494.5), K(1188.5, 494.5), K(1188.5, 493.5), K(1150, 487.5)], snap: false },
             { points: [K(1191.5, 494.5), K(1200, 494.5), K(1200, 503), K(1191.5, 503)], snap: false },
           ],
           // The lemons in their bowl stand on it
@@ -321,8 +325,8 @@ export const SCENES: Scene[] = [
           outline: [
             // As traced: it meets the tall unit, the wall cabinets and the canopy's pilaster on
             // traced lines, and snapping took the pilaster's side face
-            { points: [K(177, 390), K(467, 390), K(467, 489), K(177, 489)], snap: false },
-            { points: [K(538, 320), K(789.5, 320), K(789.5, 489), K(538, 489)], snap: false },
+            { points: [K(180, 390), K(467, 390), K(467, 489), K(180, 489)], snap: false },
+            { points: [K(540, 320), K(789.5, 320), K(789.5, 489), K(540, 489)], snap: false },
             [K(867, 390), K(1150, 390), K(1150, 489), K(867, 489)],
           ],
           subtract: [RANGE],

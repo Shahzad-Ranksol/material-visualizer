@@ -869,19 +869,19 @@
                 "corners": [
                   {
                     "xPct": 0.3125,
-                    "yPct": 13.270142180094787
+                    "yPct": 13.744075829383887
                   },
                   {
                     "xPct": 99.6875,
-                    "yPct": 13.270142180094787
+                    "yPct": 13.744075829383887
                   },
                   {
                     "xPct": 99.6875,
-                    "yPct": 79.14691943127961
+                    "yPct": 78.19905213270142
                   },
                   {
                     "xPct": 0.3125,
-                    "yPct": 79.14691943127961
+                    "yPct": 78.19905213270142
                   }
                 ],
                 "heightMm": 2700
@@ -892,7 +892,7 @@
         "occluder": "/scenes/kitchen/tall-units.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:56:30.255Z"
+        "bakedAt": "2026-11-24T19:31:58.967Z"
       },
       "canopy": {
         "parts": [
@@ -926,7 +926,7 @@
         "occluder": "/scenes/kitchen/canopy.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T19:08:02.245Z"
+        "bakedAt": "2026-11-24T19:32:20.005Z"
       },
       "base-cabinets": {
         "parts": [
@@ -960,7 +960,7 @@
         "occluder": "/scenes/kitchen/base-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:39:47.759Z"
+        "bakedAt": "2026-11-24T19:33:04.081Z"
       },
       "island": {
         "parts": [
@@ -994,7 +994,7 @@
         "occluder": "/scenes/kitchen/island.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:39:48.548Z"
+        "bakedAt": "2026-11-24T19:33:04.824Z"
       },
       "worktop": {
         "parts": [
@@ -1034,7 +1034,7 @@
         "occluder": "/scenes/kitchen/worktop.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:39:52.678Z"
+        "bakedAt": "2026-11-24T19:33:09.172Z"
       },
       "splashback": {
         "parts": [
@@ -1044,7 +1044,7 @@
               "homographyFallback": {
                 "corners": [
                   {
-                    "xPct": 13.750000000000002,
+                    "xPct": 14.0625,
                     "yPct": 43.127962085308056
                   },
                   {
@@ -1056,7 +1056,7 @@
                     "yPct": 54.502369668246445
                   },
                   {
-                    "xPct": 13.750000000000002,
+                    "xPct": 14.0625,
                     "yPct": 54.502369668246445
                   }
                 ],
@@ -1068,7 +1068,7 @@
         "occluder": "/scenes/kitchen/splashback.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T19:10:46.421Z"
+        "bakedAt": "2026-11-24T19:33:10.036Z"
       },
       "floor": {
         "parts": [
@@ -1108,7 +1108,7 @@
         "occluder": null,
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T18:39:57.642Z"
+        "bakedAt": "2026-11-24T19:33:14.342Z"
       }
     }
   },
