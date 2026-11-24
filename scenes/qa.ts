@@ -73,7 +73,7 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // brass knobs are not
   'kitchen/island': { include: [[1050, 815], [1052, 825], [1048, 835], [1055, 805], [1087, 650], [1087, 810], [383, 591], [250, 839], [1070, 839]], exclude: [[391, 590], [413, 590], [653, 590], [916, 590]] },
   // …and the cornice's lit top lip, and the white edges at the worktop's two ends
-  'kitchen/tall-units': { include: [[60, 119], [1250, 119], [160, 489], [1190, 495], [1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
+  'kitchen/tall-units': { include: [[60, 119], [1250, 119], [160, 489], [1190, 492], [1153, 395], [1155, 405], [1152, 485], [118, 678], [125, 680], [122, 690], [131, 696], [137, 696]], exclude: [[51, 231], [65, 231], [1264, 232], [1279, 232], [51, 491]] },
   // The top lip; round the pendants' shades only the shades and fittings are kept (no cream rim)
   'kitchen/wall-cabinets': { include: [[440, 145], [450, 145], [300, 129], [445, 240], [912, 200]], exclude: [[233, 372], [393, 372], [1083, 372], [1097, 372], [936, 372]] },
   // …and the mantel's lit ends and the right pilaster's side face, beside the wall cabinets and the tiles
@@ -82,6 +82,9 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // The island's bevelled corner is the island's, not the floor's
   'kitchen/floor': { include: [[1092, 810], [600, 860]], exclude: [[1087, 810], [1087, 760], [250, 839], [1070, 839]] },
   // …and its lit end panel beside the right larder
+  // The worktop runs into the range's sides (only the traced range is kept) and its front edge to
+  // x 1192 at the right end; the range itself is not worktop
+  'kitchen/worktop': { include: [[550, 490], [778, 490], [1190, 498]], exclude: [[600, 480], [650, 510], [1190, 490]] },
   'kitchen/base-cabinets': { include: [[1187, 600], [1190, 650]], exclude: [[188, 571], [188, 635], [265, 523], [1139, 524], [1141, 635], [1065, 523]] },
   // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
   // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop

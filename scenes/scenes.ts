@@ -122,6 +122,10 @@ const PENDANTS = [
 ];
 // The brass fittings above the shades and their cables, by colour against the cabinets round them
 // (brass and the dark cable stand 70+ off the cream; the cornice mouldings round them, 30–50, stay paint)
+// The range cooker, traced: its raised hob back (x 557.5–772.5 from y 476.5), the hob's lip sloping out
+// between y 490 and 496, and the control panel (x 546.5–782.5) down past the island's top. A box
+// round it (x 547–782 from y 476) took the worktop either side of the hob back, left oak on a new top
+const RANGE = { points: [K(557.5, 476.5), K(772.5, 476.5), K(773, 490), K(781, 494), K(782.5, 497), K(782.5, 524), K(546.5, 524), K(546.5, 497), K(549, 494), K(555, 490)], snap: false };
 const PENDANT_FITTINGS = [488.4, 843.8].map((cx) => ({ region: [[K(cx - 18, 118), K(cx + 18, 118), K(cx + 18, 166), K(cx - 18, 166)]], local: 5, low: 36, high: 70 }));
 
 const C = px(1600, 1067); // sideboard photo
@@ -195,7 +199,7 @@ export const SCENES: Scene[] = [
             // is the cornice's lit lip (y 118.5): from y 121 it stayed a light line on a dark paint
             { points: [K(0, 118.5), K(168, 118.5), K(168, 390), K(177, 390), K(177, 489.5), K(140, 490.8), K(140, 700), K(0, 700)], snap: false },
             // (and the right larder's white front edge beside the worktop's end)
-            { points: [K(1188.5, 486), K(1192.5, 486), K(1192.5, 503), K(1188.5, 503)], snap: false },
+            { points: [K(1188.5, 486), K(1192.5, 486), K(1192.5, 494.5), K(1188.5, 494.5)], snap: false },
             { points: [K(1176, 118.5), K(1344, 118.5), K(1344, 700), K(1192, 700), K(1192, 489), K(1150, 489), K(1150, 390), K(1164, 390), K(1164, 118.5)], snap: false },
           ],
           // The larders' knobs are the smallest in the scene. The search stops short of the worktop
@@ -252,7 +256,7 @@ export const SCENES: Scene[] = [
           // outline stopped short of it
           outline: [{ points: [K(139.5, 502), K(1192, 502), K(1192, 700), K(139.5, 700)], snap: false }],
           // The range cooker, and the island in front
-          subtract: [ISLAND_TOP, ISLAND_SHAPE, [K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
+          subtract: [ISLAND_TOP, ISLAND_SHAPE, RANGE],
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
           protectColour: [brass([[K(140, 502), K(1190, 502), K(1190, 700), K(140, 700)]])],
         },
@@ -272,12 +276,16 @@ export const SCENES: Scene[] = [
         recipe: {
           label: 'countertop',
           anchors: [p(0.5, 0.6)],
-          outline: [ISLAND_TOP, [K(137, 489), K(547, 489), K(547, 502), K(137, 502)], [K(782, 489), K(1192, 489), K(1192, 502), K(782, 502)]],
+          // (each run's top into the range's side, where the traced range is taken off)
+          outline: [ISLAND_TOP, [K(137, 489), K(547, 489), K(547, 502), K(137, 502)], { points: [K(540, 489), K(562, 489), K(562, 502), K(540, 502)], snap: false }, [K(782, 489), K(1192, 489), K(1192, 502), K(782, 502)], { points: [K(768, 489), K(790, 489), K(790, 502), K(768, 502)], snap: false }],
           // The larders' white edges at its two ends: the bottom of the left one's side panel behind
-          // its back edge, the right one's front edge past its end (oak ends at x 1188.5)
+          // its back edge, the right one's front edge past its top's end (x 1188.5; its own front
+          // edge, rows 495–501, runs on to x 1192.5)
           subtract: [
+            RANGE,
             { points: [K(130, 484), K(177, 484), K(177, 489.5), K(140, 490.8), K(130, 490.8)], snap: false },
-            { points: [K(1188.5, 484), K(1200, 484), K(1200, 503), K(1188.5, 503)], snap: false },
+            { points: [K(1188.5, 484), K(1200, 484), K(1200, 494.5), K(1188.5, 494.5)], snap: false },
+            { points: [K(1192.5, 494.5), K(1200, 494.5), K(1200, 503), K(1192.5, 503)], snap: false },
           ],
           // The lemons in their bowl stand on it
           protect: [K(400, 515), K(380, 512), K(425, 512), K(400, 527)],
@@ -298,7 +306,7 @@ export const SCENES: Scene[] = [
             [K(538, 320), K(795, 320), K(795, 489), K(538, 489)],
             [K(867, 390), K(1150, 390), K(1150, 489), K(867, 489)],
           ],
-          subtract: [[K(547, 476), K(782, 476), K(782, 524), K(547, 524)]],
+          subtract: [RANGE],
           // The pan on the range
           protect: [K(617, 462)],
         },

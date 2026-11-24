@@ -158,13 +158,16 @@ const bakeOutline = async (scene: Scene, item: SceneItem, options: JobOptions): 
     const m = colourMask(rgba, w, h, region, range);
     objects.push(alphaMaskToCanvas(range.trim !== undefined ? m : dilateDisc(m, 1)));
   }
-  // Exact shapes of objects in front (a pendant's dome), drawn as given
+  // Exact shapes of objects in front (a pendant's shade, a knob), drawn as given with a soft edge:
+  // the photo's own edge pixels are half object, half surface, and kept whole they left a hard,
+  // stepped light rim round a shade on a dark paint
   if (recipe.protectShapes?.length) {
     const c = document.createElement('canvas');
     c.width = w;
     c.height = h;
     const sctx = c.getContext('2d')!;
     sctx.fillStyle = '#fff';
+    sctx.filter = 'blur(0.6px)';
     for (const poly of recipe.protectShapes) {
       pathOf(sctx, toPx(poly, w, h));
       sctx.fill();
