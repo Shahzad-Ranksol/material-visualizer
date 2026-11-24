@@ -217,7 +217,8 @@ export const SCENES: Scene[] = [
               8
             ),
           ],
-          protectShapes: [knob(1264.4, 231.3), knob(1279.4, 231.6), knob(1265.3, 490), knob(1280.9, 490.3)],
+          // (measured: each brass knob ~8 × 7 px; a 10 × 9 px shape left a ring of the old cream round it)
+          protectShapes: [knob(1265.3, 231.4, 3.7, 3.3), knob(1280.5, 231.8, 3.7, 3.3), knob(1265.1, 491.4, 3.7, 3.3), knob(1280.6, 491.4, 3.7, 3.3)],
         },
       },
       {

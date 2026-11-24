@@ -54,17 +54,21 @@ export interface LightRefine {
 // A gap between oak fronts is a dark slot or a lit edge a few px wide, 8%+ off the wood around it
 // (log luminance); the grain beside it mostly stays under that
 const FRONT_LINES = { sigma: 2.5, threshold: 0.08, strength: 1.5 };
+// The Classic kitchen's shaker frames: finer bevels on paler paint, so fainter lines, carried harder
+const SHAKER_LINES = { sigma: 2, threshold: 0.05, strength: 2.2 };
 
 // Per scene, per item
 export const LIGHT_REFINE: Record<string, Record<string, LightRefine>> = {
   // The Classic kitchen's painted fronts, one light level and colour (its paints are fitted
   // against this light: npm run finishes:fromref after a change)
   kitchen: {
-    'wall-cabinets': { sigma: 0, match: 'fronts' },
-    'tall-units': { sigma: 0, match: 'fronts' },
-    canopy: { sigma: 0, match: 'fronts' },
-    'base-cabinets': { sigma: 0, match: 'fronts' },
-    island: { sigma: 0, match: 'fronts' },
+    // …and, as on the Galley's fronts, the shaker frames' bevels and the gaps between doors carried
+    // into the light (on a dark paint they had faded to almost nothing, the doors read flat)
+    'wall-cabinets': { sigma: 0, match: 'fronts', lines: SHAKER_LINES },
+    'tall-units': { sigma: 0, match: 'fronts', lines: SHAKER_LINES },
+    canopy: { sigma: 0, match: 'fronts', lines: SHAKER_LINES },
+    'base-cabinets': { sigma: 0, match: 'fronts', lines: SHAKER_LINES },
+    island: { sigma: 0, match: 'fronts', lines: SHAKER_LINES },
   },
   // The Modern kitchen: the LED strip under the plinths glowing on the floor, the sun from the
   // window on the right-hand worktop and the plant's shadows on the wall by it
