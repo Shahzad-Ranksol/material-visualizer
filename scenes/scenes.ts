@@ -104,39 +104,23 @@ const GALLEY_SINK = [G(988, 750), G(1050, 750), G(1059, 758), G(1003, 758)];
 // The toaster's wire handle and the twig in the vase on the splashback, kept by colour (softProtect)
 const GALLEY_THIN = [[[G(532, 715), G(550, 715), G(550, 730), G(532, 730)]], [[G(683, 702), G(693, 675), G(703, 675), G(694, 702)]]];
 
-// Each shade traced: its right edge row by row (the photo's brightness step against the cabinets,
-// checked at 6×), mirrored about its centre (the left edge has almost no contrast), then the rim's
-// lower curve. A half-ellipse was up to 5 px narrow at the shoulders and a SAM cut ran up to 13 px
-// below the rim, so cream cabinet stayed round the shades on a new colour
-// The left edges too, traced: the shades aren't symmetric in the photo (each is up to 5 px off its
-// mirror at the shoulder, where the paint bit into the shade)
-const shade = (cx: number, right: [number, number][], left: [number, number][], rimY: number, bottomY: number): PctPoint[] => {
-  const pts = right.map(([y, x]) => K(x, y));
-  const r = right[right.length - 1][1];
-  const l = left[left.length - 1][1];
-  for (let k = 1; k < 16; k++) {
+// The two shades are one lamp: an ellipse fitted to the clean rows of both shades' bright right
+// edges (75 rows, 0.5 px rms) — centre y 232.3, half-width 63.7, half-height 69.9 — at each shade's
+// centre (rims measured x 424–553 and 779–908.5), sampled every row, then the rim's lower curve. Hand
+// traces of the faint left edges were up to 7 px off at the shoulders, where the paint bit in
+const shade = (cx: number, bottomY: number): PctPoint[] => {
+  const [yc, a, b] = [232.3, 63.7, 69.9];
+  const hw = (y: number) => a * Math.sqrt(Math.max(0, 1 - ((yc - y) / b) ** 2));
+  const pts: PctPoint[] = [];
+  for (let y = 164; y <= yc; y++) pts.push(K(cx + hw(y), y));
+  for (let k = 0; k <= 16; k++) {
     const t = (Math.PI * k) / 16;
-    pts.push(K((r + l) / 2 + ((r - l) / 2) * Math.cos(t), rimY + (bottomY - rimY) * Math.sin(t)));
+    pts.push(K(cx + a * Math.cos(t), yc + (bottomY - yc) * Math.sin(t)));
   }
-  for (const [y, x] of [...left].reverse()) pts.push(K(x, y));
+  for (let y = Math.floor(yc); y >= 164; y--) pts.push(K(cx - hw(y), y));
   return pts;
 };
-const PENDANTS = [
-  shade(
-    488.4,
-    [[164.5, 504.5], [172, 520.5], [180, 530.5], [186, 536.5], [190, 539.5], [196, 543.5], [200, 545.5], [210, 549.5], [220, 551.5], [226, 552], [231.3, 553]],
-    [[164.5, 471], [166, 467.5], [172, 454.5], [180, 445], [186, 439.5], [196, 432.5], [206, 428.5], [220, 424.5], [231.3, 424]],
-    231.3,
-    237.8
-  ),
-  shade(
-    843.8,
-    [[164.5, 861.5], [170, 876.5], [176, 887.5], [180, 890.5], [186, 892.5], [190, 895.5], [196, 898.5], [200, 900.5], [206, 903.5], [210, 904.5], [216, 906.5], [220, 906.5], [226, 907.5], [231.3, 908.5]],
-    [[164.5, 827], [170, 814.5], [176, 805.5], [180, 800.5], [186, 795.5], [196, 789.5], [206, 782], [216, 780.5], [226, 779.5], [231.3, 779]],
-    231.3,
-    237.5
-  ),
-];
+const PENDANTS = [shade(488.4, 237.8), shade(843.8, 237.5)];
 // The brass fittings above the shades and their cables, by colour against the cabinets round them
 // (brass and the dark cable stand 70+ off the cream; the cornice mouldings round them, 30–50, stay paint)
 // The range cooker, traced: its raised hob back (x 557.5–772.5 from y 476.5), the hob's lip sloping out

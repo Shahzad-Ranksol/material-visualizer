@@ -858,7 +858,7 @@
         "occluder": "/scenes/kitchen/wall-cabinets.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T19:07:44.029Z"
+        "bakedAt": "2026-11-24T19:48:20.451Z"
       },
       "tall-units": {
         "parts": [
@@ -926,7 +926,7 @@
         "occluder": "/scenes/kitchen/canopy.occluder.png",
         "confidence": 1,
         "edited": false,
-        "bakedAt": "2026-11-24T19:32:20.005Z"
+        "bakedAt": "2026-11-24T19:48:38.713Z"
       },
       "base-cabinets": {
         "parts": [
