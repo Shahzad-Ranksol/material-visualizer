@@ -26,9 +26,7 @@ export const BrandBar: React.FC<Props> = ({ note, progress }) => (
             <span
               key={item.label}
               aria-current={item.current ? 'page' : undefined}
-              className={`whitespace-nowrap border-b pb-1 text-[10.5px] font-medium uppercase tracking-[0.14em] sm:text-[12.5px] ${
-                item.current ? 'border-brass text-spruce' : 'border-transparent text-spruce-soft'
-              }`}
+              className={`whitespace-nowrap text-[10.5px] font-medium uppercase tracking-[0.14em] sm:text-[12.5px] ${item.current ? 'text-spruce' : 'text-spruce-soft'}`}
             >
               {item.label}
             </span>

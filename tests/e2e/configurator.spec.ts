@@ -113,14 +113,15 @@ test.describe('kitchen', () => {
     await page.reload();
     await expect(page.getByTestId('design-summary')).toContainText('Bianco Quartz');
 
-    // Back goes back a step; a tap on the picture jumps to the step that changes that item
+    // Back goes back a step; a tap on the picture stays on the step (no jumping to another)
     await page.getByTestId('back').click();
     await expect(page.getByTestId('step-note')).toHaveText('Step 4 of 5');
     await page.waitForTimeout(500); // item masks load for hit-testing
     const box = (await page.getByTestId('scene-canvas').boundingBox())!;
-    // The island: its first step is the door style
+    // The island, whose first step is the door style
     await page.getByTestId('scene-canvas').click({ position: { x: box.width * 0.55, y: box.height * 0.85 } });
-    await expect(page.getByTestId('step-note')).toHaveText('Step 2 of 5');
+    await page.waitForTimeout(300);
+    await expect(page.getByTestId('step-note')).toHaveText('Step 4 of 5');
 
     expect(requests.filter((u) => u.includes('/models/'))).toEqual([]);
   });

@@ -17,7 +17,7 @@ import { BrandBar } from './BrandBar';
 import { FinishChoices } from './FinishChoices';
 import { StyleChoices } from './StyleChoices';
 import { SummaryStep } from './SummaryStep';
-import { lookLabel, stepMaterial, stepOfItem, wizardSteps } from './wizard';
+import { lookLabel, stepMaterial, wizardSteps } from './wizard';
 
 // No outline is ever drawn over the picture (the client found borders on it unprofessional)
 const NO_OUTLINE: string[] = [];
@@ -107,7 +107,7 @@ const Wizard: React.FC = () => {
 
       <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-12 lg:pt-4">
         {/* The picture: pinned under the header on phones, sticky on the left on wide screens */}
-        <div className="sticky top-[76px] z-20 -mx-4 self-start bg-paper px-4 pb-2 sm:mx-0 sm:px-0 lg:top-24">
+        <div className="sticky top-[76px] z-20 -mx-4 self-start bg-paper px-4 pb-2 sm:mx-0 sm:px-0 lg:top-24 lg:pb-0">
           {/* One frame for every step and layout: the widest render fills it, narrower ones sit centred in it */}
           <div data-testid="picture-frame" className="flex justify-center" style={{ aspectRatio: FRAME_ASPECT }}>
           <div
@@ -123,10 +123,6 @@ const Wizard: React.FC = () => {
               compare={compare}
               paint={paint}
               sweep={sweep && baked ? { ...sweep, width: baked.width, height: baked.height } : null}
-              onSelect={(id) => {
-                const to = id ? stepOfItem(steps, id) : -1;
-                if (to >= 0 && to !== index) go(to);
-              }}
             />
             {!compare && (
               <span data-testid="look-chip" className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
@@ -151,7 +147,10 @@ const Wizard: React.FC = () => {
           {scene.source === 'unsplash' && <p className="mt-1.5 hidden text-[11px] text-spruce-soft/80 lg:block">Photo by {scene.credit.replace(/ \(.*\)$/, '')} on Unsplash</p>}
         </div>
 
-        <div ref={panel} className="scroll-mt-[60vh] lg:flex lg:max-h-[calc(100vh/var(--app-zoom,1)_-_7rem)] lg:flex-col lg:self-start lg:rounded-2xl lg:border lg:border-line lg:bg-white/60 lg:sticky lg:top-24">
+        {/* Wide screens: the step card is exactly as tall as the picture beside it (the grid row is the
+            picture's height; the card is laid over that cell) and its choices scroll inside it */}
+        <div className="lg:relative">
+        <div ref={panel} className="scroll-mt-[60vh] lg:absolute lg:inset-0 lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-line lg:bg-white/60">
           <div key={step.id} className="motion-safe:animate-[pop-in_220ms_ease-out] lg:flex-1 lg:overflow-y-auto lg:p-6">
             <h1 className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px]">{step.title}</h1>
             <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">{step.hint}</p>
@@ -265,6 +264,7 @@ const Wizard: React.FC = () => {
               )}
             </div>
           </nav>
+        </div>
         </div>
       </main>
     </div>
