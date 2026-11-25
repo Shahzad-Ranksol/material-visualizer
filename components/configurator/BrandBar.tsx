@@ -7,13 +7,15 @@ interface Props {
   note?: string;
   // Progress through the steps, drawn as segments under the bar
   progress?: { at: number; of: number };
+  // No progress yet (the front page), but keep its row's room so the content lines up with the steps'
+  reserveProgress?: boolean;
 }
 
 /**
  * The app's header, the same in every app: its wordmark (the brand in the display serif over its
  * product line in spaced capitals), the menu on the right, and on a step the progress under it.
  */
-export const BrandBar: React.FC<Props> = ({ note, progress }) => (
+export const BrandBar: React.FC<Props> = ({ note, progress, reserveProgress }) => (
   <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
     <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 pb-3 pt-4 sm:px-8 sm:pt-6">
       <Link to="/" className="flex flex-col leading-none" aria-label={`${APP.brand} ${APP.product}, home`} data-testid="brand">
@@ -36,6 +38,13 @@ export const BrandBar: React.FC<Props> = ({ note, progress }) => (
         note && <StepNote note={note} />
       )}
     </div>
+    {/* The front page keeps the progress row's room, empty, so its picture sits where the steps' does */}
+    {reserveProgress && !progress && (
+      <div aria-hidden className="invisible mx-auto hidden max-w-[1280px] items-center gap-3 px-4 pb-2.5 sm:px-8 lg:flex">
+        <span className="h-[3px] flex-1" />
+        {APP.nav?.length ? <span className="shrink-0 text-[12.5px] tabular-nums">Step</span> : null}
+      </div>
+    )}
     {progress && (
       <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 pb-2.5 sm:px-8">
         <div className="flex flex-1 gap-1" aria-hidden>

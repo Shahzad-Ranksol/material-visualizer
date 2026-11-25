@@ -4,9 +4,11 @@ import { ArrowRight } from 'lucide-react';
 import { APP } from '../../apps';
 import { APP_SCENES } from '../../scenes/appScenes';
 import { BrandBar } from './BrandBar';
+import { PictureFrame, sceneAspect } from './PictureFrame';
 
 /**
- * The front page: the room on the left, the headline and the way in on the right. With several
+ * The front page, laid out exactly as the steps are (the same grid, the picture in the same frame,
+ * a card as tall as it): the room on the left, the headline and the way in on the right. With several
  * layouts (the kitchens) the customer picks one here, the photo following, and starts on it; with
  * one (fencing) a short blurb and the button. With no scene ready yet (the bathroom before its
  * render arrives) it says so instead.
@@ -20,34 +22,35 @@ export const Intro: React.FC = () => {
 
   return (
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
-      <BrandBar />
-      <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-5 lg:pt-6">
-        <h1 className="font-serif text-[34px] leading-[1.06] tracking-[-0.01em] text-spruce sm:text-[44px] lg:col-start-2 lg:row-start-1 lg:whitespace-nowrap lg:text-[30px] xl:text-[36px]">
-          {APP.hero.title}
-        </h1>
-
-        <div className="relative overflow-hidden rounded-2xl bg-mist shadow-[0_30px_60px_-36px_rgba(30,43,41,0.6)] ring-1 ring-black/5 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:min-h-[560px]">
+      <BrandBar reserveProgress />
+      {/* The steps' grid exactly: the picture in the same frame on the left, a card as tall as it on the right */}
+      <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
+        <div className="self-start">
           {scene ? (
-            <img key={scene.id} src={scene.photo} alt={`${scene.title}: ${scene.tagline}`} className="block aspect-[4/3] w-full object-cover motion-safe:animate-[pop-in_260ms_ease-out] lg:absolute lg:inset-0 lg:aspect-auto lg:h-full" />
+            <PictureFrame aspect={sceneAspect(scene.id)}>
+              <img key={scene.id} src={scene.photo} alt={`${scene.title}: ${scene.tagline}`} className="block h-full w-full object-cover motion-safe:animate-[pop-in_260ms_ease-out]" />
+              <span className="absolute left-3 top-3 max-w-[85%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+                {scene.tagline}
+              </span>
+            </PictureFrame>
           ) : (
-            <div className="grid aspect-[4/3] w-full place-items-center text-sm text-spruce-soft">Preview coming soon</div>
-          )}
-          {scene && (
-            <span className="absolute left-3 top-3 max-w-[85%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)] sm:left-4 sm:top-4">
-              {scene.tagline}
-            </span>
+            <div className="grid aspect-[3/2] w-full place-items-center rounded-2xl bg-mist text-sm text-spruce-soft ring-1 ring-black/5">Preview coming soon</div>
           )}
         </div>
 
-        <div className="lg:col-start-2 lg:row-start-2">
+        <div className="lg:relative">
           {several && scene ? (
-            <section className="overflow-hidden rounded-2xl border border-line bg-white/70" aria-labelledby="layout-title">
-              <div className="p-5 sm:p-6">
-                <h2 id="layout-title" className="font-serif text-[26px] leading-tight text-spruce sm:text-[30px]">
-                  Choose your layout
-                </h2>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-spruce-soft">Pick the one closest to yours. We measure properly on the visit.</p>
-                <div className="mt-5 grid grid-cols-2 gap-3" role="radiogroup" aria-label="Layout">
+            <section
+              className="overflow-hidden rounded-2xl border border-line bg-white/70 lg:absolute lg:inset-0 lg:flex lg:flex-col"
+              aria-labelledby="hero-title"
+            >
+              <div className="p-5 sm:p-6 lg:flex-1 lg:overflow-y-auto">
+                <h1 id="hero-title" className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px] lg:whitespace-nowrap lg:text-[28px]">
+                  {APP.hero.title}
+                </h1>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">Pick the layout closest to yours. We measure properly on the visit.</p>
+                <h2 className="mb-2.5 mt-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Choose your layout</h2>
+                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 lg:gap-2" role="radiogroup" aria-label="Layout">
                   {APP_SCENES.map((s) => (
                     <button
                       key={s.id}
@@ -56,23 +59,24 @@ export const Intro: React.FC = () => {
                       aria-checked={s.id === scene.id}
                       data-testid={`layout-${s.id}`}
                       onClick={() => setSceneId(s.id)}
-                      className={`rounded-xl border bg-white p-2 text-left transition ${
+                      className={`rounded-xl border bg-white p-2 text-left transition lg:p-1.5 ${
                         s.id === scene.id ? 'border-spruce shadow-[0_8px_20px_-14px_rgba(30,43,41,0.7)]' : 'border-line hover:border-spruce/40'
                       }`}
                     >
                       <img src={s.thumbnail} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
-                      <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold leading-snug">{s.title}</span>
+                      <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold leading-snug lg:px-0.5 lg:text-[13px]">{s.title}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="border-t border-line bg-paper/60 p-4 sm:px-6">
+              <div className="border-t border-line bg-paper/60 p-4 sm:px-6 lg:pb-5">
                 <StartButton to={start} label={APP.hero.cta} />
               </div>
             </section>
           ) : (
             <>
-              <p className="max-w-md text-[16px] leading-relaxed text-spruce-soft">{APP.hero.blurb}</p>
+              <h1 className="font-serif text-[34px] leading-[1.06] tracking-[-0.01em] text-spruce sm:text-[44px] lg:text-[32px]">{APP.hero.title}</h1>
+              <p className="mt-4 max-w-md text-[16px] leading-relaxed text-spruce-soft">{APP.hero.blurb}</p>
               <ul className="mt-5 flex flex-wrap gap-2">
                 {APP.hero.badges.map((b) => (
                   <li key={b} className="rounded-full border border-line bg-white px-3 py-1 text-[13px] text-spruce-soft">
