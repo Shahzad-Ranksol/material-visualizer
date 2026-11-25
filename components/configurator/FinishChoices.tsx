@@ -32,7 +32,7 @@ export const FinishChoices: React.FC<Props> = (props) => {
 };
 
 const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
-  <div className="grid grid-cols-4 gap-x-2.5 gap-y-3 sm:grid-cols-4">
+  <div className="grid grid-cols-3 gap-x-2.5 gap-y-3 sm:grid-cols-4">
     {materials.map((m) => {
       const active = m.id === activeId;
       return (

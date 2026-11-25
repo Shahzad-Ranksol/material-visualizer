@@ -17,7 +17,7 @@ import { BrandBar } from './BrandBar';
 import { PictureFrame, sceneAspect } from './PictureFrame';
 import { FinishChoices } from './FinishChoices';
 import { StyleChoices } from './StyleChoices';
-import { SummaryStep } from './SummaryStep';
+import { quoteHref, SummaryStep } from './SummaryStep';
 import { lookLabel, stepMaterial, wizardSteps } from './wizard';
 
 // No outline is ever drawn over the picture (the client found borders on it unprofessional)
@@ -96,7 +96,6 @@ const Wizard: React.FC = () => {
   };
 
   const look = lookLabel(steps, state.styles, state.assignments);
-  const designSteps = steps.filter((s) => s.kind === 'design').length;
 
   return (
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
@@ -118,7 +117,7 @@ const Wizard: React.FC = () => {
               sweep={sweep && baked ? { ...sweep, width: baked.width, height: baked.height } : null}
             />
             {!compare && (
-              <span data-testid="look-chip" className="pointer-events-none absolute left-3 top-3 max-w-[70%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+              <span data-testid="look-chip" className="pointer-events-none absolute left-2.5 top-2.5 max-w-[62%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:left-3 sm:top-3 sm:max-w-[70%] sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
                 {look || `${scene.title} · as shown`}
               </span>
             )}
@@ -128,7 +127,7 @@ const Wizard: React.FC = () => {
               onClick={() => setCompare((c) => !c)}
               disabled={!renderUrl}
               aria-pressed={compare}
-              className={`absolute bottom-3 right-3 rounded-full px-3.5 py-2 text-[13px] font-medium shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
+              className={`absolute bottom-2.5 right-2.5 rounded-full px-3 py-1.5 text-[12px] font-medium sm:bottom-3 sm:right-3 sm:px-3.5 sm:py-2 sm:text-[13px] shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
                 compare ? 'bg-spruce text-paper' : 'bg-paper/95 text-spruce hover:bg-paper'
               }`}
             >
@@ -139,10 +138,11 @@ const Wizard: React.FC = () => {
           {scene.source === 'unsplash' && <p className="mt-1.5 hidden text-[11px] text-spruce-soft/80 lg:block">Photo by {scene.credit.replace(/ \(.*\)$/, '')} on Unsplash</p>}
         </div>
 
-        {/* Wide screens: the step card is exactly as tall as the picture beside it (the grid row is the
-            picture's height; the card is laid over that cell) and its choices scroll inside it */}
-        <div className="lg:relative">
-        <div ref={panel} className="scroll-mt-[60vh] lg:absolute lg:inset-0 lg:flex lg:flex-col lg:rounded-2xl lg:border lg:border-line lg:bg-white/60">
+        {/* Wide screens (xl): the step card is exactly as tall as the picture beside it (the grid row is
+            the picture's height; the card is laid over that cell) and its choices scroll inside it.
+            Between lg and xl the picture is too short for that, so the card keeps its own height */}
+        <div className="xl:relative">
+        <div ref={panel} className="scroll-mt-[60vh] lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100vh/var(--app-zoom,1)_-_7rem)] lg:flex-col lg:rounded-2xl lg:border lg:border-line lg:bg-white/60 xl:absolute xl:inset-0 xl:max-h-none">
           <div key={step.id} className="motion-safe:animate-[pop-in_220ms_ease-out] lg:flex-1 lg:overflow-y-auto lg:p-6">
             <h1 className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px]">{step.title}</h1>
             <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">{step.hint}</p>
@@ -212,7 +212,6 @@ const Wizard: React.FC = () => {
                   styles={state.styles}
                   assignments={state.assignments}
                   renderUrl={renderUrl}
-                  shareUrl={shareUrl}
                   onEdit={go}
                   onReset={() => {
                     setPaint(null);
@@ -230,10 +229,12 @@ const Wizard: React.FC = () => {
             className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur lg:static lg:rounded-b-2xl lg:bg-white/80 lg:px-6 lg:pb-5"
           >
             <div className="mx-auto flex max-w-[1280px] items-center gap-3">
-              <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-spruce-soft">
-                {step.kind === 'summary' ? `${designSteps} ${designSteps === 1 ? 'choice' : 'choices'}` : step.kind === 'design' ? (look ? 'Your design so far' : 'Pick one, or skip with Next') : ''}
-                {step.kind !== 'summary' && look && <span className="mt-0.5 block truncate text-[14px] font-medium text-spruce">{look}</span>}
-              </p>
+              {step.kind !== 'summary' && (
+                <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-spruce-soft">
+                  {step.kind === 'design' ? (look ? 'Your design so far' : 'Pick one, or skip with Next') : ''}
+                  {look && <span className="mt-0.5 block truncate text-[14px] font-medium text-spruce">{look}</span>}
+                </p>
+              )}
               <button
                 type="button"
                 data-testid="back"
@@ -253,6 +254,16 @@ const Wizard: React.FC = () => {
                 >
                   {index === last - 1 ? 'See my design' : 'Next'}
                 </button>
+              )}
+              {/* The last step's one action, where Next is on the others */}
+              {step.kind === 'summary' && (
+                <a
+                  href={quoteHref(scene, steps, state.styles, state.assignments, shareUrl)}
+                  data-testid="quote"
+                  className="grid h-11 min-w-0 flex-1 place-items-center rounded-full bg-spruce px-6 text-sm font-semibold text-paper transition hover:bg-[#2a3a37]"
+                >
+                  Request a quote
+                </a>
               )}
             </div>
           </nav>
