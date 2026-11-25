@@ -17,7 +17,10 @@ import { BrandBar } from './BrandBar';
 import { FinishChoices } from './FinishChoices';
 import { StyleChoices } from './StyleChoices';
 import { SummaryStep } from './SummaryStep';
-import { lookLabel, stepItems, stepMaterial, stepOfItem, wizardSteps } from './wizard';
+import { lookLabel, stepMaterial, stepOfItem, wizardSteps } from './wizard';
+
+// No outline is ever drawn over the picture (the client found borders on it unprofessional)
+const NO_OUTLINE: string[] = [];
 
 // A look shared by link (?scene=…&styles=…&look=…&step=…), else the app's first scene, step 0
 const initialLook = () => {
@@ -72,15 +75,6 @@ const Wizard: React.FC = () => {
   // The finish just applied, rolled on over its items when its look arrives
   const [paint, setPaint] = useState<{ itemIds: string[]; token: number } | null>(null);
 
-  // The step's items get the brass outline for a moment when it opens, to show what it changes
-  const [flash, setFlash] = useState<string[]>([]);
-  useEffect(() => {
-    const items = stepItems(step);
-    setFlash(items);
-    const t = setTimeout(() => setFlash([]), 1400);
-    return () => clearTimeout(t);
-  }, [step]);
-
   const query = encodeLook({ ...state, step: index });
   useEffect(() => window.history.replaceState(null, '', `${window.location.pathname}?${query}`), [query]);
   // The share link opens on the summary
@@ -115,7 +109,7 @@ const Wizard: React.FC = () => {
               scene={scene}
               renderUrl={renderUrl}
               masks={masks}
-              selected={flash}
+              selected={NO_OUTLINE}
               rendering={rendering}
               compare={compare}
               paint={paint}
