@@ -21,10 +21,8 @@ interface Props {
   onSelect: (itemId: string | null, additive: boolean) => void;
 }
 
-// The item under the pointer: a fine white line with a dark halo, so it reads on light and dark
-// finishes alike. Selected items: a fine brass line. Nothing is tinted — the picture stays the picture
-const LINE = [255, 255, 255, 235];
-const HALO = [20, 28, 27, 90];
+// The item under the pointer gets only its name (no outline: the client found a border over the
+// picture unprofessional). Selected items: a fine brass line. Nothing is tinted — the picture stays the picture
 const SELECTED = [201, 160, 98, 255];
 const SELECTED_HALO = [255, 250, 240, 150];
 
@@ -49,8 +47,8 @@ const unionCanvas = (masks: ItemMask[]): HTMLCanvasElement | null => {
 };
 
 /**
- * The scene itself: the current look over the photo. The item under the pointer gets a fine
- * outline and its name, selected items a brass one. A finish just applied is rolled on over its
+ * The scene itself: the current look over the photo. The item under the pointer gets its name
+ * (no outline), selected items a brass one. A finish just applied is rolled on over its
  * items in a few overlapping strokes, then a wet sheen passes over it; any other new look fades
  * in over the previous one. In compare mode a handle wipes between the original photo (left) and
  * the look (right).
@@ -126,18 +124,9 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
           else if (halo[i]) img.data.set(SELECTED_HALO, i * 4);
         }
       }
-      const hovered = hover && !selected.includes(hover.id) && masks.find((m) => m.id === hover.id);
-      if (hovered) {
-        const halo = maskOutline(hovered.mask, 3);
-        const line = maskOutline(hovered.mask, 1);
-        for (let i = 0; i < w * h; i++) {
-          if (line[i]) img.data.set(LINE, i * 4);
-          else if (halo[i]) img.data.set(HALO, i * 4);
-        }
-      }
     }
     ctx.putImageData(img, 0, 0);
-  }, [masks, hover?.id, compare, selected.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [masks, compare, selected.join()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const promote = (url: string) => {
     setShown(url);

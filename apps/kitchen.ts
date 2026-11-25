@@ -8,7 +8,7 @@ export const KITCHEN_APP: AppConfig = {
   brand: 'Native Coast',
   product: 'Kitchen Appliances',
   noun: 'kitchen',
-  nav: [{ label: 'Layout Designer', current: true }, { label: 'AI Visualiser' }],
+  nav: [{ label: 'Layout Designer', current: true }],
   hero: {
     title: 'Design your dream kitchen',
     blurb: 'Choose your layout, door style, colour and worktop and see them on a real kitchen as you go. Then download your design or ask for a quote.',
