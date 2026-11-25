@@ -18,7 +18,8 @@ interface Props {
   paint: { itemIds: string[]; token: number } | null;
   // A design style just changed: a soft light sweeps across that area (photo px)
   sweep?: { rect: { x: number; y: number; w: number; h: number }; token: number; width: number; height: number } | null;
-  onSelect: (itemId: string | null, additive: boolean) => void;
+  // Without it a click on the picture does nothing (the configurator: no jumping between steps)
+  onSelect?: (itemId: string | null, additive: boolean) => void;
 }
 
 // The item under the pointer gets only its name (no outline: the client found a border over the
@@ -215,7 +216,7 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
     <div
       ref={boxRef}
       data-testid="scene-canvas"
-      className={`relative select-none overflow-hidden rounded-xl bg-mist ring-1 ring-line shadow-[0_24px_60px_-28px_rgba(30,43,41,0.45)] touch-none ${compare ? 'cursor-ew-resize' : hover ? 'cursor-pointer' : 'cursor-default'}`}
+      className={`relative select-none overflow-hidden rounded-xl bg-mist ring-1 ring-line shadow-[0_24px_60px_-28px_rgba(30,43,41,0.45)] touch-none ${compare ? 'cursor-ew-resize' : hover && onSelect ? 'cursor-pointer' : 'cursor-default'}`}
       onPointerMove={onMove}
       onPointerLeave={() => setHover(null)}
       onPointerDown={(e) => {
@@ -226,7 +227,7 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
       }}
       onPointerUp={() => (dragging.current = false)}
       onClick={(e) => {
-        if (compare) return;
+        if (compare || !onSelect) return;
         const p = pct(e as unknown as React.PointerEvent);
         onSelect(hitTest(masks, p.x, p.y), e.shiftKey || e.metaKey || e.ctrlKey);
       }}
