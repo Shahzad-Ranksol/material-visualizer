@@ -84,6 +84,11 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Always keep the scrollbar's room, so the page (and the picture) never narrows on a taller step */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   /* Custom luxury scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
