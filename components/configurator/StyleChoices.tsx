@@ -14,6 +14,28 @@ interface Props {
   onPick: (optionId: string) => void;
 }
 
+type Rect = { x: number; y: number; w: number; h: number };
+
+/**
+ * CSS backgrounds that show `frame` of the photo filling a box (stretched to the box's shape, so
+ * give the box the frame's shape), with the design's patch, if any, drawn over it at its place.
+ */
+export const previewBackground = (photo: string, width: number, height: number, frame: Rect, bake: StyleBake | null): React.CSSProperties => {
+  const photoLayer = {
+    size: `${(width / frame.w) * 100}% ${(height / frame.h) * 100}%`,
+    pos: `${frame.w < width ? (frame.x / (width - frame.w)) * 100 : 0}% ${frame.h < height ? (frame.y / (height - frame.h)) * 100 : 0}%`,
+  };
+  const patchLayer = bake && {
+    size: `${(bake.rect.w / frame.w) * 100}% ${(bake.rect.h / frame.h) * 100}%`,
+    pos: `${frame.w !== bake.rect.w ? ((bake.rect.x - frame.x) / (frame.w - bake.rect.w)) * 100 : 0}% ${frame.h !== bake.rect.h ? ((bake.rect.y - frame.y) / (frame.h - bake.rect.h)) * 100 : 0}%`,
+  };
+  return {
+    backgroundImage: patchLayer ? `url(${bake!.patch}), url(${photo})` : `url(${photo})`,
+    backgroundSize: patchLayer ? `${patchLayer.size}, ${photoLayer.size}` : photoLayer.size,
+    backgroundPosition: patchLayer ? `${patchLayer.pos}, ${photoLayer.pos}` : photoLayer.pos,
+  };
+};
+
 /**
  * A step's designs as large cards: each previews the area in that design, cropped straight out
  * of the scene (the design's patch layered over the photo at the same framing).
@@ -22,18 +44,8 @@ export const StyleChoices: React.FC<Props> = ({ scene, group, width, height, act
   const ready = readyStyles(scene.id, group.id);
   if (!ready.length) return null;
   const frame = ready[0].bake.rect;
-  // CSS background geometry that shows `frame` of the photo filling the card
-  const photoLayer = {
-    size: `${(width / frame.w) * 100}% ${(height / frame.h) * 100}%`,
-    pos: `${frame.w < width ? (frame.x / (width - frame.w)) * 100 : 0}% ${frame.h < height ? (frame.y / (height - frame.h)) * 100 : 0}%`,
-  };
   const card = (id: string, label: string, bake: StyleBake | null) => {
     const active = id === activeId;
-    // The patch framed the same way as the photo (its own rect inside the shared frame)
-    const patchLayer = bake && {
-      size: `${(bake.rect.w / frame.w) * 100}% ${(bake.rect.h / frame.h) * 100}%`,
-      pos: `${frame.w > bake.rect.w ? ((bake.rect.x - frame.x) / (frame.w - bake.rect.w)) * 100 : 0}% ${frame.h > bake.rect.h ? ((bake.rect.y - frame.y) / (frame.h - bake.rect.h)) * 100 : 0}%`,
-    };
     return (
       <button
         key={id}
@@ -48,12 +60,7 @@ export const StyleChoices: React.FC<Props> = ({ scene, group, width, height, act
       >
         <span
           className="relative block overflow-hidden rounded-lg bg-no-repeat"
-          style={{
-            aspectRatio: `${Math.min(2, Math.max(1.1, frame.w / frame.h))}`,
-            backgroundImage: patchLayer ? `url(${bake!.patch}), url(${scene.photo})` : `url(${scene.photo})`,
-            backgroundSize: patchLayer ? `${patchLayer.size}, ${photoLayer.size}` : photoLayer.size,
-            backgroundPosition: patchLayer ? `${patchLayer.pos}, ${photoLayer.pos}` : photoLayer.pos,
-          }}
+          style={{ aspectRatio: `${Math.min(2, Math.max(1.1, frame.w / frame.h))}`, ...previewBackground(scene.photo, width, height, frame, bake) }}
         >
           {active && (
             <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-spruce text-paper">

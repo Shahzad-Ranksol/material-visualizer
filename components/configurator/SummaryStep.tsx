@@ -2,7 +2,11 @@ import React from 'react';
 import { ChevronRight, Download, RotateCcw } from 'lucide-react';
 import { APP } from '../../apps';
 import { Scene } from '../../scenes/types';
-import { stepMaterial, stepStyle, WizardStep } from './wizard';
+import { BAKED } from '../../scenes/baked';
+import { ORIGINAL } from '../../scenes/styles';
+import { styleBake } from '../../scenes/stylesBaked';
+import { previewBackground } from './StyleChoices';
+import { readyStyles, stepMaterial, stepStyle, WizardStep } from './wizard';
 
 interface Props {
   scene: Scene;
@@ -10,18 +14,13 @@ interface Props {
   styles: Record<string, string>;
   assignments: Record<string, string>;
   renderUrl: string | null;
-  // The design's link, written into the quote request so the showroom sees the same design
-  shareUrl: string;
   onEdit: (stepIndex: number) => void;
   onReset: () => void;
 }
 
-/**
- * The last step: the design's choices as a specification (each one a tap to change it), then one
- * clear action, Request a quote, with Download and Start over beside it.
- */
-export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments, renderUrl, shareUrl, onEdit, onReset }) => {
-  const rows = steps
+// The design's choices, one row per design step: what it is and what was chosen
+const summaryRows = (steps: WizardStep[], styles: Record<string, string>, assignments: Record<string, string>) =>
+  steps
     .map((s, index) => ({ s, index }))
     .filter((r): r is { s: Extract<WizardStep, { kind: 'design' }>; index: number } => r.s.kind === 'design')
     .map(({ s, index }) => {
@@ -33,14 +32,39 @@ export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments
         title: s.title.replace(/^(Pick|Choose|Add|Finish) (your |a |an |the )?/i, ''),
         value,
         material,
+        groupId: s.styleGroup?.id,
         index,
       };
     });
-  const changed = rows.some((r) => r.value !== 'As shown');
 
-  const quoteBody = encodeURIComponent(
+/** A design row's thumbnail: the middle of the design's area, in the chosen design (or as shown). */
+const DesignThumb: React.FC<{ scene: Scene; groupId: string; optionId: string }> = ({ scene, groupId, optionId }) => {
+  const baked = BAKED[scene.id];
+  const area = readyStyles(scene.id, groupId)[0]?.bake.rect;
+  if (!baked || !area) return <span className="h-10 w-10 shrink-0 rounded-lg bg-mist ring-1 ring-black/5" />;
+  const side = Math.min(area.w, area.h);
+  const frame = { x: area.x + (area.w - side) / 2, y: area.y + (area.h - side) / 2, w: side, h: side };
+  const bake = optionId === ORIGINAL ? null : (styleBake(scene.id, groupId, optionId) ?? null);
+  return <span className="h-10 w-10 shrink-0 rounded-lg bg-no-repeat ring-1 ring-black/10" style={previewBackground(scene.photo, baked.width, baked.height, frame, bake)} />;
+};
+
+/** Request a quote: an email to the showroom with the choices and the design's link. */
+export const quoteHref = (scene: Scene, steps: WizardStep[], styles: Record<string, string>, assignments: Record<string, string>, shareUrl: string) => {
+  const rows = summaryRows(steps, styles, assignments);
+  const body = encodeURIComponent(
     `Hello,\n\nI'd like a quote for this ${APP.noun} design (${scene.title}):\n\n${rows.map((r) => `• ${r.title}: ${r.value}`).join('\n')}\n\nDesign link: ${shareUrl}\n`,
   );
+  return `mailto:${APP.quoteEmail ?? ''}?subject=${encodeURIComponent(`Quote request: ${APP.brand} ${APP.product}`)}&body=${body}`;
+};
+
+/**
+ * The last step: the design's choices as a specification (each one a tap to change it), with
+ * Download and Start over under them. Its one clear action, Request a quote, sits at the foot of
+ * the card where Next is on the other steps (`quoteHref`), so the whole step fits without scrolling.
+ */
+export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments, renderUrl, onEdit, onReset }) => {
+  const rows = summaryRows(steps, styles, assignments);
+  const changed = rows.some((r) => r.value !== 'As shown');
 
   return (
     <section aria-label="Your design">
@@ -52,10 +76,12 @@ export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments
               type="button"
               onClick={() => onEdit(r.index)}
               aria-label={`${r.title}: ${r.value}. Change`}
-              className={`group flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition hover:bg-mist/50 ${k ? 'border-t border-line' : ''}`}
+              className={`group flex w-full items-center gap-3.5 px-4 py-3 text-left transition hover:bg-mist/50 ${k ? 'border-t border-line' : ''}`}
             >
               {r.material ? (
                 <img src={r.material.thumbnail} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover ring-1 ring-black/10" />
+              ) : r.groupId ? (
+                <DesignThumb scene={scene} groupId={r.groupId} optionId={styles[r.groupId] ?? ORIGINAL} />
               ) : (
                 <span className="h-10 w-10 shrink-0 rounded-lg bg-mist ring-1 ring-black/5" />
               )}
@@ -69,14 +95,7 @@ export const SummaryStep: React.FC<Props> = ({ scene, steps, styles, assignments
         ))}
       </ul>
 
-      <a
-        href={`mailto:${APP.quoteEmail ?? ''}?subject=${encodeURIComponent(`Quote request: ${APP.brand} ${APP.product}`)}&body=${quoteBody}`}
-        data-testid="quote"
-        className="mt-5 block rounded-full bg-spruce px-4 py-3.5 text-center text-[15px] font-semibold tracking-wide text-paper shadow-[0_14px_28px_-18px_rgba(30,43,41,0.9)] transition hover:bg-[#2a3a37]"
-      >
-        Request a quote
-      </a>
-      <div className="mt-3 flex items-center justify-between gap-3 px-1">
+      <div className="mt-4 flex items-center justify-between gap-3 px-1">
         <a
           href={renderUrl ?? undefined}
           download={`${scene.id}-design.png`}

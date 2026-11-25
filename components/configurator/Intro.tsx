@@ -29,7 +29,7 @@ export const Intro: React.FC = () => {
           {scene ? (
             <PictureFrame aspect={sceneAspect(scene.id)}>
               <img key={scene.id} src={scene.photo} alt={`${scene.title}: ${scene.tagline}`} className="block h-full w-full object-cover motion-safe:animate-[pop-in_260ms_ease-out]" />
-              <span className="absolute left-3 top-3 max-w-[85%] truncate rounded-full bg-paper/95 px-3.5 py-1.5 text-[12.5px] font-medium text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+              <span className="absolute left-2.5 top-2.5 max-w-[85%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:left-3 sm:top-3 sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
                 {scene.tagline}
               </span>
             </PictureFrame>
@@ -38,10 +38,10 @@ export const Intro: React.FC = () => {
           )}
         </div>
 
-        <div className="lg:relative">
+        <div className="xl:relative">
           {several && scene ? (
             <section
-              className="overflow-hidden rounded-2xl border border-line bg-white/70 lg:absolute lg:inset-0 lg:flex lg:flex-col"
+              className="overflow-hidden rounded-2xl border border-line bg-white/70 lg:flex lg:flex-col xl:absolute xl:inset-0"
               aria-labelledby="hero-title"
             >
               <div className="p-5 sm:p-6 lg:flex-1 lg:overflow-y-auto">
