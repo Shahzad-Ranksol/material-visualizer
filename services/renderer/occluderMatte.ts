@@ -10,6 +10,11 @@
  * the visible surface close by. The occluder there becomes that alpha (never more than it was),
  * and `background` gives the old surface's colour, so the composite can swap exactly the old
  * surface's share for the new finish: out = photo + (1 − occluder) × (new − background).
+ *
+ * An occluder whose edge is already soft (anti-aliased: a traced lamp shade, a soft-protected
+ * frond) is left as it is within SOFT_NEAR px of that edge: its alpha is better than an estimate,
+ * and where object and surface are close in colour (a white shade on cream paint) the estimate
+ * scatters, leaving a ragged, pale-stepped edge.
  */
 export interface OccluderMatte {
   occluder: Float32Array;
@@ -24,6 +29,9 @@ const RADIUS = 5;
 const MIN_CONTRAST = 24;
 // Bias toward keeping the object (a highlight on chrome resembles a white wall)
 const KEEP_BIAS = 1.25;
+// Pixels this close to a soft occluder value keep the baked alpha
+const SOFT_NEAR = 2;
+const isSoft = (v: number) => v > 0.04 && v < 0.96;
 
 export const matteOccluder = (rgba: ArrayLike<number>, mask: Float32Array, occluder: Float32Array, w: number, h: number): OccluderMatte => {
   const n = w * h;
@@ -51,8 +59,16 @@ export const matteOccluder = (rgba: ArrayLike<number>, mask: Float32Array, occlu
     }
     frontier = next;
   }
+  const softNear = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
-    if (dist[i] === 0 || dist[i] > BAND || mask[i] < 0.5) continue;
+    if (!isSoft(occluder[i])) continue;
+    const x = i % w;
+    const y = (i - x) / w;
+    for (let yy = Math.max(0, y - SOFT_NEAR); yy <= Math.min(h - 1, y + SOFT_NEAR); yy++)
+      for (let xx = Math.max(0, x - SOFT_NEAR); xx <= Math.min(w - 1, x + SOFT_NEAR); xx++) softNear[yy * w + xx] = 1;
+  }
+  for (let i = 0; i < n; i++) {
+    if (dist[i] === 0 || dist[i] > BAND || mask[i] < 0.5 || softNear[i]) continue;
     const x = i % w;
     const y = (i - x) / w;
     let fr = 0, fg = 0, fb = 0, fn = 0;

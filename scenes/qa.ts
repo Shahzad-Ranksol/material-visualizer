@@ -92,6 +92,10 @@ export const SCENE_QA: Record<string, ItemQa> = {
   // (their style bakes once left these in the old cream; filled from the base fronts)
   'kitchen/kitchen-doors--slab/base-cabinets': { include: [[143, 600], [143, 520], [1188, 600], [1188, 540], [300, 504], [900, 504]] },
   'kitchen/kitchen-doors--fluted/base-cabinets': { include: [[143, 600], [143, 520], [1188, 600], [1188, 540], [300, 504], [900, 504]] },
+  // Beside the right-hand pendant: the door styles' wall-cabinet occluders were a rough cut of the
+  // lamp, wider than it, leaving the design's unpainted surface around it; now the base's clean one
+  'kitchen/kitchen-doors--slab/wall-cabinets': { include: [[889, 178], [890, 180], [875, 240]] },
+  'kitchen/kitchen-doors--fluted/wall-cabinets': { include: [[889, 178], [890, 180], [875, 240]] },
   // Modern kitchen: the plain wall behind the worktop is splashback (one protect click took it as an
   // object once), the pampas grass, tap, pan and vase before it are not; the induction hob is not worktop
   // The back wall's strip beside the window runs up to the ceiling; above it is ceiling, right of it
