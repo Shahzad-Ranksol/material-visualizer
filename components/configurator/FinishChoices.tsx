@@ -18,9 +18,15 @@ const KINDS: Array<{ label: string; has: (m: StudioMaterial) => boolean }> = [
 /** A step's finishes as swatches, grouped Paints / Woods / Stone; the chosen one again takes it off. */
 export const FinishChoices: React.FC<Props> = (props) => {
   const groups = KINDS.map((k) => ({ label: k.label, materials: props.materials.filter(k.has) })).filter((g) => g.materials.length);
-  if (groups.length < 2) return <Swatches {...props} />;
+  if (groups.length < 2) return (
+    <>
+      <Chosen {...props} />
+      <Swatches {...props} />
+    </>
+  );
   return (
     <div className="space-y-4">
+      <Chosen {...props} />
       {groups.map((g) => (
         <div key={g.label}>
           <h3 className="mb-2.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">{g.label}</h3>
@@ -31,8 +37,26 @@ export const FinishChoices: React.FC<Props> = (props) => {
   );
 };
 
+// Phones and tablets: eight small swatches to a row with no names under them (a name can't fit a 36 px tile),
+// and the chosen one named in one line above them
+const Chosen: React.FC<Props> = ({ materials, activeId }) => {
+  const m = materials.find((x) => x.id === activeId);
+  return (
+    <p className="mb-3 flex h-5 items-baseline gap-1.5 text-[13px] lg:hidden" aria-live="polite">
+      {m ? (
+        <>
+          <span className="font-semibold text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
+          <span className="text-spruce-soft">{m.finishType}</span>
+        </>
+      ) : (
+        <span className="text-spruce-soft">Tap a swatch to try it</span>
+      )}
+    </p>
+  );
+};
+
 const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
-  <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-5 sm:gap-x-2.5 lg:grid-cols-4">
+  <div className="grid grid-cols-8 gap-1.5 sm:gap-2.5 lg:grid-cols-4 lg:gap-x-2.5 lg:gap-y-3">
     {materials.map((m) => {
       const active = m.id === activeId;
       return (
@@ -43,24 +67,25 @@ const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
           data-material={m.id}
           aria-pressed={active}
           title={`${m.name}, ${m.finishType}`}
+          aria-label={`${m.name.replace(/ (Lacquer|Veneer)$/, '')}, ${m.finishType}`}
           onClick={() => onPick(active ? null : m.id)}
-          className="group text-left focus:outline-none"
+          className="group min-w-0 text-left focus:outline-none"
         >
           <span
-            className={`relative block aspect-square overflow-hidden rounded-xl bg-cover bg-center transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_10px_20px_-10px_rgba(30,43,41,0.55)] group-focus-visible:ring-2 group-focus-visible:ring-spruce ${
-              active ? 'ring-2 ring-spruce ring-offset-2 ring-offset-paper' : 'ring-1 ring-black/10'
+            className={`relative block aspect-square overflow-hidden rounded-lg bg-cover bg-center transition duration-200 lg:rounded-xl [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:shadow-[0_10px_20px_-10px_rgba(30,43,41,0.55)] group-focus-visible:ring-2 group-focus-visible:ring-spruce ${
+              active ? 'ring-2 ring-spruce ring-offset-1 ring-offset-paper lg:ring-offset-2' : 'ring-1 ring-black/10'
             }`}
             style={{ backgroundImage: `url(${m.thumbnail})` }}
           >
             <span className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/10" />
             {active && (
-              <span className="absolute right-1 top-1 grid h-4 w-4 place-items-center rounded-full bg-spruce text-paper">
+              <span className="absolute right-0.5 top-0.5 grid h-3.5 w-3.5 lg:right-1 lg:top-1 lg:h-4 lg:w-4 place-items-center rounded-full bg-spruce text-paper">
                 <Check className="h-2.5 w-2.5" strokeWidth={3} />
               </span>
             )}
           </span>
-          <span className="mt-1.5 block text-[12.5px] font-semibold leading-tight sm:mt-2 sm:text-[13px] text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
-          <span className="mt-0.5 block text-[12px] leading-snug text-spruce-soft">{m.finishType}</span>
+          <span className="mt-2 hidden truncate text-[13px] font-semibold leading-tight text-spruce lg:block">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
+          <span className="mt-0.5 hidden truncate text-[12px] leading-snug text-spruce-soft lg:block">{m.finishType}</span>
         </button>
       );
     })}
