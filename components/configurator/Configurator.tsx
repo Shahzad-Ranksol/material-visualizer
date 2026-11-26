@@ -101,7 +101,7 @@ const Wizard: React.FC = () => {
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar note={`Step ${index + 1} of ${steps.length}`} progress={{ at: index, of: steps.length }} />
 
-      <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-12 lg:pt-4">
+      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-6 lg:pt-4">
         {/* The picture: pinned under the header on phones, sticky on the left on wide screens */}
         <div className="sticky top-[76px] z-20 -mx-4 self-start bg-paper px-4 pb-2 sm:mx-0 sm:px-0 lg:top-24 lg:pb-0">
           {/* One frame for the front page, every step and layout */}
@@ -117,7 +117,7 @@ const Wizard: React.FC = () => {
               sweep={sweep && baked ? { ...sweep, width: baked.width, height: baked.height } : null}
             />
             {!compare && (
-              <span data-testid="look-chip" className="pointer-events-none absolute left-2.5 top-2.5 max-w-[62%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:left-3 sm:top-3 sm:max-w-[70%] sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+              <span data-testid="look-chip" className="pointer-events-none at-tl absolute max-w-[62%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:max-w-[70%] sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
                 {look || `${scene.title} · as shown`}
               </span>
             )}
@@ -127,7 +127,7 @@ const Wizard: React.FC = () => {
               onClick={() => setCompare((c) => !c)}
               disabled={!renderUrl}
               aria-pressed={compare}
-              className={`absolute bottom-2.5 right-2.5 rounded-full px-3 py-1.5 text-[12px] font-medium sm:bottom-3 sm:right-3 sm:px-3.5 sm:py-2 sm:text-[13px] shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
+              className={`at-br absolute rounded-full px-3 py-1.5 text-[12px] font-medium sm:px-3.5 sm:py-2 sm:text-[13px] shadow-[0_4px_14px_-6px_rgba(30,43,41,0.45)] transition disabled:hidden ${
                 compare ? 'bg-spruce text-paper' : 'bg-paper/95 text-spruce hover:bg-paper'
               }`}
             >
@@ -228,7 +228,7 @@ const Wizard: React.FC = () => {
             aria-label="Steps"
             className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur lg:static lg:rounded-b-2xl lg:bg-white/80 lg:px-6 lg:pb-5"
           >
-            <div className="mx-auto flex max-w-[1280px] items-center gap-3">
+            <div className="mx-auto flex max-w-[1600px] items-center gap-3">
               {step.kind !== 'summary' && (
                 <p className="min-w-0 flex-1 truncate text-[13px] leading-tight text-spruce-soft">
                   {step.kind === 'design' ? (look ? 'Your design so far' : 'Pick one, or skip with Next') : ''}

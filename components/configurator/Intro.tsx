@@ -24,12 +24,12 @@ export const Intro: React.FC = () => {
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar reserveProgress />
       {/* The steps' grid exactly: the picture in the same frame on the left, a card as tall as it on the right */}
-      <main className="mx-auto grid max-w-[1280px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
+      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:pb-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
         <div className="self-start">
           {scene ? (
             <PictureFrame aspect={sceneAspect(scene.id)}>
               <img key={scene.id} src={scene.photo} alt={`${scene.title}: ${scene.tagline}`} className="block h-full w-full object-cover motion-safe:animate-[pop-in_260ms_ease-out]" />
-              <span className="absolute left-2.5 top-2.5 max-w-[85%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:left-3 sm:top-3 sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
+              <span className="at-tl absolute max-w-[85%] truncate rounded-full bg-paper/95 px-2.5 py-1 text-[12px] font-medium sm:px-3.5 sm:py-1.5 sm:text-[12.5px] text-spruce shadow-[0_4px_14px_-6px_rgba(30,43,41,0.4)]">
                 {scene.tagline}
               </span>
             </PictureFrame>
