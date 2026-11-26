@@ -17,7 +17,7 @@ interface Props {
  */
 export const BrandBar: React.FC<Props> = ({ note, progress, reserveProgress }) => (
   <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
-    <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 pb-3 pt-4 sm:px-8 sm:pt-6">
+    <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 pb-3 pt-4 sm:px-8 sm:pt-6">
       <Link to="/" className="flex flex-col leading-none" aria-label={`${APP.brand} ${APP.product}, home`} data-testid="brand">
         <span className="font-serif text-[21px] font-semibold tracking-[-0.005em] text-spruce sm:text-[26px]">{APP.brand}</span>
         <span className="mt-1 text-[9.5px] font-medium uppercase tracking-[0.2em] text-spruce-soft sm:text-[11px]">{APP.product}</span>
@@ -40,13 +40,13 @@ export const BrandBar: React.FC<Props> = ({ note, progress, reserveProgress }) =
     </div>
     {/* The front page keeps the progress row's room, empty, so its picture sits where the steps' does */}
     {reserveProgress && !progress && (
-      <div aria-hidden className="invisible mx-auto hidden max-w-[1280px] items-center gap-3 px-4 pb-2.5 sm:px-8 lg:flex">
+      <div aria-hidden className="invisible mx-auto hidden max-w-[1600px] items-center gap-3 px-4 pb-2.5 sm:px-8 lg:flex">
         <span className="h-[3px] flex-1" />
         {APP.nav?.length ? <span className="shrink-0 text-[12.5px] tabular-nums">Step</span> : null}
       </div>
     )}
     {progress && (
-      <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 pb-2.5 sm:px-8">
+      <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 pb-2.5 sm:px-8">
         <div className="flex flex-1 gap-1" aria-hidden>
           {Array.from({ length: progress.of }, (_, i) => (
             <span key={i} className={`h-[3px] flex-1 rounded-full transition-colors duration-300 ${i <= progress.at ? 'bg-brass' : 'bg-line'}`} />

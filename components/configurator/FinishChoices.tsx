@@ -32,7 +32,7 @@ export const FinishChoices: React.FC<Props> = (props) => {
 };
 
 const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
-  <div className="grid grid-cols-3 gap-x-2.5 gap-y-3 sm:grid-cols-4">
+  <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-5 sm:gap-x-2.5 lg:grid-cols-4">
     {materials.map((m) => {
       const active = m.id === activeId;
       return (
@@ -59,7 +59,7 @@ const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
               </span>
             )}
           </span>
-          <span className="mt-2 block text-[13px] font-semibold leading-tight text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
+          <span className="mt-1.5 block text-[12.5px] font-semibold leading-tight sm:mt-2 sm:text-[13px] text-spruce">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
           <span className="mt-0.5 block text-[12px] leading-snug text-spruce-soft">{m.finishType}</span>
         </button>
       );

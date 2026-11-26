@@ -85,7 +85,11 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
     fadeTimer.current = null;
     frame.current = null;
   };
+  // Which look has started arriving. Safari can load a blob URL before this effect runs, so it
+  // cancels only an arrival of an earlier look, never the one just started for `incoming`
+  const arrived = useRef<string | null>(null);
   useEffect(() => {
+    if (incoming && arrived.current === incoming) return;
     cancelArrival();
     setRolling(false);
   }, [incoming]);
@@ -182,7 +186,10 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
     return true;
   };
 
+  // Each incoming look arrives once (the ref below also starts it if the image is already complete)
   const onIncomingLoad = (el: HTMLImageElement, url: string) => {
+    if (arrived.current === url) return;
+    arrived.current = url;
     const p = pendingPaint.current;
     if (p && !reducedMotion()) {
       pendingPaint.current = null;
@@ -251,6 +258,9 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
           className="absolute inset-0 w-full h-full opacity-0 motion-safe:transition-opacity motion-safe:duration-500"
           style={clip}
           draggable={false}
+          ref={(el) => {
+            if (el?.complete && el.naturalWidth) onIncomingLoad(el, incoming);
+          }}
           onLoad={(e) => onIncomingLoad(e.currentTarget, incoming)}
         />
       )}
@@ -286,8 +296,8 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
       )}
       {compare && (
         <>
-          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-paper/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-spruce-soft">Original</span>
-          <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-spruce px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-paper">Your design</span>
+          <span className="pointer-events-none at-tl absolute rounded-full bg-paper/90 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-spruce-soft">Original</span>
+          <span className="pointer-events-none at-tr absolute rounded-full bg-spruce px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-paper">Your design</span>
         </>
       )}
 
@@ -301,7 +311,7 @@ export const SceneCanvas: React.FC<Props> = ({ scene, renderUrl, masks, selected
       )}
 
       {rendering && (
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-paper/95 px-4 py-2 text-xs font-medium text-spruce shadow-[0_6px_20px_-8px_rgba(30,43,41,0.4)]">
+        <div className="at-b absolute left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-paper/95 px-4 py-2 text-xs font-medium text-spruce shadow-[0_6px_20px_-8px_rgba(30,43,41,0.4)]">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brass" /> Preparing your finish…
         </div>
       )}
