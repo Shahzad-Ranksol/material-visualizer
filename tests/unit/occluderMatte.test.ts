@@ -42,6 +42,18 @@ describe('matteOccluder', () => {
     const { occluder: out } = matteOccluder(rgba, mask, occluder, W, H);
     expect(Array.from(out)).toEqual(Array.from(occluder));
   });
+
+  it('keeps an already anti-aliased edge as baked (a traced lamp shade)', () => {
+    const { rgba, occluder, mask } = setup();
+    // The left side's edge soft: a half-alpha column at x = 10
+    for (let y = 10; y < 30; y++) occluder[y * W + 10] = 0.5;
+    const { occluder: out } = matteOccluder(rgba, mask, occluder, W, H);
+    // Next to the soft edge: the baked alpha, untouched
+    expect(out[20 * W + 10]).toBe(0.5);
+    expect(out[20 * W + 11]).toBe(1);
+    // The hard right side is still matted
+    expect(out[20 * W + 29]).toBe(0);
+  });
 });
 
 describe('softProtect', () => {
