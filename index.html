@@ -75,13 +75,24 @@
   @media (min-width: 2800px) { .app-scale { --app-zoom: 1.85; } }
   @media (min-width: 3400px) { .app-scale { --app-zoom: 2.2; } }
   /* The picture's frame (components/configurator/PictureFrame.tsx), on the front page and every step.
-     Phones: the shape of the app's widest render, never taller than 45% of the screen, the scene's
-     own picture fitted inside it. Wide screens: as tall as the screen leaves room for (from 3:4 of
-     its width, squarer, down to 1.9:1), the picture covering it, cut evenly off the sides (or top and
-     bottom); --crop-x/--crop-y say how much, so the chips on the picture stay inside the frame */
+     The picture always covers its frame, cut evenly off the sides (or top and bottom); --crop-x /
+     --crop-y say how much, so the chips on the picture (.at-*) stay inside the frame.
+     Phones and tablets: portrait, 4:5, but never taller than half the screen (it stays pinned at the
+     top while the step scrolls under it). Wide screens: as tall as the screen leaves room for, from
+     3:4 of its width (squarer) down to 1.9:1 */
   .picture-wrap { container-type: inline-size; }
-  .picture-frame { position: relative; container-type: size; width: 100%; aspect-ratio: var(--frame-aspect); max-height: 45svh; }
-  .picture-box { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(100cqw, 100cqh * var(--scene-aspect)); aspect-ratio: var(--scene-aspect); --crop-x: 0px; --crop-y: 0px; --inset: 0.625rem; }
+  .picture-frame {
+    position: relative; container-type: size; width: 100%; aspect-ratio: 4 / 5; max-height: 50svh;
+    overflow: hidden; border-radius: 1rem;
+    box-shadow: 0 24px 50px -32px rgba(30, 43, 41, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+  .picture-box {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100cqw, 100cqh * var(--scene-aspect)); aspect-ratio: var(--scene-aspect);
+    --crop-x: max(0px, (100cqh * var(--scene-aspect) - 100cqw) / 2);
+    --crop-y: max(0px, (100cqw / var(--scene-aspect) - 100cqh) / 2);
+    --inset: 0.625rem;
+  }
   .at-tl { left: calc(var(--crop-x, 0px) + var(--inset, 0.75rem)); top: calc(var(--crop-y, 0px) + var(--inset, 0.75rem)); }
   .at-tr { right: calc(var(--crop-x, 0px) + var(--inset, 0.75rem)); top: calc(var(--crop-y, 0px) + var(--inset, 0.75rem)); }
   .at-br { right: calc(var(--crop-x, 0px) + var(--inset, 0.75rem)); bottom: calc(var(--crop-y, 0px) + var(--inset, 0.75rem)); }
@@ -91,13 +102,6 @@
     .picture-frame {
       aspect-ratio: auto; max-height: none;
       height: clamp(calc(100cqw / 1.9), calc(100vh / var(--app-zoom, 1) - var(--frame-top, 146px)), calc(100cqw * 3 / 4));
-      overflow: hidden; border-radius: 1rem;
-      box-shadow: 0 24px 50px -32px rgba(30, 43, 41, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.05);
-    }
-    .picture-box {
-      width: max(100cqw, 100cqh * var(--scene-aspect));
-      --crop-x: max(0px, (100cqh * var(--scene-aspect) - 100cqw) / 2);
-      --crop-y: max(0px, (100cqw / var(--scene-aspect) - 100cqh) / 2);
     }
   }
   /* The apps' paper ground from the first paint (the dev pages set their own dark one) */
