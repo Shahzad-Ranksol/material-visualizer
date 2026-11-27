@@ -1,3 +1,4 @@
+import { revealCard, SWIPE_ITEM, swipeRow } from './swipeRow';
 import React from 'react';
 import { ORIGINAL, StyleGroup } from '../../scenes/styles';
 import { Scene, StyleBake } from '../../scenes/types';
@@ -53,8 +54,11 @@ export const StyleChoices: React.FC<Props> = ({ scene, group, width, height, act
         data-testid="style-card"
         data-style={id}
         aria-pressed={active}
-        onClick={() => onPick(id)}
-        className={`group rounded-xl border bg-white p-2 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-spruce ${
+        onClick={(e) => {
+          onPick(id);
+          revealCard(e.currentTarget);
+        }}
+        className={`group ${SWIPE_ITEM} rounded-xl border bg-white p-2 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-spruce ${
           active ? 'border-spruce shadow-[0_10px_24px_-14px_rgba(30,43,41,0.6)]' : 'border-line hover:border-spruce/40'
         }`}
       >
@@ -73,7 +77,7 @@ export const StyleChoices: React.FC<Props> = ({ scene, group, width, height, act
     );
   };
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className={swipeRow(2)}>
       {card(ORIGINAL, 'As shown', null)}
       {ready.map(({ option, bake }) => card(option.id, option.label, bake))}
     </div>
