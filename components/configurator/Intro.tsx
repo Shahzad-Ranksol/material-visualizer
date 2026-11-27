@@ -24,7 +24,7 @@ export const Intro: React.FC = () => {
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar reserveProgress />
       {/* The steps' grid exactly: the picture in the same frame on the left, a card as tall as it on the right */}
-      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-12 pt-2 sm:px-8 lg:pb-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
+      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-28 pt-2 sm:px-8 lg:pb-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
         <div className="self-start">
           {scene ? (
             <PictureFrame aspect={sceneAspect(scene.id)}>
@@ -41,16 +41,16 @@ export const Intro: React.FC = () => {
         <div className="xl:relative">
           {several && scene ? (
             <section
-              className="overflow-hidden rounded-2xl border border-line bg-white/70 lg:flex lg:flex-col xl:absolute xl:inset-0"
+              className="lg:flex lg:flex-col lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:bg-white/70 xl:absolute xl:inset-0"
               aria-labelledby="hero-title"
             >
-              <div className="p-5 sm:p-6 lg:flex-1 lg:overflow-y-auto">
+              <div className="pt-1 lg:flex-1 lg:overflow-y-auto lg:p-6">
                 <h1 id="hero-title" className="font-serif text-[28px] leading-[1.1] text-spruce sm:text-[32px] lg:whitespace-nowrap lg:text-[28px]">
                   {APP.hero.title}
                 </h1>
                 <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">Pick the layout closest to yours. We measure properly on the visit.</p>
                 <h2 className="mb-2.5 mt-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Choose your layout</h2>
-                <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 lg:gap-2" role="radiogroup" aria-label="Layout">
+                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Layout">
                   {APP_SCENES.map((s) => (
                     <button
                       key={s.id}
@@ -59,17 +59,18 @@ export const Intro: React.FC = () => {
                       aria-checked={s.id === scene.id}
                       data-testid={`layout-${s.id}`}
                       onClick={() => setSceneId(s.id)}
-                      className={`rounded-xl border bg-white p-2 text-left transition lg:p-1.5 ${
+                      className={`rounded-xl border bg-white p-1.5 text-left transition ${
                         s.id === scene.id ? 'border-spruce shadow-[0_8px_20px_-14px_rgba(30,43,41,0.7)]' : 'border-line hover:border-spruce/40'
                       }`}
                     >
                       <img src={s.thumbnail} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
-                      <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold leading-snug lg:px-0.5 lg:text-[13px]">{s.title}</span>
+                      <span className="mt-1.5 block px-0.5 pb-0.5 text-[12.5px] font-semibold leading-snug sm:text-[13px]">{s.title}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="border-t border-line bg-paper/60 p-4 sm:px-6 lg:pb-5">
+              {/* Phones: fixed at the bottom, as Back / Next are on the steps */}
+              <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-3 backdrop-blur sm:px-8 lg:static lg:bg-paper/60 lg:px-6 lg:pb-5 lg:pt-4 lg:backdrop-blur-none">
                 <StartButton to={start} label={APP.hero.cta} />
               </div>
             </section>
@@ -104,7 +105,7 @@ const StartButton: React.FC<{ to: string; label: string }> = ({ to, label }) => 
   <Link
     to={to}
     data-testid="start"
-    className="flex items-center justify-center gap-2 rounded-full bg-[#e2c4a5] py-4 text-[15px] font-semibold text-spruce shadow-[0_14px_28px_-18px_rgba(120,84,40,0.9)] transition hover:bg-[#d9b691] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+    className="flex items-center justify-center gap-2 rounded-full bg-[#e2c4a5] py-3 text-[15px] lg:py-4 font-semibold text-spruce shadow-[0_14px_28px_-18px_rgba(120,84,40,0.9)] transition hover:bg-[#d9b691] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
   >
     {label} <ArrowRight className="h-4 w-4" />
   </Link>

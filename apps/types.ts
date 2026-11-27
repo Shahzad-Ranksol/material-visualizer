@@ -15,7 +15,8 @@ export interface DesignStep {
   title: string;
   hint: string;
   style?: string;
-  // `exclude`: material categories not offered on this step (the kitchen's colour step: no woods)
+  // `exclude`: material categories or ids not offered on this step (the kitchen's colour step: no
+  // woods, no Pure White)
   finish?: { itemIds: string[]; label?: string; exclude?: string[] };
 }
 
