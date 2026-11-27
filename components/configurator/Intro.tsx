@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { APP } from '../../apps';
 import { APP_SCENES } from '../../scenes/appScenes';
 import { BrandBar } from './BrandBar';
+import { revealCard, SWIPE_ITEM, swipeRow } from './swipeRow';
 import { PictureFrame, sceneAspect } from './PictureFrame';
 
 /**
@@ -50,8 +51,7 @@ export const Intro: React.FC = () => {
                 </h1>
                 <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">Pick the layout closest to yours. We measure properly on the visit.</p>
                 <h2 className="mb-2.5 mt-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Choose your layout</h2>
-                {/* Phones and tablets: a row to swipe through sideways (the page itself scrolls down as usual); wide screens: three in a row */}
-                <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden" role="radiogroup" aria-label="Layout">
+                <div className={swipeRow(3)} role="radiogroup" aria-label="Layout">
                   {APP_SCENES.map((s) => (
                     <button
                       key={s.id}
@@ -61,9 +61,9 @@ export const Intro: React.FC = () => {
                       data-testid={`layout-${s.id}`}
                       onClick={(e) => {
                         setSceneId(s.id);
-                        e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                        revealCard(e.currentTarget);
                       }}
-                      className={`flex w-[44%] shrink-0 snap-start flex-col rounded-xl border bg-white p-1.5 text-left transition sm:w-[30%] lg:w-auto ${
+                      className={`${SWIPE_ITEM} rounded-xl border bg-white p-1.5 text-left transition ${
                         s.id === scene.id ? 'border-spruce shadow-[0_8px_20px_-14px_rgba(30,43,41,0.7)]' : 'border-line hover:border-spruce/40'
                       }`}
                     >

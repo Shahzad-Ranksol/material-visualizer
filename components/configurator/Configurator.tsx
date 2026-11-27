@@ -14,6 +14,7 @@ import { useComposedScene } from '../studio/useComposedScene';
 import { useLookRender } from '../studio/useLookRender';
 import { useSceneMasks } from '../studio/useSceneMasks';
 import { BrandBar } from './BrandBar';
+import { revealCard, SWIPE_ITEM, swipeRow } from './swipeRow';
 import { PictureFrame, sceneAspect } from './PictureFrame';
 import { FinishChoices } from './FinishChoices';
 import { StyleChoices } from './StyleChoices';
@@ -101,7 +102,7 @@ const Wizard: React.FC = () => {
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar note={`Step ${index + 1} of ${steps.length}`} progress={{ at: index, of: steps.length }} />
 
-      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-6 lg:pt-4">
+      <main className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)] gap-5 px-4 pb-32 pt-2 sm:px-8 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-6 lg:pt-4">
         {/* The picture: pinned under the header on phones, sticky on the left on wide screens */}
         <div className="sticky top-[76px] z-20 -mx-4 self-start bg-paper px-4 pb-2 sm:mx-0 sm:px-0 lg:top-24 lg:pb-0">
           {/* One frame for the front page, every step and layout */}
@@ -149,14 +150,17 @@ const Wizard: React.FC = () => {
 
             <div className="mt-5 space-y-6">
               {step.kind === 'scene' && (
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className={swipeRow(2)}>
                   {APP_SCENES.map((s) => (
                     <button
                       key={s.id}
                       type="button"
                       aria-pressed={s.id === scene.id}
-                      onClick={() => pickScene(s.id)}
-                      className={`rounded-xl border bg-white p-2 text-left transition ${s.id === scene.id ? 'border-spruce' : 'border-line hover:border-spruce/40'}`}
+                      onClick={(e) => {
+                        pickScene(s.id);
+                        revealCard(e.currentTarget);
+                      }}
+                      className={`${SWIPE_ITEM} rounded-xl border bg-white p-2 text-left transition ${s.id === scene.id ? 'border-spruce' : 'border-line hover:border-spruce/40'}`}
                     >
                       <img src={s.thumbnail} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
                       <span className="mt-2 block px-1 pb-0.5 text-[14px] font-semibold">{s.title}</span>

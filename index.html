@@ -82,7 +82,7 @@
      3:4 of its width (squarer) down to 1.9:1 */
   .picture-wrap { container-type: inline-size; }
   .picture-frame {
-    position: relative; container-type: size; width: 100%; aspect-ratio: 4 / 5; max-height: 50svh;
+    position: relative; container-type: size; width: 100%; aspect-ratio: 4 / 5; max-height: min(50svh, 100svh - 400px);
     overflow: hidden; border-radius: 1rem;
     box-shadow: 0 24px 50px -32px rgba(30, 43, 41, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.05);
   }
