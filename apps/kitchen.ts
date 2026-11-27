@@ -22,7 +22,7 @@ export const KITCHEN_APP: AppConfig = {
   steps: [
     { id: 'doors', title: 'Pick your doors', hint: 'The door style sets the look of every cabinet.', style: 'kitchen-doors' },
     // Paints only: the same palette on all three layouts, no wood veneers
-    { id: 'colour', title: 'Choose a colour', hint: 'Paints for the doors and drawers.', finish: { itemIds: FRONTS, label: 'Colour', exclude: ['wood'] } },
+    { id: 'colour', title: 'Choose a colour', hint: 'Paints for the doors and drawers.', finish: { itemIds: FRONTS, label: 'Colour', exclude: ['wood', 'kit-pure-white'] } },
     { id: 'panels', title: 'Accent panels', hint: 'The oak end panels: keep them oak or match the doors.', finish: { itemIds: ['end-panel'] } },
     { id: 'worktop', title: 'Choose a worktop', hint: 'Pick a profile, then the material.', style: 'kitchen-worktop', finish: { itemIds: ['worktop'], label: 'Material' } },
   ],

@@ -37,8 +37,9 @@ export const FinishChoices: React.FC<Props> = (props) => {
   );
 };
 
-// Phones and tablets: eight small swatches to a row with no names under them (a name can't fit a 36 px tile),
-// and the chosen one named in one line above them
+// Five swatches to a row on every screen. Below lg no names under them (a name can't fit a phone's
+// tile), the chosen one named in one line above; in the lg card names on two lines' fixed height
+// (so rows stay aligned)
 const Chosen: React.FC<Props> = ({ materials, activeId }) => {
   const m = materials.find((x) => x.id === activeId);
   return (
@@ -56,7 +57,7 @@ const Chosen: React.FC<Props> = ({ materials, activeId }) => {
 };
 
 const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
-  <div className="grid grid-cols-8 gap-1.5 sm:gap-2.5 lg:grid-cols-4 lg:gap-x-2.5 lg:gap-y-3">
+  <div className="grid grid-cols-5 gap-2 sm:gap-3 lg:gap-x-2.5 lg:gap-y-3">
     {materials.map((m) => {
       const active = m.id === activeId;
       return (
@@ -72,7 +73,7 @@ const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
           className="group min-w-0 text-left focus:outline-none"
         >
           <span
-            className={`relative block aspect-square overflow-hidden rounded-lg bg-cover bg-center transition duration-200 lg:rounded-xl [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:shadow-[0_10px_20px_-10px_rgba(30,43,41,0.55)] group-focus-visible:ring-2 group-focus-visible:ring-spruce ${
+            className={`relative block aspect-square overflow-hidden rounded-lg bg-cover bg-center transition duration-200 sm:rounded-xl [@media(hover:hover)]:group-hover:-translate-y-0.5 [@media(hover:hover)]:group-hover:shadow-[0_10px_20px_-10px_rgba(30,43,41,0.55)] group-focus-visible:ring-2 group-focus-visible:ring-spruce ${
               active ? 'ring-2 ring-spruce ring-offset-1 ring-offset-paper lg:ring-offset-2' : 'ring-1 ring-black/10'
             }`}
             style={{ backgroundImage: `url(${m.thumbnail})` }}
@@ -84,7 +85,7 @@ const Swatches: React.FC<Props> = ({ materials, activeId, onPick }) => (
               </span>
             )}
           </span>
-          <span className="mt-2 hidden truncate text-[13px] font-semibold leading-tight text-spruce lg:block">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
+          <span className="mt-1.5 hidden min-h-[30px] text-[12px] font-semibold leading-[15px] text-spruce lg:line-clamp-2">{m.name.replace(/ (Lacquer|Veneer)$/, '')}</span>
           <span className="mt-0.5 hidden truncate text-[12px] leading-snug text-spruce-soft lg:block">{m.finishType}</span>
         </button>
       );
