@@ -24,7 +24,7 @@ export const Intro: React.FC = () => {
     <div className="app-scale min-h-screen bg-paper font-grotesk text-spruce">
       <BrandBar reserveProgress />
       {/* The steps' grid exactly: the picture in the same frame on the left, a card as tall as it on the right */}
-      <main className="mx-auto grid max-w-[1600px] gap-5 px-4 pb-28 pt-2 sm:px-8 lg:pb-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
+      <main className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)] gap-5 px-4 pb-28 pt-2 sm:px-8 lg:pb-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pt-4">
         <div className="self-start">
           {scene ? (
             <PictureFrame aspect={sceneAspect(scene.id)}>
@@ -50,7 +50,8 @@ export const Intro: React.FC = () => {
                 </h1>
                 <p className="mt-1.5 text-[15px] leading-relaxed text-spruce-soft">Pick the layout closest to yours. We measure properly on the visit.</p>
                 <h2 className="mb-2.5 mt-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-spruce-soft">Choose your layout</h2>
-                <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Layout">
+                {/* Phones and tablets: a row to swipe through sideways (the page itself scrolls down as usual); wide screens: three in a row */}
+                <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-8 sm:scroll-px-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden" role="radiogroup" aria-label="Layout">
                   {APP_SCENES.map((s) => (
                     <button
                       key={s.id}
@@ -58,13 +59,16 @@ export const Intro: React.FC = () => {
                       role="radio"
                       aria-checked={s.id === scene.id}
                       data-testid={`layout-${s.id}`}
-                      onClick={() => setSceneId(s.id)}
-                      className={`rounded-xl border bg-white p-1.5 text-left transition ${
+                      onClick={(e) => {
+                        setSceneId(s.id);
+                        e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                      }}
+                      className={`flex w-[44%] shrink-0 snap-start flex-col rounded-xl border bg-white p-1.5 text-left transition sm:w-[30%] lg:w-auto ${
                         s.id === scene.id ? 'border-spruce shadow-[0_8px_20px_-14px_rgba(30,43,41,0.7)]' : 'border-line hover:border-spruce/40'
                       }`}
                     >
                       <img src={s.thumbnail} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
-                      <span className="mt-1.5 block px-0.5 pb-0.5 text-[12.5px] font-semibold leading-snug sm:text-[13px]">{s.title}</span>
+                      <span className="mt-1.5 block truncate px-0.5 pb-0.5 text-[13px] font-semibold leading-snug lg:whitespace-normal lg:text-[12.5px]">{s.title}</span>
                     </button>
                   ))}
                 </div>
